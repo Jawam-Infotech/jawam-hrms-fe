@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="1280" viewBox="0 0 980 1280" preserveAspectRatio="xMidYMid slice">
+  <rect width="980" height="1280" fill="#dbe7ef"/>
+  <rect x="0" y="0" width="980" height="1280" fill="#eef5f7"/>
+  <rect x="630" y="0" width="10" height="1280" fill="#1f2937" opacity=".22"/>
+  <rect x="914" y="0" width="4" height="1280" fill="#1f2937" opacity=".45"/>
+  <path d="M0 1240h980v40H0z" fill="#1f2937" opacity=".55"/>
+  <path d="M-110 720C70 610 177 552 318 425c-47 151-79 290-97 478C127 835 32 789-110 720Z" fill="#134e31" opacity=".65"/>
+  <path d="M72 1046c177-186 291-292 485-458-76 193-124 341-168 569-92-48-188-84-317-111Z" fill="#166534" opacity=".5"/>
+  <path d="M472 1090c100-113 178-187 330-286-65 118-97 208-130 345-54-28-116-48-200-59Z" fill="#84cc16" opacity=".45"/>
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#334155" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" opacity=".38">Replace with /images/login-bg</text>
+</svg>
