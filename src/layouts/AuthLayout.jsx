@@ -81,31 +81,29 @@ function AuthLayout() {
     'c@gmail.com': { role: 'admin', name: 'CEO', route: '/dashboard/ceo' },
   }
 
-  const handleSubmit = (event) => {
-    event.preventDefault()
-    setErrorMessage('')
-    setIsLoading(true)
+const roleToDashboard = {
+  employee: '/dashboard',
+  manager: '/dashboard/team-leader',
+  hr: '/dashboard/hr',
+  admin: '/dashboard/ceo',
+}
 
-    window.setTimeout(() => {
-      const normalizedEmail = email.trim().toLowerCase()
-      const credentials = credentialMap[normalizedEmail]
+const handleSubmit = async (event) => {
+  event.preventDefault()
+  setErrorMessage('')
+  setIsLoading(true)
 
-      if (credentials && password === '1234') {
-        login({
-          id: normalizedEmail,
-          name: credentials.name,
-          email: normalizedEmail,
-          role: credentials.role,
-        })
-        setIsLoading(false)
-        navigate(credentials.route)
-        return
-      }
-
-      setIsLoading(false)
-      setErrorMessage('Invalid email or password. Use the provided credentials.')
-    }, 900)
+  try {
+    const loggedInUser = await login(email.trim().toLowerCase(), password)
+    navigate(roleToDashboard[loggedInUser.role] || '/dashboard')
+  } catch (error) {
+    setErrorMessage(
+      error.response?.data?.detail || 'Invalid email or password. Please try again.'
+    )
+  } finally {
+    setIsLoading(false)
   }
+}
 
   return (
     <main className="flex min-h-screen flex-col bg-[#f5fbf8] text-[#020617] antialiased">

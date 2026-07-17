@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import ProtectedRoute from './ProtectedRoute.jsx'
 import AuthLayout from '../layouts/AuthLayout.jsx'
 import ForgotPasswordLayout from '../layouts/ForgotPasswordLayout.jsx'
 import EmployeeDashboard from '../pages/dashboard/EmployeeDashboard.jsx'
@@ -31,33 +32,217 @@ function AppRoutes() {
   return (
     <Router>
       <Routes>
+        {/* Public routes — no login required */}
         <Route path="/login" element={<AuthLayout />} />
         <Route path="/forgot-password" element={<ForgotPasswordLayout />} />
-        <Route path="/dashboard" element={<EmployeeDashboard />} />
-        <Route path="/dashboard/team-leader" element={<TeamLeaderDashboard />} />
-        <Route path="/dashboard/hr" element={<HRDashboard />} />
-        <Route path="/dashboard/ceo" element={<CEODashboard />} />
-        <Route path="/employees" element={<EmployeeModule />} />
-        <Route path="/employees/:id" element={<EmployeeProfile />} />
-        <Route path="/attendance" element={<Attendance />} />
-        <Route path="/attendance/team" element={<TeamAttendance />} />
-        <Route path="/attendance/company" element={<CEOAttendance />} />
-        <Route path="/workupdate" element={<WorkUpdate />} />
-        <Route path="/leave" element={<Leave />} />
-        <Route path="/performance" element={<Performance />} />
-        <Route path="/payroll" element={<Payroll />} />
-        <Route path="/timesheet" element={<Timesheet />} />
-        <Route path="/learning" element={<LearningDashboard />} />
-        <Route path="/learning/my-learning" element={<MyLearning />} />
-        <Route path="/learning/library" element={<TrainingLibrary />} />
-        <Route path="/learning/ai-interviews" element={<AIInterview />} />
-        <Route path="/learning/ai-interviews/report" element={<AIInterviewReport />} />
-        <Route path="/learning/ai-interviews/session" element={<AIInterviewSession />} />
-        <Route path="/learning/calendar" element={<LearningCalendar />} />
-        <Route path="/learning/report" element={<Report />} />
-        <Route path="/assets" element={<Assets />} />
-        <Route path="/projects" element={<Projects />} />
-        <Route path="/projects/:projectId" element={<ProjectDetails />} />
+
+        {/* Role-locked dashboards — each role only sees its own */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['employee']}>
+              <EmployeeDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/team-leader"
+          element={
+            <ProtectedRoute allowedRoles={['manager']}>
+              <TeamLeaderDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/hr"
+          element={
+            <ProtectedRoute allowedRoles={['hr']}>
+              <HRDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/ceo"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <CEODashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Shared pages — any logged-in role can access */}
+        <Route
+          path="/employees"
+          element={
+            <ProtectedRoute>
+              <EmployeeModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees/:id"
+          element={
+            <ProtectedRoute>
+              <EmployeeProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/attendance"
+          element={
+            <ProtectedRoute>
+              <Attendance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/attendance/team"
+          element={
+            <ProtectedRoute allowedRoles={['manager']}>
+              <TeamAttendance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/attendance/company"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <CEOAttendance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/workupdate"
+          element={
+            <ProtectedRoute>
+              <WorkUpdate />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leave"
+          element={
+            <ProtectedRoute>
+              <Leave />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance"
+          element={
+            <ProtectedRoute>
+              <Performance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payroll"
+          element={
+            <ProtectedRoute>
+              <Payroll />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/timesheet"
+          element={
+            <ProtectedRoute>
+              <Timesheet />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/assets"
+          element={
+            <ProtectedRoute>
+              <Assets />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects"
+          element={
+            <ProtectedRoute>
+              <Projects />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects/:projectId"
+          element={
+            <ProtectedRoute>
+              <ProjectDetails />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Learning & Training (jlearn) — shared across roles */}
+        <Route
+          path="/learning"
+          element={
+            <ProtectedRoute>
+              <LearningDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learning/my-learning"
+          element={
+            <ProtectedRoute>
+              <MyLearning />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learning/library"
+          element={
+            <ProtectedRoute>
+              <TrainingLibrary />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learning/ai-interviews"
+          element={
+            <ProtectedRoute>
+              <AIInterview />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learning/ai-interviews/report"
+          element={
+            <ProtectedRoute>
+              <AIInterviewReport />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learning/ai-interviews/session"
+          element={
+            <ProtectedRoute>
+              <AIInterviewSession />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learning/calendar"
+          element={
+            <ProtectedRoute>
+              <LearningCalendar />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learning/report"
+          element={
+            <ProtectedRoute>
+              <Report />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Default redirect */}
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

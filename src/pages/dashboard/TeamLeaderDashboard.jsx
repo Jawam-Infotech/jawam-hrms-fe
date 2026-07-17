@@ -2,7 +2,7 @@ import { useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UserContext } from '../../context/UserContext'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import AttendanceStatusCard from '../../components/shared/AttendanceStatusCard'
+import AttendanceCard from '../../components/shared/AttendanceCard'
 import TimeSheetCard from '../../components/shared/TimeSheetCard'
 import AssignedTaskCard from '../../components/shared/AssignedTaskCard'
 import LeaveBalanceCard from '../../components/shared/LeaveBalanceCard'
@@ -499,7 +499,14 @@ function TeamLeaderDashboard() {
 
         {/* Cards Grid */}
         <div className="grid grid-cols-4 gap-6 max-[1220px]:grid-cols-2 max-[760px]:grid-cols-1">
-          <AttendanceStatusCard checkInTime={checkInTime} breakDuration={breakDurationString} status={attendanceStatus} hasCheckedOut={hasCheckedOut} workingHours={workingHours} />
+          <AttendanceCard
+                      checkInTime={checkInTime}
+                      checkOutTime={checkOutTime}
+                      breakDuration={breakDurationString}
+                      status={attendanceStatus}
+                      hasCheckedOut={hasCheckedOut}
+                      workingHours={workingHours}
+                    />
           <TimeSheetCard />
           <AssignedTaskCard />
           <LeaveBalanceCard />
