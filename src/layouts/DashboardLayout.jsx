@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { UserContext } from '../context/UserContext'
+import { NAV_CONFIG } from '../config/navigation'
 
 function DashboardLayout({ children }) {
   const { user, logout } = useContext(UserContext)
@@ -8,85 +9,7 @@ function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [profileOpen, setProfileOpen] = useState(false)
 
-  // Role-specific menu items
-  const getMenuItems = () => {
-    // determine dashboard route by role
-    const dashboardPath = user.role === 'manager'
-      ? '/dashboard/team-leader'
-      : user.role === 'hr'
-      ? '/dashboard/hr'
-      : user.role === 'admin'
-      ? '/dashboard/ceo'
-      : '/dashboard'
-
-    const baseItems = [
-      { id: 'dashboard', label: 'Dashboard', icon: '📊', path: dashboardPath },
-    ]
-
-    switch (user.role) {
-      case 'employee':
-        return [
-          ...baseItems,
-          { id: 'employees', label: 'Employees', icon: '👥', path: '/employees' },
-          { id: 'attendance', label: 'Attendance', icon: '⏰', path: '/attendance' },
-          { id: 'timesheet', label: 'Timesheet', icon: '📋', path: '/timesheet' },
-          { id: 'workupdate', label: 'Work Update', icon: '📝', path: '/workupdate' },
-          { id: 'leave', label: 'Leave', icon: '🏖️', path: '/leave' },
-          { id: 'projects', label: 'Projects', icon: '📁', path: '/projects' },
-          { id: 'learning', label: 'Learning and Training', icon: '🎓', path: '/learning' },
-          { id: 'performance', label: 'Performance', icon: '⭐', path: '/performance' },
-          { id: 'payroll', label: 'Payroll', icon: '💰', path: '/payroll' },
-          { id: 'assets', label: 'Assets', icon: '🔧', path: '/assets' },
-        ]
-        case 'manager':
-        return [
-          ...baseItems,
-          { id: 'employees', label: 'Employees', icon: '👥', path: '/employees' },
-          { id: 'attendance', label: 'Attendance', icon: '⏰', path: '/attendance' },
-          { id: 'timesheet', label: 'Timesheet', icon: '📋', path: '/timesheet' },
-          { id: 'workupdate', label: 'Work Update', icon: '📝', path: '/workupdate' },
-          { id: 'leave', label: 'Leave', icon: '🏖️', path: '/leave' },
-          { id: 'projects', label: 'Projects', icon: '📁', path: '/projects' },
-          { id: 'learning', label: 'Learning and Training', icon: '🎓', path: '/learning' },
-          { id: 'performance', label: 'Performance', icon: '⭐', path: '/performance' },
-          { id: 'payroll', label: 'Payroll', icon: '💰', path: '/payroll' },
-          { id: 'assets', label: 'Assets', icon: '🖥️', path: '/assets' },
-        ]
-        case 'hr':
-        return [
-          ...baseItems,
-          { id: 'employees', label: 'Employees', icon: '👥', path: '/employees' },
-          { id: 'recruitment', label: 'Recruitment', icon: '🎯', path: '/recruitment' },
-          { id: 'leave', label: 'Leave', icon: '🏖️', path: '/leave' },
-          { id: 'payroll', label: 'Payroll', icon: '💰', path: '/payroll' },
-          { id: 'reports', label: 'Reports', icon: '📊', path: '/reports' },
-          { id: 'performance', label: 'Performance', icon: '⭐', path: '/performance' },
-        ]
-        case 'admin':
-        return [
-          ...baseItems,
-          { id: 'employees', label: 'Employees', icon: '👥', path: '/employees' },
-          { id: 'clients', label: 'Clients', icon: '🤝', path: '/clients' },
-          { id: 'attendance', label: 'Attendance', icon: '⏰', path: '/attendance' },
-          { id: 'timesheet', label: 'Timesheet', icon: '📋', path: '/timesheet' },
-          { id: 'workupdate', label: 'Work Update', icon: '📝', path: '/workupdate' },
-          { id: 'recruitment', label: 'Recruitment', icon: '🎯', path: '/recruitment' },
-          { id: 'leave', label: 'Leave', icon: '🏖️', path: '/leave' },
-          { id: 'projects', label: 'Projects', icon: '📁', path: '/projects' },
-          { id: 'learning', label: 'Learning and Training', icon: '🎓', path: '/learning' },
-          { id: 'expenses', label: 'Expenses', icon: '💸', path: '/expenses' },
-          { id: 'performance', label: 'Performance', icon: '⭐', path: '/performance' },
-          { id: 'payroll', label: 'Payroll', icon: '💰', path: '/payroll' },
-          { id: 'assets', label: 'Assets', icon: '🔧', path: '/assets' },
-          { id: 'reports', label: 'Reports', icon: '📊', path: '/reports' },
-          { id: 'invoice', label: 'Invoice', icon: '📄', path: '/invoice' },
-        ]
-      default:
-        return baseItems
-    }
-  }
-
-  const menuItems = getMenuItems()
+  const menuItems = NAV_CONFIG[user.role] || []
   const location = useLocation()
 
   // Sidebar width/transform behavior:

@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './ProtectedRoute.jsx'
-import AuthLayout from '../layouts/AuthLayout.jsx'
+import LoginPage from '../pages/auth/LoginPage.jsx'
 import ForgotPasswordLayout from '../layouts/ForgotPasswordLayout.jsx'
+import NotFound from '../pages/NotFound.jsx'
 import EmployeeDashboard from '../pages/dashboard/EmployeeDashboard.jsx'
 import TeamLeaderDashboard from '../pages/dashboard/TeamLeaderDashboard.jsx'
 import HRDashboard from '../pages/dashboard/HRDashboard.jsx'
@@ -33,7 +34,7 @@ function AppRoutes() {
     <Router>
       <Routes>
         {/* Public routes — no login required */}
-        <Route path="/login" element={<AuthLayout />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordLayout />} />
 
         {/* Role-locked dashboards — each role only sees its own */}
@@ -244,6 +245,9 @@ function AppRoutes() {
 
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/login" replace />} />
+
+        {/* Catch-all — unmatched paths */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   )
