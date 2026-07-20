@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { requestOtp, verifyOtp, resetPasswordOtp } from '../services/authService'
 
@@ -12,76 +12,9 @@ function LogoMark() {
   )
 }
 
-function FeatureIcon({ type }) {
-  return (
-    <span className="mb-[18px] grid size-16 place-items-center rounded-full bg-white max-[620px]:mb-3 max-[620px]:size-11" aria-hidden="true">
-      {type === 'badge' ? (
-        <svg className="size-[34px] fill-none stroke-[#3a7be0] stroke-[3] max-[620px]:size-6" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M7.2 12.5 10.1 15.4 16.8 8.7" />
-        </svg>
-      ) : (
-        <svg className="size-[34px] fill-[#3a7be0] stroke-[#3a7be0] stroke-[3] max-[620px]:size-6" viewBox="0 0 24 24">
-          <path d="M13 2.8 7.4 11.1h4.1L10.8 21.2 16.6 12.1h-4.1L13 2.8Z" />
-        </svg>
-      )}
-    </span>
-  )
-}
-
-function DotGrid({ position }) {
-  return (
-    <span
-      className={`absolute h-[110px] w-[184px] bg-[radial-gradient(circle,#8db7f8_0_5px,transparent_5.5px)] bg-[length:40px_40px] max-[620px]:h-[76px] max-[620px]:w-[110px] max-[620px]:bg-[radial-gradient(circle,#8db7f8_0_3.5px,transparent_4px)] max-[620px]:bg-[length:26px_26px] ${
-        position === 'top'
-          ? 'right-[22px] top-2 max-[620px]:right-3'
-          : 'bottom-[-8px] left-[92px] max-[620px]:left-[46px]'
-      }`}
-      aria-hidden="true"
-    />
-  )
-}
-
 const cardBase =
   'absolute flex w-[290px] min-h-[275px] translate-y-5 flex-col overflow-hidden rounded-[28px] px-[18px] pb-6 text-[30px] font-extrabold leading-[1.45] tracking-normal opacity-0 shadow-[9px_9px_10px_rgba(15,23,42,0.24)] max-[1220px]:w-[260px] max-[1220px]:min-h-[230px] max-[1220px]:text-[26px] max-[620px]:w-[42%] max-[620px]:min-h-[160px] max-[620px]:rounded-[22px] max-[620px]:px-3.5 max-[620px]:pb-[18px] max-[620px]:text-[clamp(15px,5.5vw,20px)] max-[620px]:leading-[1.42]'
 
-function OTPInput({ value, onChange }) {
-  const inputsRef = useRef([])
-
-  const handleChange = (index, val) => {
-    if (/^\d?$/.test(val)) {
-      const newOtp = value.split('')
-      newOtp[index] = val
-      onChange(newOtp.join(''))
-
-      if (val && index < 5) {
-        inputsRef.current[index + 1]?.focus()
-      }
-    }
-  }
-
-  const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !value[index] && index > 0) {
-      inputsRef.current[index - 1]?.focus()
-    }
-  }
-
-  return (
-    <div className="flex justify-center gap-3 max-[380px]:gap-2">
-      {[...Array(6)].map((_, i) => (
-        <input
-          key={i}
-          ref={(el) => (inputsRef.current[i] = el)}
-          type="text"
-          maxLength="1"
-          value={value[i] || ''}
-          onChange={(e) => handleChange(i, e.target.value)}
-          onKeyDown={(e) => handleKeyDown(i, e)}
-          className="h-[48px] w-[40px] rounded-[9px] border-2 border-[#dedede] bg-white text-center text-[20px] font-extrabold text-[#111827] outline-none transition-[border-color,box-shadow] duration-[250ms] focus:border-[#3a7be0] focus:shadow-[0_0_0_4px_rgba(58,123,224,0.16)] max-[380px]:h-12 max-[380px]:w-9 max-[380px]:text-base"
-        />
-      ))}
-    </div>
-  )
-}
 
 function PasswordEye({ showPassword }) {
   const iconClass = 'absolute inset-0 size-full fill-none stroke-current stroke-[1.8] transition-opacity duration-200'
@@ -120,7 +53,7 @@ function ForgotPasswordLayout() {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
     number: /[0-9]/.test(password),
-    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+    special: /[!@#$%^&*()_+=\u005B\u005D{};':"\\|,.<>/?-]/.test(password),
   }
 
   const isPasswordValid =

@@ -118,14 +118,6 @@ export default function Timesheet() {
 
   const scheduledDayEntries = useMemo(() => scheduleEntries(entriesForDay), [entriesForDay])
 
-  const getMinHeightForDay = (dayEntries) => {
-    if (dayEntries.length === 0) return 200
-    const maxEnd = Math.max(...dayEntries.map((e) => e.computedStart + e.duration))
-    const hourHeight = 32
-    const totalHeight = (maxEnd - 10) * hourHeight + 32
-    return Math.max(200, totalHeight)
-  }
-
   const entriesByDate = useMemo(() => {
     const map = {}
     weekDates.forEach((d) => (map[d] = []))

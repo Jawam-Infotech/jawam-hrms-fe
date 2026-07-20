@@ -1,6 +1,6 @@
-import { useState, useContext, useEffect } from 'react'
+import { useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { UserContext } from '../../context/UserContext'
+import { UserContext } from '../../context/UserContext.jsx'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import AttendanceCard from '../../components/shared/AttendanceCard'
 import TimeSheetCard from '../../components/shared/TimeSheetCard'

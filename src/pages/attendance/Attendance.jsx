@@ -1,7 +1,7 @@
 import { useState, useMemo, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { UserContext } from '../../context/UserContext'
+import { UserContext } from '../../context/UserContext.jsx'
 import { getMonthWeeks } from '../../utils/calendarGrid'
 import { attendanceSummary, attendanceEntries, holidayDates, selectedDay } from '../../data/attendance'
 

@@ -1,6 +1,5 @@
-import { useState, useMemo, useContext } from 'react'
+import { useState } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { UserContext } from '../../context/UserContext'
 
 const initialTasks = [
   { id: '1', name: 'Dashboard UI', project: 'HRMS', progress: 80, status: 'In Progress', updated: false },
@@ -23,7 +22,6 @@ const stats = [
 ]
 
 function WorkUpdate() {
-  const { user } = useContext(UserContext)
   const [tasks, setTasks] = useState(initialTasks)
   const [selectedTask, setSelectedTask] = useState(null)
   const [formState, setFormState] = useState({
@@ -34,12 +32,6 @@ function WorkUpdate() {
     status: 'In Progress',
     attachment: null,
   })
-
-  const activeCounts = useMemo(() => ({
-    inProgress: tasks.filter((task) => task.status === 'In Progress').length,
-    completed: tasks.filter((task) => task.status === 'Completed').length,
-    blocked: tasks.filter((task) => task.status === 'Blocked').length,
-  }), [tasks])
 
   const openModal = (task) => {
     setSelectedTask(task)

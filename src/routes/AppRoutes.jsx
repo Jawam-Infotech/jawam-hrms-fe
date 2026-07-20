@@ -9,6 +9,7 @@ import HRDashboard from '../pages/dashboard/HRDashboard.jsx'
 import CEODashboard from '../pages/dashboard/CEODashboard.jsx'
 import EmployeeModule from '../pages/employees/EmployeeModule.jsx'
 import EmployeeProfile from '../pages/employees/EmployeeProfile.jsx'
+import EmployeeOnboarding from '../pages/employees/EmployeeOnboarding.jsx'
 import Attendance from '../pages/attendance/Attendance.jsx'
 import TeamAttendance from '../pages/attendance/TeamAttendance.jsx'
 import CEOAttendance from '../pages/attendance/CEOAttendance.jsx'
@@ -28,6 +29,7 @@ import AIInterviewReport from '../pages/jlearn/ai_interview/AIInterviewReport.js
 import AIInterviewSession from '../pages/jlearn/ai_interview/AIInterviewSession.jsx'
 import LearningCalendar from '../pages/jlearn/calendar/LearningCalendar.jsx'
 import Report from '../pages/jlearn/report/Report.jsx'
+import ForgotPassword from '../pages/auth/ForgotPassword.jsx'
 
 function AppRoutes() {
   return (
@@ -77,6 +79,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <EmployeeModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees/new"
+          element={
+            <ProtectedRoute allowedRoles={['hr', 'admin']}>
+              <EmployeeOnboarding />
             </ProtectedRoute>
           }
         />
