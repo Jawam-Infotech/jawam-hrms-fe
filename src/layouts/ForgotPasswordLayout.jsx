@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { requestOtp, verifyOtp, resetPasswordOtp } from '../services/authService'
 
 function LogoMark() {
   return (
@@ -112,6 +113,7 @@ function ForgotPasswordLayout() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [resendTimer, setResendTimer] = useState(0)
+  const [errorMessage, setErrorMessage] = useState('')
 
   // Password validation
   const passwordRequirements = {
@@ -134,44 +136,66 @@ function ForgotPasswordLayout() {
     return () => clearInterval(interval)
   }, [resendTimer])
 
-  const handleSendOTP = (e) => {
+  const handleSendOTP = async (e) => {
     e.preventDefault()
+    setErrorMessage('')
     setIsLoading(true)
 
-    setTimeout(() => {
+    try {
+      await requestOtp({ email })
       setStep(2)
       setResendTimer(30)
+    } catch (error) {
+      setErrorMessage(error.response?.data?.detail || 'Failed to send OTP. Please try again.')
+    } finally {
       setIsLoading(false)
-    }, 900)
-  }
-
-  const handleResendOTP = () => {
-    if (resendTimer === 0) {
-      setResendTimer(30)
-      setOtp('')
     }
   }
 
-  const handleVerifyOTP = (e) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const handleResendOTP = async () => {
+    if (resendTimer !== 0) return
 
-    setTimeout(() => {
-      setStep(3)
-      setIsLoading(false)
-    }, 900)
+    setErrorMessage('')
+
+    try {
+      await requestOtp({ email })
+      setResendTimer(30)
+      setOtp('')
+    } catch (error) {
+      setErrorMessage(error.response?.data?.detail || 'Failed to resend OTP. Please try again.')
+    }
   }
 
-  const handleCreatePassword = (e) => {
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault()
+    setErrorMessage('')
+    setIsLoading(true)
+
+    try {
+      await verifyOtp({ email, otp })
+      setStep(3)
+    } catch (error) {
+      setErrorMessage(error.response?.data?.detail || 'Invalid OTP. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleCreatePassword = async (e) => {
     e.preventDefault()
     if (!isPasswordValid) return
 
+    setErrorMessage('')
     setIsLoading(true)
 
-    setTimeout(() => {
+    try {
+      await resetPasswordOtp({ email, otp, password, confirm_password: confirmPassword })
       navigate('/login')
+    } catch (error) {
+      setErrorMessage(error.response?.data?.detail || 'Failed to reset password. Please try again.')
+    } finally {
       setIsLoading(false)
-    }, 900)
+    }
   }
 
   return (
@@ -229,6 +253,12 @@ function ForgotPasswordLayout() {
           </div>
 
           <form className="mt-[28px] w-full max-w-[480px]" onSubmit={step === 1 ? handleSendOTP : step === 2 ? handleVerifyOTP : handleCreatePassword}>
+            {errorMessage && (
+              <div className="mb-5 rounded-[12px] border border-[#f8d7da] bg-[#fdf2f2] px-4 py-3 text-[#842029]">
+                {errorMessage}
+              </div>
+            )}
+
             {/* Step 1: Email */}
             {step === 1 && (
               <div className="mb-5 block">

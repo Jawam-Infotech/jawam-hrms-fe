@@ -52,11 +52,12 @@ api.interceptors.response.use(
     isRefreshing = true
 
     try {
-      // NOTE: confirm this refresh endpoint + response shape with your senior
       const { data } = await axios.post(`${import.meta.env.VITE_API_BASE_URL}auth/refresh/`, {
         refresh: refreshToken,
       })
-      setSession({ accessToken: data.access })
+      // Refresh tokens rotate server-side (ROTATE_REFRESH_TOKENS) — the old
+      // one is blacklisted immediately, so the new one must be stored too.
+      setSession({ accessToken: data.access, refreshToken: data.refresh })
       resolvePending(data.access)
       originalRequest.headers.Authorization = `Bearer ${data.access}`
       return api(originalRequest)

@@ -19,8 +19,8 @@ function DashboardLayout({ children }) {
     ? 'w-[240px] max-[1220px]:w-[220px] max-[760px]:w-[200px] translate-x-0'
     : 'w-20 translate-x-0 max-[760px]:-translate-x-full'
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/login')
   }
 
