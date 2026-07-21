@@ -12,15 +12,18 @@ import CEODashboard from '../pages/dashboard/CEODashboard.jsx'
 import EmployeeModule from '../pages/employees/EmployeeModule.jsx'
 import EmployeeProfile from '../pages/employees/EmployeeProfile.jsx'
 import EmployeeOnboarding from '../pages/employees/EmployeeOnboarding.jsx'
+import Clients from '../pages/clients/Clients.jsx'
 import Attendance from '../pages/attendance/Attendance.jsx'
 import TeamAttendance from '../pages/attendance/TeamAttendance.jsx'
 import CEOAttendance from '../pages/attendance/CEOAttendance.jsx'
 import WorkUpdate from '../pages/workupdate/WorkUpdate.jsx'
+import Recruitment from '../pages/recruitment/Recruitment.jsx'
 import Leave from '../pages/leave/Leave.jsx'
 import Projects from '../pages/projects/Projects.jsx'
 import ProjectDetails from '../pages/projects/ProjectDetails.jsx'
 import Performance from '../pages/performance/Performance.jsx'
 import Payroll from '../pages/payroll/Payroll.jsx'
+import Expenses from '../pages/expenses/Expenses.jsx'
 import Assets from '../pages/assets/Assets.jsx'
 import Timesheet from '../pages/timesheet/Timesheet.jsx'
 import LearningDashboard from '../pages/jlearn/dashboard/LearningDashboard.jsx'
@@ -31,7 +34,8 @@ import AIInterviewReport from '../pages/jlearn/ai_interview/AIInterviewReport.js
 import AIInterviewSession from '../pages/jlearn/ai_interview/AIInterviewSession.jsx'
 import LearningCalendar from '../pages/jlearn/calendar/LearningCalendar.jsx'
 import Report from '../pages/jlearn/report/Report.jsx'
-import ForgotPassword from '../pages/auth/ForgotPassword.jsx'
+import Reports from '../pages/reports/Reports.jsx'
+import Invoice from '../pages/invoice/Invoice.jsx'
 
 function AppRoutes() {
   return (
@@ -89,6 +93,14 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/clients"
+          element={
+            <ProtectedRoute allowedRoles={['hr', 'admin']}>
+              <Clients />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/employees/new"
           element={
             <ProtectedRoute allowedRoles={['hr', 'admin']}>
@@ -137,6 +149,14 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/recruitment"
+          element={
+            <ProtectedRoute allowedRoles={['hr', 'admin']}>
+              <Recruitment />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/leave"
           element={
             <ProtectedRoute>
@@ -149,6 +169,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <Performance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/expenses"
+          element={
+            <ProtectedRoute allowedRoles={['hr', 'admin']}>
+              <Expenses />
             </ProtectedRoute>
           }
         />
@@ -255,6 +283,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <Report />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute allowedRoles={['hr', 'admin']}>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/invoice"
+          element={
+            <ProtectedRoute allowedRoles={['hr', 'admin']}>
+              <Invoice />
             </ProtectedRoute>
           }
         />

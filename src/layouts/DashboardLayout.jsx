@@ -47,6 +47,7 @@ function DashboardLayout({ children }) {
           <nav className="flex-1 space-y-2 overflow-y-auto">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path || location.pathname.startsWith(item.path)
+              const Icon = item.icon
               return (
                 <button
                   key={item.id}
@@ -56,7 +57,9 @@ function DashboardLayout({ children }) {
                     isActive ? 'bg-[#eef6ff] text-[#1e40af] shadow-sm' : 'hover:bg-[#f5fbf8]'
                   }`}
                 >
-                  <span className="text-xl w-6 flex-shrink-0 text-center">{item.icon}</span>
+                  <span className="text-xl w-6 flex-shrink-0 text-center">
+                    {typeof Icon === 'function' ? <Icon /> : Icon}
+                  </span>
                   {sidebarOpen && <span className="text-[#111827]">{item.label}</span>}
                 </button>
               )
