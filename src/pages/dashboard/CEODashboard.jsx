@@ -1,6 +1,6 @@
 import { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { UserContext } from '../../context/UserContext'
+import { UserContext } from '../../context/UserContext.jsx'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import StatCard from '../../components/ui/StatCard'
 import ListSectionCard from '../../components/ui/ListSectionCard'
@@ -95,7 +95,7 @@ function CEODashboard() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate('/employees')}
+              onClick={() => navigate('/employees/new')}
               className="px-6 py-2 rounded-full bg-[#3b82f6] text-white font-extrabold text-[14px] hover:bg-[#2563eb] transition-all"
             >
               Add Employee

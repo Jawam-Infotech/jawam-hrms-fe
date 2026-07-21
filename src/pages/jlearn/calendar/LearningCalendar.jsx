@@ -54,8 +54,10 @@ export default function LearningCalendar() {
   const filteredInterviews = useMemo(() => interviews.filter((interview) => interview.title.toLowerCase().includes(search.toLowerCase()) || interview.type.toLowerCase().includes(search.toLowerCase())), [search])
   const activeWeek = useMemo(() => Array.from({ length: 7 }, (_, index) => addDays(startOfWeek(selectedDate), index)), [selectedDate])
   const dayInterviews = filteredInterviews.filter((interview) => interview.date === formatKey(selectedDate))
-  const monthStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
-  const monthDays = useMemo(() => Array.from({ length: 42 }, (_, index) => addDays(startOfWeek(monthStart), index)), [monthStart])
+  const monthDays = useMemo(() => {
+    const monthStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
+    return Array.from({ length: 42 }, (_, index) => addDays(startOfWeek(monthStart), index))
+  }, [selectedDate])
   const title = view === 'day'
     ? selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
     : view === 'week'

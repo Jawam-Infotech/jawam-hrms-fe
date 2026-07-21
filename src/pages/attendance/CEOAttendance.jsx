@@ -1,6 +1,6 @@
 import { useContext } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { UserContext } from '../../context/UserContext'
+import { UserContext } from '../../context/UserContext.jsx'
 import AttendanceTrendChart from '../../components/shared/AttendanceTrendChart'
 import AttendanceAlertsTable from '../../components/shared/AttendanceAlertsTable'
 import { companyAttendanceSummary, allEmployeeAttendance, companyAttendanceAlerts } from '../../data/companyAttendance'
