@@ -1,6 +1,5 @@
-import { useState, useContext } from 'react'
+import { useState } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { UserContext } from '../../context/UserContext'
 
 const payrollHistory = [
   { period: 'June 2026', status: 'Paid', date: '30 Jun 2026', amount: '₹45,000' },
@@ -141,7 +140,6 @@ function PayslipModal({ isOpen, onClose, data }) {
 }
 
 function Payroll() {
-  const { user } = useContext(UserContext)
   const [selectedPayslip, setSelectedPayslip] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 

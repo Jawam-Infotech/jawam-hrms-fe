@@ -34,8 +34,6 @@ const exploreCourses = [
 // Shared button styles so every action button on this page reads as one family.
 const BUTTON_BASE = 'rounded-full bg-[#2563eb] font-semibold text-white transition hover:bg-[#1d4ed8]'
 const BUTTON_SM = `${BUTTON_BASE} px-3 py-1 text-[12px]`
-const BUTTON_HERO = `${BUTTON_BASE} w-full px-6 py-3.5 text-sm`
-
 export default function MyLearning() {
   return (
     <LearningLayout>

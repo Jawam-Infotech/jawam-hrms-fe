@@ -1,6 +1,5 @@
-import { useState, useContext } from 'react'
+import { useState } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { UserContext } from '../../context/UserContext'
 
 const assignedAssets = [
   { id: 1, name: 'Laptop', dateFrom: '12/03/2026', status: 'Active' },
@@ -161,7 +160,6 @@ function RaiseAssetRequestModal({ isOpen, onClose, initialType = null }) {
 }
 
 function Assets() {
-  const { user } = useContext(UserContext)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalInitialType, setModalInitialType] = useState(null)
 

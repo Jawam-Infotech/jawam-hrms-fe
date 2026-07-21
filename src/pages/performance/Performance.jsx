@@ -1,6 +1,4 @@
-import { useContext } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { UserContext } from '../../context/UserContext'
 
 const summaryData = [
   {
@@ -67,7 +65,6 @@ const focusAreas = [
 ]
 
 function Performance() {
-  const { user } = useContext(UserContext)
 
   return (
     <DashboardLayout>

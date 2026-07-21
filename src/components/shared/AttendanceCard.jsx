@@ -1,4 +1,4 @@
-export default function AttendanceCard({ checkInTime, checkOutTime, breakDuration, status, hasCheckedOut, workingHours }) {
+export default function AttendanceCard({ checkInTime, breakDuration, status, hasCheckedOut, workingHours }) {
   return (
     <div className="bg-white rounded-[16px] border border-[#e5e5e5] p-6 shadow-sm">
       <div className="flex items-center gap-4 mb-4">

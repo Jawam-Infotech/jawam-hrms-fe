@@ -3,12 +3,15 @@ import ProtectedRoute from './ProtectedRoute.jsx'
 import LoginPage from '../pages/auth/LoginPage.jsx'
 import ForgotPasswordLayout from '../layouts/ForgotPasswordLayout.jsx'
 import NotFound from '../pages/NotFound.jsx'
+// import AuthLayout from '../layouts/AuthLayout.jsx'
+// import Login from '../pages/auth/Login.jsx'
 import EmployeeDashboard from '../pages/dashboard/EmployeeDashboard.jsx'
 import TeamLeaderDashboard from '../pages/dashboard/TeamLeaderDashboard.jsx'
 import HRDashboard from '../pages/dashboard/HRDashboard.jsx'
 import CEODashboard from '../pages/dashboard/CEODashboard.jsx'
 import EmployeeModule from '../pages/employees/EmployeeModule.jsx'
 import EmployeeProfile from '../pages/employees/EmployeeProfile.jsx'
+import EmployeeOnboarding from '../pages/employees/EmployeeOnboarding.jsx'
 import Attendance from '../pages/attendance/Attendance.jsx'
 import TeamAttendance from '../pages/attendance/TeamAttendance.jsx'
 import CEOAttendance from '../pages/attendance/CEOAttendance.jsx'
@@ -28,6 +31,7 @@ import AIInterviewReport from '../pages/jlearn/ai_interview/AIInterviewReport.js
 import AIInterviewSession from '../pages/jlearn/ai_interview/AIInterviewSession.jsx'
 import LearningCalendar from '../pages/jlearn/calendar/LearningCalendar.jsx'
 import Report from '../pages/jlearn/report/Report.jsx'
+import ForgotPassword from '../pages/auth/ForgotPassword.jsx'
 
 function AppRoutes() {
   return (
@@ -36,6 +40,10 @@ function AppRoutes() {
         {/* Public routes — no login required */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordLayout />} />
+        {/* <Route element={<AuthLayout />}>
+          <Route path="/login" element={<Login />} />
+        </Route>
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Role-locked dashboards — each role only sees its own */}
         <Route
@@ -77,6 +85,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <EmployeeModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees/new"
+          element={
+            <ProtectedRoute allowedRoles={['hr', 'admin']}>
+              <EmployeeOnboarding />
             </ProtectedRoute>
           }
         />
