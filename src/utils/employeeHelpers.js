@@ -2,21 +2,46 @@ function normalizeEmployeeQuery(query) {
   return String(query || '').trim().toLowerCase()
 }
 
-function matchesEmployeeQuery(employee, normalizedQuery) {
+function getEmployeeDisplayId(employee = {}) {
+  return String(employee.employee_id ?? employee.employeeId ?? employee.id ?? '').trim()
+}
+
+function getEmployeeDisplayName(employee = {}) {
+  const firstName = String(employee.first_name ?? employee.firstName ?? '').trim()
+  const lastName = String(employee.last_name ?? employee.lastName ?? '').trim()
+
   return (
-    employee.id.includes(normalizedQuery) ||
-    employee.name.toLowerCase().includes(normalizedQuery) ||
-    employee.email.toLowerCase().includes(normalizedQuery) ||
-    employee.designation.toLowerCase().includes(normalizedQuery)
+    [firstName, lastName].filter(Boolean).join(' ') ||
+    String(employee.name ?? '').trim() ||
+    '-'
+  )
+}
+
+function matchesEmployeeQuery(employee, normalizedQuery) {
+  const searchableValues = [
+    getEmployeeDisplayId(employee),
+    getEmployeeDisplayName(employee),
+    String(employee.email ?? '').trim(),
+    String(employee.department ?? '').trim(),
+    String(employee.designation ?? '').trim(),
+  ]
+
+  const searchableText = searchableValues.join(' ').toLowerCase()
+
+  return (
+    searchableText.includes(normalizedQuery)
   )
 }
 
 function sortEmployeesById(employees, sortOrder) {
   return [...employees].sort((a, b) => {
+    const left = getEmployeeDisplayId(a)
+    const right = getEmployeeDisplayId(b)
+
     if (sortOrder === 'asc') {
-      return a.id.localeCompare(b.id)
+      return left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' })
     }
-    return b.id.localeCompare(a.id)
+    return right.localeCompare(left, undefined, { numeric: true, sensitivity: 'base' })
   })
 }
 
@@ -24,7 +49,7 @@ function formatEmployeeFieldValue(fieldName, value) {
   const rawValue = String(value ?? '')
 
   if (
-    ['phoneNumber', 'accountNumber', 'annualCtc', 'monthlySalary'].includes(fieldName)
+    ['phone', 'accountNumber', 'annualCtc', 'monthlySalary'].includes(fieldName)
   ) {
     return rawValue.replace(/\D/g, '')
   }
@@ -55,4 +80,6 @@ export {
   normalizeEmployeeQuery,
   matchesEmployeeQuery,
   sortEmployeesById,
+  getEmployeeDisplayId,
+  getEmployeeDisplayName,
 }

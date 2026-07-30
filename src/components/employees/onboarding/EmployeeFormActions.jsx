@@ -1,6 +1,6 @@
 import Button from '../../ui/Button.jsx'
 
-function EmployeeFormActions({ onCancel, isSubmitting }) {
+function EmployeeFormActions({ onCancel, isSubmitting, isEditMode }) {
   return (
     <div className="flex flex-col gap-3 rounded-[24px] border border-[#e5e5e5] bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-end">
       <Button
@@ -13,9 +13,12 @@ function EmployeeFormActions({ onCancel, isSubmitting }) {
       <Button
         type="submit"
         disabled={isSubmitting}
-        className="rounded-full bg-[#3b82f6] px-6 py-2 text-[14px] font-extrabold text-white transition-all duration-200 hover:bg-[#2563eb] disabled:cursor-wait disabled:opacity-70"
+        className="inline-flex items-center gap-2 rounded-full bg-[#3b82f6] px-6 py-2 text-[14px] font-extrabold text-white transition-all duration-200 hover:bg-[#2563eb] disabled:cursor-wait disabled:opacity-70"
       >
-        {isSubmitting ? 'Creating...' : 'Create Employee'}
+        {isSubmitting && (
+          <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" aria-hidden="true" />
+        )}
+        {isSubmitting ? isEditMode ? 'Updating...' : 'Creating...' : isEditMode ? 'Update Employee' : 'Create Employee'}
       </Button>
     </div>
   )

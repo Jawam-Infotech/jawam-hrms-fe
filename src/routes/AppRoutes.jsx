@@ -36,6 +36,8 @@ import LearningCalendar from '../pages/jlearn/calendar/LearningCalendar.jsx'
 import Report from '../pages/jlearn/report/Report.jsx'
 import Reports from '../pages/reports/Reports.jsx'
 import Invoice from '../pages/invoice/Invoice.jsx'
+import MyProfile from '../pages/profile/MyProfile.jsx'
+import EditProfile from '../pages/profile/EditProfile.jsx'
 
 function AppRoutes() {
   return (
@@ -77,7 +79,7 @@ function AppRoutes() {
         <Route
           path="/dashboard/ceo"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'CEO']}>
               <CEODashboard />
             </ProtectedRoute>
           }
@@ -103,7 +105,15 @@ function AppRoutes() {
         <Route
           path="/employees/new"
           element={
-            <ProtectedRoute allowedRoles={['hr', 'admin']}>
+            <ProtectedRoute allowedRoles={['hr', 'admin', 'CEO']}>
+              <EmployeeOnboarding />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees/:id/edit"
+          element={
+            <ProtectedRoute allowedRoles={['hr', 'admin', 'CEO']}>
               <EmployeeOnboarding />
             </ProtectedRoute>
           }
@@ -113,6 +123,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <EmployeeProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <MyProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/edit"
+          element={
+            <ProtectedRoute>
+              <EditProfile />
             </ProtectedRoute>
           }
         />

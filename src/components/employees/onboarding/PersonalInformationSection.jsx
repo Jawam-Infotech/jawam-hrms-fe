@@ -17,43 +17,43 @@ function PersonalInformationSection({ formData, fieldError, onChange, onBlur }) 
       <h3 className="mb-4 text-[18px] font-extrabold text-[#111827]">Personal Information</h3>
       <div className="grid gap-5 md:grid-cols-2">
         <FormField
-          label="Full Name"
-          id="fullName"
+          label="First Name"
+          id="firstName"
           type="text"
-          value={formData.fullName}
+          value={formData.firstName}
           onChange={onChange}
           onBlur={onBlur}
           required
-          placeholder="Enter full name"
+          placeholder="Enter first name"
           className={inputClass}
         />
         <FormField
-          label="Employee ID"
-          id="employeeId"
+          label="Last Name"
+          id="lastName"
           type="text"
-          value={formData.employeeId}
+          value={formData.lastName}
           onChange={onChange}
           onBlur={onBlur}
           required
-          placeholder="Auto generated"
+          placeholder="Enter last name"
           className={inputClass}
         />
         <FormField
-          label="Email"
+          label="Official Email"
           id="email"
           type="email"
           value={formData.email}
           onChange={onChange}
           onBlur={onBlur}
           required
-          placeholder="Enter email"
+          placeholder="Enter official email"
           className={inputClass}
         />
         <FormField
           label="Phone Number"
-          id="phoneNumber"
+          id="phone"
           type="tel"
-          value={formData.phoneNumber}
+          value={formData.phone}
           onChange={onChange}
           onBlur={onBlur}
           required
@@ -67,7 +67,6 @@ function PersonalInformationSection({ formData, fieldError, onChange, onBlur }) 
           value={formData.dateOfBirth}
           onChange={onChange}
           onBlur={onBlur}
-          required
           className={inputClass}
         />
         <SelectField
@@ -75,7 +74,6 @@ function PersonalInformationSection({ formData, fieldError, onChange, onBlur }) 
           id="gender"
           value={formData.gender}
           onChange={onChange}
-          required
           placeholder="Select gender"
           options={EMPLOYEE_GENDER_OPTIONS}
           className={inputClass}
@@ -85,7 +83,6 @@ function PersonalInformationSection({ formData, fieldError, onChange, onBlur }) 
           id="maritalStatus"
           value={formData.maritalStatus}
           onChange={onChange}
-          required
           placeholder="Select marital status"
           options={EMPLOYEE_MARITAL_STATUS_OPTIONS}
           className={inputClass}
@@ -96,7 +93,6 @@ function PersonalInformationSection({ formData, fieldError, onChange, onBlur }) 
           value={formData.address}
           onChange={onChange}
           onBlur={onBlur}
-          required
           rows={4}
           placeholder="Enter address"
           className="min-h-[120px] w-full rounded-[9px] border-2 border-[#dedede] bg-white px-[16px] py-3 text-[#111827] outline-none transition-[border-color,box-shadow] duration-[250ms] focus:border-[#3a7be0] focus:shadow-[0_0_0_4px_rgba(58,123,224,0.16)]"
@@ -104,14 +100,10 @@ function PersonalInformationSection({ formData, fieldError, onChange, onBlur }) 
       </div>
 
       <div className="mt-2 grid gap-4 md:grid-cols-2">
-        <FieldError>{fieldError('fullName')}</FieldError>
-        <FieldError>{fieldError('employeeId')}</FieldError>
+        <FieldError>{fieldError('firstName')}</FieldError>
+        <FieldError>{fieldError('lastName')}</FieldError>
         <FieldError>{fieldError('email')}</FieldError>
-        <FieldError>{fieldError('phoneNumber')}</FieldError>
-        <FieldError>{fieldError('dateOfBirth')}</FieldError>
-        <FieldError>{fieldError('gender')}</FieldError>
-        <FieldError>{fieldError('maritalStatus')}</FieldError>
-        <FieldError>{fieldError('address')}</FieldError>
+        <FieldError>{fieldError('phone')}</FieldError>
       </div>
     </Card>
   )

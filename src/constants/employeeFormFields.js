@@ -40,12 +40,7 @@ export const EMPLOYEE_DESIGNATION_OPTIONS = [
   { value: 'Project Manager', label: 'Project Manager' },
 ]
 
-export const EMPLOYEE_REPORTING_MANAGER_OPTIONS = [
-  { value: 'Gaurav P', label: 'Gaurav P' },
-  { value: 'Team Lead', label: 'Team Lead' },
-  { value: 'HR Manager', label: 'HR Manager' },
-  { value: 'CEO', label: 'CEO' },
-]
+export const EMPLOYEE_REPORTING_MANAGER_OPTIONS = []
 
 export const EMPLOYEE_EMPLOYMENT_TYPE_OPTIONS = [
   { value: 'Full Time Employment', label: 'Full Time Employment' },
@@ -73,10 +68,10 @@ export const EMPLOYEE_SHIFT_OPTIONS = [
 ]
 
 export const EMPLOYEE_ROLE_OPTIONS = [
-  { value: 'employee', label: 'Employee' },
-  { value: 'manager', label: 'Team Lead' },
-  { value: 'hr', label: 'HR' },
-  { value: 'admin', label: 'CEO' },
+  { value: 'EMPLOYEE', label: 'Employee' },
+  { value: 'TL', label: 'Team Lead' },
+  { value: 'HR', label: 'HR' },
+  { value: 'CEO', label: 'CEO' },
 ]
 
 export const EMPLOYEE_DOCUMENT_TYPES = [

@@ -130,7 +130,7 @@ function DashboardLayout({ children }) {
 
               {profileOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-[#e5e5e5] z-50">
-                  <button onClick={() => { setProfileOpen(false); navigate('/profile') }} className="w-full text-left px-4 py-2 hover:bg-[#f5fbf8]">My Profile</button>
+                  <button onClick={() => { setProfileOpen(false); navigate('/profile') }} className="w-full text-left px-4 py-2 hover:bg-[#f5fbf8]">Profile</button>
                   <button onClick={() => { setProfileOpen(false); navigate('/settings') }} className="w-full text-left px-4 py-2 hover:bg-[#f5fbf8]">Settings</button>
                   <button onClick={() => { setProfileOpen(false); navigate('/helpdesk') }} className="w-full text-left px-4 py-2 hover:bg-[#f5fbf8]">Helpdesk</button>
                   <div className="border-t border-[#f1f1f1]" />

@@ -1,4 +1,4 @@
-import { EMPLOYEE_DOCUMENT_TYPES, EMPLOYEE_ASSET_OPTIONS } from '../constants/employeeFormFields.js'
+import { EMPLOYEE_DOCUMENT_TYPES, EMPLOYEE_ASSET_OPTIONS, EMPLOYEE_ROLE_OPTIONS } from '../constants/employeeFormFields.js'
 
 function generateEmployeeId(employees = []) {
   const numericIds = employees
@@ -28,12 +28,45 @@ function createInitialAssetState() {
   }, {})
 }
 
-function createInitialEmployeeFormValues(employeeId = '') {
+function normalizeEmployeeRoleValue(role = '') {
+  const normalizedRole = String(role || '').trim()
+  const lowerRole = normalizedRole.toLowerCase()
+  const roleMap = {
+    employee: 'EMPLOYEE',
+    manager: 'TL',
+    'team lead': 'TL',
+    tl: 'TL',
+    hr: 'HR',
+    admin: 'CEO',
+    ceo: 'CEO',
+  }
+
+  return roleMap[lowerRole] || normalizedRole
+}
+
+function getAssignableEmployeeRoleOptions(creatorRole = '') {
+  const normalizedRole = String(creatorRole || '').trim().toLowerCase()
+
+  const allowedRoleValues =
+    normalizedRole === 'admin'
+      ? ['EMPLOYEE', 'TL', 'HR', 'CEO']
+      : normalizedRole === 'hr'
+        ? ['EMPLOYEE', 'TL']
+        : ['EMPLOYEE']
+
+  return EMPLOYEE_ROLE_OPTIONS.filter((option) => allowedRoleValues.includes(option.value))
+}
+
+function getDefaultEmployeeRole(creatorRole = '') {
+  return getAssignableEmployeeRoleOptions(creatorRole)[0]?.value || 'EMPLOYEE'
+}
+
+function createInitialEmployeeFormValues(creatorRole = '') {
   return {
-    fullName: '',
-    employeeId,
+    firstName: '',
+    lastName: '',
     email: '',
-    phoneNumber: '',
+    phone: '',
     dateOfBirth: '',
     gender: '',
     bloodGroup: '',
@@ -50,10 +83,8 @@ function createInitialEmployeeFormValues(employeeId = '') {
     joiningDate: '',
     workLocation: '',
     shift: '',
-    role: 'employee',
-    officialEmail: '',
-    username: '',
-    temporaryPassword: '',
+    role: getDefaultEmployeeRole(creatorRole),
+    password: '',
     forcePasswordReset: true,
     sendWelcomeEmail: true,
     bankName: '',
@@ -71,17 +102,13 @@ function formatEmployeeFieldValue(fieldName, value) {
   const rawValue = String(value ?? '')
 
   if (
-    ['phoneNumber', 'accountNumber', 'annualCtc', 'monthlySalary'].includes(fieldName)
+    ['phone', 'accountNumber', 'annualCtc', 'monthlySalary'].includes(fieldName)
   ) {
     return rawValue.replace(/\D/g, '')
   }
 
   if (fieldName === 'ifscCode') {
     return rawValue.toUpperCase().replace(/\s+/g, '')
-  }
-
-  if (fieldName === 'employeeId') {
-    return rawValue.replace(/\D/g, '')
   }
 
   return rawValue
@@ -97,46 +124,49 @@ function formatCurrencyDisplayValue(value) {
   return String(value ?? '').replace(/\D/g, '')
 }
 
-function buildEmployeePayload(formData) {
-  return {
-    id: formData.employeeId,
-    name: formData.fullName,
+function buildCreateUserPayload(formData, isEditMode = false)  {
+  const payload = {
     email: formData.email,
-    designation: formData.designation,
-    phoneNumber: formData.phoneNumber,
-    dateOfBirth: formData.dateOfBirth,
-    gender: formData.gender,
-    bloodGroup: formData.bloodGroup,
-    maritalStatus: formData.maritalStatus,
-    address: formData.address,
-    department: formData.department,
-    reportingManager: formData.reportingManager,
-    employmentType: formData.employmentType,
-    employmentStatus: formData.employmentStatus,
-    joiningDate: formData.joiningDate,
-    workLocation: formData.workLocation,
-    shift: formData.shift,
-    role: formData.role,
-    officialEmail: formData.officialEmail,
-    username: formData.username,
-    temporaryPassword: formData.temporaryPassword,
-    forcePasswordReset: formData.forcePasswordReset,
-    sendWelcomeEmail: formData.sendWelcomeEmail,
-    bankName: formData.bankName,
-    accountNumber: formData.accountNumber,
-    ifscCode: formData.ifscCode,
-    branch: formData.branch,
-    annualCtc: formData.annualCtc,
-    monthlySalary: formData.monthlySalary,
-    assets: formData.assets,
-    documents: formData.documents,
-    photoPreviewUrl: formData.photoPreviewUrl,
-    photoName: formData.photoName,
+    first_name: formData.firstName,
+    last_name: formData.lastName,
+    phone: formData.phone,
+    role: normalizeEmployeeRoleValue(formData.role),
   }
+
+    if (!isEditMode || formData.password?.trim()) {
+    payload.password = formData.password
+  }
+
+  const optionalFields = [
+    ['date_of_birth', formData.dateOfBirth],
+    ['gender', formData.gender],
+    ['marital_status', formData.maritalStatus],
+    ['address', formData.address],
+    ['department', formData.department],
+    ['designation', formData.designation],
+    ['reporting_manager', formData.reportingManager],
+    ['employment_type', formData.employmentType],
+    ['employment_status', formData.employmentStatus],['date_of_joining', formData.joiningDate],
+    ['work_location', formData.workLocation],
+    ['shift', formData.shift],
+  ]
+
+  optionalFields.forEach(([key, value]) => {
+    if (String(value ?? '').trim()) {
+      payload[key] = value
+    }
+  })
+
+  return payload
+}
+
+function buildEmployeePayload(formData) {
+  return buildCreateUserPayload(formData)
 }
 
 export {
   buildEmployeePayload,
+  buildCreateUserPayload,
   createInitialAssetState,
   createInitialDocumentState,
   createInitialEmployeeFormValues,
@@ -144,4 +174,7 @@ export {
   formatEmployeeFieldValue,
   formatPhoneDisplayValue,
   generateEmployeeId,
+  getAssignableEmployeeRoleOptions,
+  getDefaultEmployeeRole,
+  normalizeEmployeeRoleValue,
 }

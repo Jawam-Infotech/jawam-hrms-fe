@@ -390,6 +390,57 @@ function TeamLeaderDashboardContent() {
         <LeaveRequestCard />
       </div>
 
+      <div className="flex items-center justify-between gap-6 flex-wrap">
+        <div>
+          <h1 className="text-[36px] font-black text-[#111827] mb-2">
+            {getGreeting()}, {user.name}
+          </h1>
+          <p className="text-[16px] text-[#5f6679]">Welcome back to Jawam HR</p>
+          <p className="text-[14px] text-[#5f6679] mt-1">
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-4 flex-wrap">
+          <button
+            onClick={isCheckedIn ? handleCheckOut : handleCheckIn}
+            disabled={hasCheckedOut}
+            className={`px-6 py-2 rounded-full font-extrabold text-[14px] transition-all ${
+              hasCheckedOut
+                ? 'bg-[#e5e7eb] text-[#9ca3af] cursor-not-allowed'
+                : 'bg-[#3b82f6] text-white hover:bg-[#2563eb]'
+            }`}
+          >
+            {hasCheckedOut ? 'Checked Out' : isCheckedIn ? 'Check Out' : 'Check In'}
+          </button>
+
+          <button
+            disabled={!isCheckedIn || hasCheckedOut}
+            onClick={isOnBreak ? handleResumeWork : handleBreak}
+            className={`px-6 py-2 rounded-full font-extrabold text-[14px] transition-all ${
+              isCheckedIn && !hasCheckedOut
+                ? 'bg-[#fbbf24] text-[#111827] hover:bg-[#fcd34d]'
+                : 'bg-[#e5e7eb] text-[#9ca3af] cursor-not-allowed'
+            }`}
+          >
+            {isOnBreak ? 'Resume Work' : 'Apply Break'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/leave')}
+            className="px-6 py-2 rounded-full bg-white border-2 border-[#111827] text-[#111827] font-extrabold text-[14px] hover:bg-[#f9fafb] transition-all"
+          >
+            Apply Leave
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-4 gap-6 max-[1220px]:grid-cols-2 max-[760px]:grid-cols-1">
         <AttendanceCard
           checkInTime={checkInTime}

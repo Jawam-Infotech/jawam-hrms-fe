@@ -1,11 +1,41 @@
 import Button from '../ui/Button.jsx'
 
-function EmployeeToolbar({ user, sortOrder, onSortToggle }) {
+function EmployeeToolbar({
+  sortOrder,
+  onSortToggle,
+  roleFilter,
+  onRoleChange,
+  departmentFilter,
+  onDepartmentChange,
+  onResetFilters,
+}) {
   return (
     <div className="flex items-center gap-3">
-      <div className="rounded-full border border-[#e5e7eb] bg-white px-4 py-3 text-[14px] font-semibold text-[#111827]">
-        Logged in as {user.name || 'User'}
-      </div>
+      <select
+        value={roleFilter}
+        onChange={(e) => onRoleChange(e.target.value)}
+        className="rounded-full border border-[#d1d5db] bg-white px-4 py-3 text-[14px] font-medium text-[#111827] outline-none focus:border-[#3b82f6]"
+      >
+        <option value="all">All Roles</option>
+        <option value="EMPLOYEE">Employee</option>
+        <option value="TL">Team Lead</option>
+        <option value="HR">HR</option>
+        <option value="CEO">CEO</option>
+      </select>
+
+      <select
+        value={departmentFilter}
+        onChange={(e) => onDepartmentChange(e.target.value)}
+        className="rounded-full border border-[#d1d5db] bg-white px-4 py-3 text-[14px] font-medium text-[#111827] outline-none focus:border-[#3b82f6]"
+      >
+        <option value="all">All Departments</option>
+        <option value="Development">Development</option>
+        <option value="HR">HR</option>
+        <option value="Design">Design</option>
+        <option value="Marketing">Marketing</option>
+        <option value="Finance">Finance</option>
+      </select>
+
       <Button
         type="button"
         onClick={onSortToggle}
@@ -13,9 +43,13 @@ function EmployeeToolbar({ user, sortOrder, onSortToggle }) {
       >
         Sort by ID {sortOrder === 'asc' ? '↑' : '↓'}
       </Button>
-      <Button className="inline-flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-5 py-3 text-[14px] font-extrabold text-[#111827] transition-all duration-200 hover:border-[#cbd5e1] hover:bg-[#f8fafc]">
-        <span>⚙️</span>
-        Filter & Sort
+
+      <Button
+        type="button"
+        onClick={onResetFilters}
+        className="rounded-full border border-[#d1d5db] bg-white px-5 py-3 text-[14px] font-semibold text-[#111827] transition-all duration-200 hover:bg-[#f8fafc]"
+      >
+        Reset
       </Button>
     </div>
   )
