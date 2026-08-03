@@ -1,19 +1,9 @@
 import FormField from '../FormField.jsx'
 import PasswordEye from '../PasswordEye.jsx'
+import PasswordRequirements from '../PasswordRequirements.jsx'
 
 const passwordInputClass =
   'h-[48px] w-full rounded-[9px] border-2 border-[#dedede] bg-white px-[16px] pr-14 text-[#111827] outline-none transition-[border-color,box-shadow] duration-[250ms] focus:border-[#3a7be0] focus:shadow-[0_0_0_4px_rgba(58,123,224,0.16)] max-[380px]:h-14'
-
-function RequirementItem({ active, label }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className={`flex size-4 items-center justify-center rounded-full ${active ? 'bg-green-500' : 'bg-[#e5e5e5]'}`}>
-        {active && <span className="text-xs text-white">✓</span>}
-      </span>
-      <span className={active ? 'text-green-600' : 'text-[#5f6679]'}>{label}</span>
-    </div>
-  )
-}
 
 function PasswordStep({
   password,
@@ -76,17 +66,11 @@ function PasswordStep({
           }
         />
 
-        <div className="space-y-2 text-[14px] font-semibold text-[#5f6679]">
-          <p className="mb-2 font-extrabold">Password must contain:</p>
-          <RequirementItem active={passwordRequirements.length} label="At least 8 characters" />
-          <RequirementItem active={passwordRequirements.uppercase} label="One uppercase letter" />
-          <RequirementItem active={passwordRequirements.number} label="One number" />
-          <RequirementItem active={passwordRequirements.special} label="One special character" />
-
-          {confirmPassword && password !== confirmPassword && (
-            <p className="mt-2 text-sm font-medium text-red-500">Passwords do not match.</p>
-          )}
-        </div>
+        <PasswordRequirements
+          password={password}
+          confirmPassword={confirmPassword}
+          passwordRequirements={passwordRequirements}
+        />
       </div>
 
       <button

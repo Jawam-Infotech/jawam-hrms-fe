@@ -3,35 +3,39 @@ import EmployeePhotoUpload from './EmployeePhotoUpload.jsx'
 
 function EmployeeFormHeader({
   formData,
+  isEditMode,
   onBack,
   onSaveDraft,
   onCancel,
   onPhotoChange,
   isDraftSaving,
 }) {
+  const displayName = [formData.firstName, formData.lastName].filter(Boolean).join(' ') || 'Employee Onboarding'
+
   return (
     <div className="space-y-6">
       <button onClick={onBack} className="text-[#6b7280] hover:underline">
-        ← Back to Employee details
+        { isEditMode
+          ? '← Back to Employee Details'
+        : '← Back to Employee List'}
       </button>
 
       <div className="flex flex-col gap-6 rounded-[24px] border border-[#e5e5e5] bg-white p-6 shadow-sm md:flex-row md:items-start md:justify-between">
         <div className="flex items-start gap-5">
           <EmployeePhotoUpload
             previewUrl={formData.photoPreviewUrl}
-            name={formData.fullName}
+            name={displayName}
             onChange={onPhotoChange}
           />
 
           <div>
             <h2 className="text-[28px] font-black text-[#111827]">
-              {formData.fullName || 'Employee Onboarding'}
+              {displayName}
             </h2>
-            <p className="text-[14px] text-[#5f6679]">Employee ID: {formData.employeeId}</p>
             <p className="text-[14px] text-[#5f6679]">Designation: {formData.designation || '-'}</p>
             <p className="text-[14px] text-[#5f6679]">Department: {formData.department || '-'}</p>
-            <p className="text-[14px] text-[#5f6679]">Contact No: {formData.phoneNumber || '-'}</p>
-            <p className="text-[14px] text-[#5f6679]">Email: {formData.email || '-'}</p>
+            <p className="text-[14px] text-[#5f6679]">Contact No: {formData.phone || '-'}</p>
+            <p className="text-[14px] text-[#5f6679]">Official Email: {formData.email || '-'}</p>
             <p className="text-[14px] text-[#5f6679]">Date of Joining: {formData.joiningDate || '-'}</p>
           </div>
         </div>

@@ -1,5 +1,14 @@
-function EmployeeTableRow({ employee, clickable, onClick }) {
-  return (
+import EmployeeActions from './EmployeeActions'
+function EmployeeTableRow({
+  employee,
+  clickable,
+  onClick,
+  permissions,
+  onView,
+  onEdit,
+  showActions,
+}) 
+{  return (
     <tr
       onClick={clickable ? onClick : undefined}
       onKeyDown={
@@ -18,8 +27,12 @@ function EmployeeTableRow({ employee, clickable, onClick }) {
       <td className="px-6 py-5 font-semibold text-[#111827]">{employee.id}</td>
       <td className="px-6 py-5 text-[#111827]">{employee.name}</td>
       <td className="px-6 py-5 text-[#5f6679]">{employee.email}</td>
+      <td className="px-6 py-5 text-[#111827]">{employee.department}</td>
       <td className="px-6 py-5 text-[#111827]">{employee.designation}</td>
-    </tr>
+      {showActions && (
+        <td className="px-6 py-5"><EmployeeActions permissions={permissions} onView={onView} onEdit={onEdit}/> </td>
+      )}
+          </tr>
   )
 }
 

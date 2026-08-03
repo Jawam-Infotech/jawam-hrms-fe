@@ -9,18 +9,11 @@ import {
   resetPasswordOtp,
   verifyOtp,
 } from '../../services/authService.js'
+import { getApiErrorMessage } from '../../utils/apiErrorMessage.js'
+import { getPasswordRequirements, isPasswordValid as validatePasswordMatch } from '../../utils/passwordValidation.js'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RESEND_SECONDS = 30
-
-function getApiMessage(error, fallbackMessage) {
-  return (
-    error?.response?.data?.detail ||
-    error?.response?.data?.message ||
-    error?.response?.data?.error ||
-    fallbackMessage
-  )
-}
 
 function ForgotPassword() {
   const navigate = useNavigate()
@@ -36,15 +29,8 @@ function ForgotPassword() {
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('')
 
-  const passwordRequirements = {
-    length: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[!@#$%^&*()_+=\u005B\u005D{};':"\\|,.<>/?-]/.test(password),
-  }
-
-  const isPasswordValid =
-    Object.values(passwordRequirements).every(Boolean) && password === confirmPassword
+  const passwordRequirements = getPasswordRequirements(password)
+  const isPasswordValid = validatePasswordMatch(password, confirmPassword)
 
   useEffect(() => {
     let interval
@@ -89,7 +75,7 @@ function ForgotPassword() {
       setResendTimer(RESEND_SECONDS)
       showStatusMessage('success', response?.message || 'OTP sent successfully.')
     } catch (error) {
-      showStatusMessage('error', getApiMessage(error, 'Unable to send OTP. Please try again.'))
+      showStatusMessage('error', getApiErrorMessage(error, 'Unable to send OTP. Please try again.'))
     } finally {
       setIsLoading(false)
     }
@@ -107,7 +93,7 @@ function ForgotPassword() {
         setResendTimer(RESEND_SECONDS)
         showStatusMessage('success', response?.message || 'OTP resent successfully.')
       } catch (error) {
-        showStatusMessage('error', getApiMessage(error, 'Unable to resend OTP. Please try again.'))
+        showStatusMessage('error', getApiErrorMessage(error, 'Unable to resend OTP. Please try again.'))
       } finally {
         setIsLoading(false)
       }
@@ -134,7 +120,7 @@ function ForgotPassword() {
       setStep(3)
       showStatusMessage('success', response?.message || 'OTP verified successfully.')
     } catch (error) {
-      showStatusMessage('error', getApiMessage(error, 'OTP verification failed. Please try again.'))
+      showStatusMessage('error', getApiErrorMessage(error, 'OTP verification failed. Please try again.'))
     } finally {
       setIsLoading(false)
     }
@@ -160,7 +146,7 @@ function ForgotPassword() {
         navigate('/login')
       }, 900)
     } catch (error) {
-      showStatusMessage('error', getApiMessage(error, 'Unable to reset password. Please try again.'))
+      showStatusMessage('error', getApiErrorMessage(error, 'Unable to reset password. Please try again.'))
     } finally {
       setIsLoading(false)
     }

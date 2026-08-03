@@ -7,6 +7,7 @@ const roleToDashboard = {
   manager: '/dashboard/team-leader',
   hr: '/dashboard/hr',
   admin: '/dashboard/ceo',
+  CEO: '/dashboard/ceo',
 }
 
 function ProtectedRoute({ children, allowedRoles }) {

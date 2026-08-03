@@ -1,57 +1,129 @@
-import { employees } from '../data/employees.js'
-import { formatEmployeeFieldValue, generateEmployeeId as generateEmployeeIdHelper, sortEmployeesById } from '../utils/employeeHelpers.js'
+import { updateEmployeeRole as updateEmployeeRoleRequest, getEmployeeById as getEmployeeByIdRequest, getEmployees as getEmployeesRequest, createEmployee as createEmployeeRequest, updateEmployee as updateEmployeeRequest, getManagers as getManagersRequest,} from './api/employee.api.js'
+import { getEmployeeDisplayId } from '../utils/employeeHelpers.js'
 
-const employeeStore = [...employees]
+const employeeCache = new Map()
 
-function getEmployees() {
-  return sortEmployeesById(employeeStore, 'asc')
-}
+function normalizeEmployeeRecord(employee = {}) {
+  const id = String(employee.employee_id || employee.employeeId || employee.id || '').trim()
+  const firstName = String(employee.first_name || employee.firstName || '').trim()
+  const lastName = String(employee.last_name || employee.lastName || '').trim()
+  const name =
+    [firstName, lastName].filter(Boolean).join(' ') ||
+    String(employee.name || '').trim() ||
+    '-'
 
-function getEmployeeById(employeeId) {
-  return employeeStore.find((employee) => employee.id === employeeId) ?? null
-}
-
-function createEmployee(employee) {
-  const storedEmployee = {
+  return {
     ...employee,
-    id: employee.id || employee.employeeId || generateEmployeeId(),
-    email: formatEmployeeFieldValue('email', employee.email || employee.officialEmail || ''),
-    name: employee.name || employee.fullName || '',
-    designation: employee.designation || '',
+    id,
+    employeeId: getEmployeeDisplayId(employee) || id,
+    name,
+    firstName,
+    lastName,
+    email: String(employee.email || '').trim(),
+    department: String(employee.department || '').trim(),
+    designation: String(employee.designation || '').trim(),
+    role: employee.role || '',
+    phone: employee.phone || employee.contact_number || employee.contactNumber || '',
+    joiningDate: employee.joiningDate || employee.date_of_joining || employee.dateOfJoining || '',
+    employmentType: employee.employmentType || employee.employment_type || '',
+    employmentStatus: employee.employmentStatus || employee.employment_status || '',
+    workLocation: employee.workLocation || employee.work_location || '',
   }
-
-  employeeStore.push(storedEmployee)
-  return storedEmployee
 }
 
-function updateEmployee(employeeId, updates) {
-  const index = employeeStore.findIndex((employee) => employee.id === employeeId)
-  if (index === -1) {
-    return null
+function cacheEmployee(employee) {
+  const normalizedEmployee = normalizeEmployeeRecord(employee)
+  if (normalizedEmployee.id) {
+    employeeCache.set(normalizedEmployee.id, normalizedEmployee)
   }
+  return normalizedEmployee
+}
 
-  const updatedEmployee = {
-    ...employeeStore[index],
-    ...updates,
-    id: employeeId,
+async function getEmployees({ page, role } = {}) {
+  const data = await getEmployeesRequest({ page, role })
+  const results = Array.isArray(data?.results) ? data.results : []
+  const employees = results.map(cacheEmployee)
+
+  return {
+    employees,
+    count: data?.count ?? employees.length,
+    next: data?.next ?? null,
+    previous: data?.previous ?? null,
   }
+}
 
-  employeeStore[index] = updatedEmployee
-  return updatedEmployee
+async function getManagers() {
+  const data = await getManagersRequest()
+
+  return Array.isArray(data)
+    ? data.map((manager) => ({
+        id: manager.id,
+        firstName: manager.first_name,
+        lastName: manager.last_name,
+        role: manager.role,
+        label: `${manager.first_name} ${manager.last_name} (${manager.role})`,
+      }))
+    : []
+}
+
+async function getEmployeeById(employeeId) {
+  const employee = await getEmployeeByIdRequest(employeeId)
+
+  return cacheEmployee(employee)
+}
+
+async function createEmployee(payload) {
+  const data = await createEmployeeRequest(payload)
+  const normalizedEmployee = cacheEmployee({
+    ...payload,
+    ...data,
+    employee_id: data.employee_id || data.user_id || data.id || payload.employee_id,
+    id: data.id || data.user_id || payload.employee_id,
+    first_name: payload.first_name,
+    last_name: payload.last_name,
+    email: data.email || payload.email,
+    designation: payload.designation,
+    department: payload.department,
+    role: data.role || payload.role,
+  })
+
+  return {
+    id: normalizedEmployee.id,
+    email: normalizedEmployee.email,
+    role: normalizedEmployee.role,
+    name: normalizedEmployee.name,
+  }
+}
+
+async function updateEmployeeRole(employeeId, role) {
+  const data = await updateEmployeeRoleRequest(employeeId, role)
+
+  return cacheEmployee(data)
+}
+
+async function updateEmployee(employeeId, payload) {
+  const data = await updateEmployeeRequest(employeeId, payload)
+
+  return cacheEmployee(data)
 }
 
 function deleteEmployee(employeeId) {
-  const index = employeeStore.findIndex((employee) => employee.id === employeeId)
-  if (index === -1) {
+  const normalizedEmployeeId = String(employeeId).trim()
+  if (!employeeCache.has(normalizedEmployeeId)) {
     return false
   }
 
-  employeeStore.splice(index, 1)
+  employeeCache.delete(normalizedEmployeeId)
   return true
 }
 
 function generateEmployeeId() {
-  return generateEmployeeIdHelper(employeeStore)
+  const numericIds = [...employeeCache.values()]
+    .map((employee) => Number.parseInt(getEmployeeDisplayId(employee), 10))
+    .filter((value) => Number.isFinite(value))
+
+  const nextId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 101
+  return String(nextId)
 }
 
 function uploadDocument(documentKey, file) {
@@ -64,4 +136,4 @@ function uploadDocument(documentKey, file) {
   }
 }
 
-export { getEmployees, getEmployeeById, createEmployee, updateEmployee, deleteEmployee, generateEmployeeId, uploadDocument }
+export { getEmployees, createEmployee, updateEmployee, deleteEmployee, generateEmployeeId, getManagers, uploadDocument, getEmployeeById, updateEmployeeRole }

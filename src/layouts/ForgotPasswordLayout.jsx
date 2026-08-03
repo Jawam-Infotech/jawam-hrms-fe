@@ -5,6 +5,8 @@ import { requestOtp, verifyOtp, resetPasswordOtp } from '../services/authService
 import OTPInput from "../components/auth/OTPInput"
 import FeatureIcon from '../components/auth/FeatureIcon'
 import DotGrid from '../components/auth/DotGrid'
+import { getApiErrorMessage } from '../utils/apiErrorMessage.js'
+import { getPasswordRequirements, isPasswordValid as validatePasswordMatch } from '../utils/passwordValidation.js'
 function LogoMark() {
   return (
     <img
@@ -52,15 +54,8 @@ function ForgotPasswordLayout() {
   const [errorMessage, setErrorMessage] = useState('')
 
   // Password validation
-  const passwordRequirements = {
-    length: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[!@#$%^&*()_+=\u005B\u005D{};':"\\|,.<>/?-]/.test(password),
-  }
-
-  const isPasswordValid =
-    Object.values(passwordRequirements).every(Boolean) && password === confirmPassword
+  const passwordRequirements = getPasswordRequirements(password)
+  const isPasswordValid = validatePasswordMatch(password, confirmPassword)
 
   useEffect(() => {
     let interval
@@ -82,7 +77,7 @@ function ForgotPasswordLayout() {
       setStep(2)
       setResendTimer(30)
     } catch (error) {
-      setErrorMessage(error.response?.data?.detail || 'Failed to send OTP. Please try again.')
+      setErrorMessage(getApiErrorMessage(error, 'Failed to send OTP. Please try again.'))
     } finally {
       setIsLoading(false)
     }
@@ -98,7 +93,7 @@ function ForgotPasswordLayout() {
       setResendTimer(30)
       setOtp('')
     } catch (error) {
-      setErrorMessage(error.response?.data?.detail || 'Failed to resend OTP. Please try again.')
+      setErrorMessage(getApiErrorMessage(error, 'Failed to resend OTP. Please try again.'))
     }
   }
 
@@ -111,7 +106,7 @@ function ForgotPasswordLayout() {
       await verifyOtp({ email, otp })
       setStep(3)
     } catch (error) {
-      setErrorMessage(error.response?.data?.detail || 'Invalid OTP. Please try again.')
+      setErrorMessage(getApiErrorMessage(error, 'Invalid OTP. Please try again.'))
     } finally {
       setIsLoading(false)
     }
@@ -128,7 +123,7 @@ function ForgotPasswordLayout() {
       await resetPasswordOtp({ email, otp, password, confirm_password: confirmPassword })
       navigate('/login')
     } catch (error) {
-      setErrorMessage(error.response?.data?.detail || 'Failed to reset password. Please try again.')
+      setErrorMessage(getApiErrorMessage(error, 'Failed to reset password. Please try again.'))
     } finally {
       setIsLoading(false)
     }

@@ -34,12 +34,28 @@ a {
   text-decoration: none;
 }
 
-@theme {
-  --animate-login-card: login-card-enter 600ms ease forwards;
-  --animate-card-enter: card-enter 600ms ease forwards;
-  --animate-blue-card-one: card-enter 600ms ease 150ms forwards, float-card 4.8s ease-in-out 950ms infinite;
-  --animate-blue-card-two: card-enter 600ms ease 450ms forwards, float-card 4.8s ease-in-out 1200ms infinite;
-  --animate-glass-shine: glass-shine 12s ease-in-out infinite;
+.animate-login-card {
+  animation: login-card-enter 600ms ease forwards;
+}
+
+.animate-card-enter {
+  animation: card-enter 600ms ease forwards;
+}
+
+.animate-blue-card-one {
+  animation:
+    card-enter 600ms ease 150ms forwards,
+    float-card 4.8s ease-in-out 950ms infinite;
+}
+
+.animate-blue-card-two {
+  animation:
+    card-enter 600ms ease 450ms forwards,
+    float-card 4.8s ease-in-out 1200ms infinite;
+}
+
+.animate-glass-shine {
+  animation: glass-shine 12s ease-in-out infinite;
 }
 
 @keyframes login-card-enter {
@@ -75,5 +91,17 @@ a {
   48%,
   100% {
     transform: translate3d(120%, 40%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-login-card,
+  .animate-card-enter,
+  .animate-blue-card-one,
+  .animate-blue-card-two,
+  .animate-glass-shine {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
