@@ -44,6 +44,15 @@ function normalizeEmployeeRoleValue(role = '') {
   return roleMap[lowerRole] || normalizedRole
 }
 
+function formatEmployeeRoleLabel(role = '') {
+  const normalizedRole = normalizeEmployeeRoleValue(role)
+  return (
+    EMPLOYEE_ROLE_OPTIONS.find((option) => option.value === normalizedRole)?.label ||
+    normalizedRole ||
+    '-'
+  )
+}
+
 function getAssignableEmployeeRoleOptions(creatorRole = '') {
   const normalizedRole = String(creatorRole || '').trim().toLowerCase()
 
@@ -172,6 +181,7 @@ export {
   createInitialEmployeeFormValues,
   formatCurrencyDisplayValue,
   formatEmployeeFieldValue,
+  formatEmployeeRoleLabel,
   formatPhoneDisplayValue,
   generateEmployeeId,
   getAssignableEmployeeRoleOptions,

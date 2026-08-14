@@ -1,4 +1,6 @@
 import EmployeeActions from './EmployeeActions'
+import { formatEmployeeRoleLabel } from '../../utils/employeeFormHelpers'
+
 function EmployeeTableRow({
   employee,
   clickable,
@@ -7,8 +9,8 @@ function EmployeeTableRow({
   onView,
   onEdit,
   showActions,
-}) 
-{  return (
+}) {
+  return (
     <tr
       onClick={clickable ? onClick : undefined}
       onKeyDown={
@@ -27,12 +29,17 @@ function EmployeeTableRow({
       <td className="px-6 py-5 font-semibold text-[#111827]">{employee.id}</td>
       <td className="px-6 py-5 text-[#111827]">{employee.name}</td>
       <td className="px-6 py-5 text-[#5f6679]">{employee.email}</td>
+      <td className="px-6 py-5 font-medium text-[#111827]">
+        {formatEmployeeRoleLabel(employee.role)}
+      </td>
       <td className="px-6 py-5 text-[#111827]">{employee.department}</td>
       <td className="px-6 py-5 text-[#111827]">{employee.designation}</td>
       {showActions && (
-        <td className="px-6 py-5"><EmployeeActions permissions={permissions} onView={onView} onEdit={onEdit}/> </td>
+        <td className="px-6 py-5">
+          <EmployeeActions permissions={permissions} onView={onView} onEdit={onEdit} />
+        </td>
       )}
-          </tr>
+    </tr>
   )
 }
 

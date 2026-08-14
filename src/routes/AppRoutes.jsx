@@ -16,6 +16,8 @@ import Clients from '../pages/clients/Clients.jsx'
 import Attendance from '../pages/attendance/Attendance.jsx'
 import TeamAttendance from '../pages/attendance/TeamAttendance.jsx'
 import CEOAttendance from '../pages/attendance/CEOAttendance.jsx'
+import HolidayManagement from '../pages/attendance/HolidayManagement.jsx'
+import CorrectionRequests from '../pages/attendance/CorrectionRequests.jsx'
 import WorkUpdate from '../pages/workupdate/WorkUpdate.jsx'
 import Recruitment from '../pages/recruitment/Recruitment.jsx'
 import Leave from '../pages/leave/Leave.jsx'
@@ -161,8 +163,24 @@ function AppRoutes() {
         <Route
           path="/attendance/company"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'hr']}>
               <CEOAttendance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/attendance/holidays"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'hr']}>
+              <HolidayManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/attendance/correction-requests"
+          element={
+            <ProtectedRoute allowedRoles={['employee', 'manager', 'hr']}>
+              <CorrectionRequests />
             </ProtectedRoute>
           }
         />

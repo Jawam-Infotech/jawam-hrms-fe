@@ -1,0 +1,1 @@
+export const ATTENDANCE_PAGE_SIZE = 20

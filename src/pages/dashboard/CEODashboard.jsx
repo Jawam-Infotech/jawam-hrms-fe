@@ -4,6 +4,10 @@ import { UserContext } from '../../context/UserContext.jsx'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import StatCard from '../../components/ui/StatCard'
 import ListSectionCard from '../../components/ui/ListSectionCard'
+import useAttendance from '../../hooks/useAttendance.js'
+import useCompanyAttendance from '../../hooks/useCompanyAttendance.js'
+import ConfirmationModal from '../../components/shared/ConfirmationModal.jsx'
+
 
 const departmentPerformance = [
   { name: 'HR Department', percentage: 70 },
@@ -51,10 +55,29 @@ const leaveRequests = [
 function CEODashboard() {
   const { user } = useContext(UserContext)
   const navigate = useNavigate()
-  const [isCheckedIn, setIsCheckedIn] = useState(false)
-  const [hasCheckedOut, setHasCheckedOut] = useState(false)
-  const [checkInTime, setCheckInTime] = useState(null)
-  const [checkOutTime, setCheckOutTime] = useState(null)
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false)
+  const {
+    summary: companyAttendanceSummary,
+    loading: companyAttendanceLoading,
+    error: companyAttendanceError,
+  } = useCompanyAttendance()
+  const {
+  attendance,
+  loading: attendanceLoading,
+  checkIn,
+  checkOut,
+  loadTodayAttendance,
+} = useAttendance()
+
+  const totalEmployees = Number(companyAttendanceSummary.totalEmployees) || 0
+  const presentToday = Number(companyAttendanceSummary.presentToday) || 0
+  const absentToday = Number(companyAttendanceSummary.absent) || 0
+  const lateToday = Number(companyAttendanceSummary.late) || 0
+  const workforceAttendancePercentage = totalEmployees > 0
+    ? Math.round((presentToday / totalEmployees) * 100)
+    : 0
+  const workforceAttendanceUnavailable = Boolean(companyAttendanceError)
+
 
   const getGreeting = () => {
     const hour = new Date().getHours()
@@ -63,22 +86,30 @@ function CEODashboard() {
     return 'Good evening'
   }
 
-  const handleCheckIn = () => {
-    const now = new Date()
-    const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-    setCheckInTime(timeString)
-    setCheckOutTime(null)
-    setHasCheckedOut(false)
-    setIsCheckedIn(true)
+const handleCheckIn = async () => {
+  try {
+    await checkIn()
+    await loadTodayAttendance()
+  } catch (error) {
+    alert(error.response?.data?.detail || 'Failed to check in.')
   }
+}
 
-  const handleCheckOut = () => {
-    const now = new Date()
-    const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-    setCheckOutTime(timeString)
-    setIsCheckedIn(false)
-    setHasCheckedOut(true)
+const handleCheckOut = async () => {
+  try {
+    await checkOut()
+    await loadTodayAttendance()
+  } catch (error) {
+    alert(error.response?.data?.detail || 'Failed to check out.')
   }
+}
+const todayStatus = attendance?.todayStatus || 'NOT_CHECKED_IN'
+
+const isCheckedIn = ['PRESENT', 'LATE', 'HALF_DAY'].includes(todayStatus)
+
+const hasCheckedOut = Boolean(
+  attendance?.checkOut && attendance.checkOut !== '-'
+)
 
   return (
     <DashboardLayout>
@@ -94,31 +125,14 @@ function CEODashboard() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              type="button"
-              onClick={() => navigate('/employees/new')}
-              className="px-6 py-2 rounded-full bg-[#3b82f6] text-white font-extrabold text-[14px] hover:bg-[#2563eb] transition-all"
-            >
-              Add Employee
-            </button>
-            <button
-              type="button"
-              onClick={isCheckedIn ? handleCheckOut : handleCheckIn}
-              disabled={hasCheckedOut}
-              title={
-                hasCheckedOut
-                  ? `Checked out at ${checkOutTime}`
-                  : isCheckedIn
-                  ? `Checked in at ${checkInTime}`
-                  : 'Mark attendance'
-              }
-              className={`px-6 py-2 rounded-full font-extrabold text-[14px] transition-all ${
-                hasCheckedOut
-                  ? 'bg-[#e5e7eb] text-[#9ca3af] cursor-not-allowed'
-                  : 'bg-[#3b82f6] text-white hover:bg-[#2563eb]'
-              }`}
-            >
-              {hasCheckedOut ? 'Checked Out' : isCheckedIn ? 'Check Out' : 'Check In'}
-            </button>
+  type="button"
+onClick={ isCheckedIn && !hasCheckedOut ? () => setShowCheckoutModal(true) : handleCheckIn }  disabled={hasCheckedOut || attendanceLoading}
+  className={`px-6 py-2 rounded-full font-extrabold text-[14px] transition-all ${ hasCheckedOut ? 'bg-[#e5e7eb] text-[#9ca3af] cursor-not-allowed' : 'bg-[#3b82f6] text-white hover:bg-[#2563eb]'
+  }`}
+>
+  {hasCheckedOut ? 'Checked Out' : isCheckedIn ? 'Check Out' : 'Check In'}
+</button>
+
             <button
               type="button"
               onClick={() => navigate('/projects')}
@@ -142,12 +156,33 @@ function CEODashboard() {
             icon="⏱️"
             iconBg="#d1fae5"
             label="Workforce Attendance"
-            value="95%"
+            value={
+              companyAttendanceLoading
+                ? '...'
+                : workforceAttendanceUnavailable
+                  ? '—'
+                  : `${workforceAttendancePercentage}%`
+            }
             valueColor="#10b981"
             rows={[
-              { label: 'Present', value: '95' },
-              { label: 'Absent', value: '5' },
-              { label: 'Late', value: '2' },
+              {
+                label: 'Present',
+                value: companyAttendanceLoading || workforceAttendanceUnavailable
+                  ? '—'
+                  : String(presentToday),
+              },
+              {
+                label: 'Absent',
+                value: companyAttendanceLoading || workforceAttendanceUnavailable
+                  ? '—'
+                  : String(absentToday),
+              },
+              {
+                label: 'Late',
+                value: companyAttendanceLoading || workforceAttendanceUnavailable
+                  ? '—'
+                  : String(lateToday),
+              },
             ]}
           />
           <StatCard
@@ -298,8 +333,21 @@ function CEODashboard() {
           </div>
         </ListSectionCard>
       </div>
+      <ConfirmationModal
+  isOpen={showCheckoutModal}
+  title="Confirm Check Out"
+  message="Are you sure you want to check out for today? Once you check out, your working hours and attendance status will be finalized."
+  confirmText="Check Out"
+  cancelText="Cancel"
+  loading={attendanceLoading}
+  onCancel={() => setShowCheckoutModal(false)}
+  onConfirm={handleCheckOut}
+    />
     </DashboardLayout>
+
   )
 }
+
+
 
 export default CEODashboard
