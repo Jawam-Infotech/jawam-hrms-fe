@@ -14,4 +14,41 @@ const EMPLOYEE_ENDPOINTS = {
   managers: '/users/managers/',
 }
 
-export { AUTH_ENDPOINTS, EMPLOYEE_ENDPOINTS }
+const ATTENDANCE_ENDPOINTS = {
+  checkIn: 'attendance/check-in/',
+  checkOut: 'attendance/check-out/',
+  startBreak: 'attendance/break-start/',
+  endBreak: 'attendance/break-end/',
+  me: 'attendance/me/',
+  team: 'attendance/team/',
+  company: 'attendance/company/',
+  today: 'attendance/today/',
+  trend: 'attendance/trend/', // ← Add this
+  summary: 'attendance/summary/',
+  byId: (attendanceId) => `attendance/${attendanceId}/`,
+  override: (attendanceId) => `attendance/${attendanceId}/override/`,
+  calendar: 'attendance/me/calendar/',
+  correctionRequests: 'attendance/correction-requests/',
+  allCorrectionRequests: 'attendance/correction-requests/all/',
+  correctionBulk: (attendanceId) =>
+  `attendance/${attendanceId}/correct-bulk/`,
+  // Correction Requests
+myCorrectionRequests: 'attendance/correction-requests/me/',
+
+correctionRequestById: (requestId) =>
+  `attendance/correction-requests/${requestId}/`,
+
+approveCorrectionRequest: (requestId) =>
+  `attendance/correction-requests/${requestId}/approve/`,
+
+rejectCorrectionRequest: (requestId) =>
+  `attendance/correction-requests/${requestId}/reject/`,
+
+correctionStatusMap: 'attendance/correction-requests/status-map/',
+}
+
+
+export const HOLIDAY_ENDPOINTS = {
+  holidays: 'holidays/',
+}
+export { AUTH_ENDPOINTS, EMPLOYEE_ENDPOINTS, ATTENDANCE_ENDPOINTS}

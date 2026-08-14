@@ -36,26 +36,34 @@ export default function AttendanceAlertsTable({ alerts, variant = 'team', descri
               </tr>
             </thead>
             <tbody>
-              {filteredAlerts.map((alert) => (
-                <tr key={alert.id} className="border-b border-[#f3f4f6] hover:bg-[#f9fafb] transition">
-                  <td className="px-4 py-4 text-[14px] font-semibold text-[#111827]">{alert.name}</td>
-                  <td className="px-4 py-4 text-[14px] text-[#6b7280]">{alert.department}</td>
-                  <td className="px-4 py-4">
-                    <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold ${
-                        alert.issue === 'Late'
-                          ? 'bg-[#fef3c7] text-[#f59e0b]'
-                          : alert.issue === 'Absent'
-                          ? 'bg-[#fee2e2] text-[#ef4444]'
-                          : 'bg-[#dbeafe] text-[#3b82f6]'
-                      }`}
-                    >
-                      {alert.issue}
-                    </span>
+              {filteredAlerts.length > 0 ? (
+                filteredAlerts.map((alert) => (
+                  <tr key={alert.id} className="border-b border-[#f3f4f6] hover:bg-[#f9fafb] transition">
+                    <td className="px-4 py-4 text-[14px] font-semibold text-[#111827]">{alert.name}</td>
+                    <td className="px-4 py-4 text-[14px] text-[#6b7280]">{alert.department}</td>
+                    <td className="px-4 py-4">
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold ${
+                          alert.issue === 'Late'
+                            ? 'bg-[#fef3c7] text-[#f59e0b]'
+                            : alert.issue === 'Absent'
+                            ? 'bg-[#fee2e2] text-[#ef4444]'
+                            : 'bg-[#dbeafe] text-[#3b82f6]'
+                        }`}
+                      >
+                        {alert.issue}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-[14px] font-semibold text-[#111827]">{alert.reliability}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-[14px] font-semibold text-[#6b7280]">
+                    No attendance alerts found.
                   </td>
-                  <td className="px-4 py-4 text-[14px] font-semibold text-[#111827]">{alert.reliability}</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -86,16 +94,24 @@ export default function AttendanceAlertsTable({ alerts, variant = 'team', descri
             </tr>
           </thead>
           <tbody>
-            {alerts.map((alert) => (
-              <tr key={alert.id} className="border-b border-[#e5e7eb] hover:bg-[#f9fafb]">
-                <td className="py-4 font-semibold">{alert.id}</td>
-                <td className="py-4">{alert.name}</td>
-                <td className={`py-4 font-semibold ${alert.issue === 'Absent' ? 'text-[#ef4444]' : alert.issue === 'Late' ? 'text-[#f59e0b]' : 'text-[#10b981]'}`}>
-                  {alert.issue}
+            {alerts.length > 0 ? (
+              alerts.map((alert) => (
+                <tr key={alert.id} className="border-b border-[#e5e7eb] hover:bg-[#f9fafb]">
+                  <td className="py-4 font-semibold">{alert.id}</td>
+                  <td className="py-4">{alert.name}</td>
+                  <td className={`py-4 font-semibold ${alert.issue === 'Absent' ? 'text-[#ef4444]' : alert.issue === 'Late' ? 'text-[#f59e0b]' : 'text-[#10b981]'}`}>
+                    {alert.issue}
+                  </td>
+                  <td className="py-4 text-[#6b7280]">{alert.reliability}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4} className="py-8 text-center text-[14px] font-semibold text-[#6b7280]">
+                  No attendance alerts found.
                 </td>
-                <td className="py-4 text-[#6b7280]">{alert.reliability}</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

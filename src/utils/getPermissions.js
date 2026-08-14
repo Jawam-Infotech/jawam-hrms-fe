@@ -15,4 +15,11 @@ function getPermissions(role) {
   return permissions[permissionKey]
 }
 
+function canReviewAttendanceCorrectionRequests(role) {
+  return Boolean(
+    getPermissions(role)?.attendance?.canReviewCorrectionRequests,
+  )
+}
+
 export default getPermissions
+export { canReviewAttendanceCorrectionRequests }
