@@ -23,7 +23,6 @@ async function getManagers() {
 
 async function getEmployeeById(employeeId) {
   const { data } = await api.get(`${EMPLOYEE_ENDPOINTS.listUsers}${employeeId}/`)
-  console.log("Employee API Response:", data)
   return data
 }
 

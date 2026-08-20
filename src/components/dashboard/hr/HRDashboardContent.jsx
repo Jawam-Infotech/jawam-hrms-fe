@@ -1,6 +1,7 @@
 import { useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UserContext } from '../../../context/UserContext.jsx'
+import usePendingLeaveRequests from '../../../hooks/usePendingLeaveRequests.js'
 
 function AttendanceTodayCard() {
   return (
@@ -31,16 +32,38 @@ function AttendanceTodayCard() {
 }
 
 function PendingLeaveRequestCard() {
+  const navigate = useNavigate()
+
+  const {
+    totalCount,
+    loading,
+  } = usePendingLeaveRequests()
+
   return (
     <div className="bg-white rounded-[16px] border border-[#e5e5e5] p-6 shadow-sm">
       <div className="flex items-center gap-4 mb-4">
-        <div className="w-12 h-12 rounded-full bg-[#fef3c7] flex items-center justify-center text-[24px]">📋</div>
+        <div className="w-12 h-12 rounded-full bg-[#fef3c7] flex items-center justify-center text-[24px]">
+          📋
+        </div>
+
         <div>
-          <h3 className="text-[16px] font-extrabold text-[#111827]">Pending Leave Request</h3>
-          <p className="text-[14px] font-extrabold text-[#f59e0b]">● 5</p>
+          <h3 className="text-[16px] font-extrabold text-[#111827]">
+            Pending Leave Request
+          </h3>
+
+          <p className="text-[14px] font-extrabold text-[#f59e0b]">
+            ● {loading ? '...' : totalCount}
+          </p>
         </div>
       </div>
-      <button className="text-[#3b82f6] text-[14px] font-extrabold hover:underline">Review Leaves</button>
+
+      <button
+        type="button"
+        onClick={() => navigate('/leave/review')}
+        className="text-[#3b82f6] text-[14px] font-extrabold hover:underline"
+      >
+        Review Leaves
+      </button>
     </div>
   )
 }
@@ -200,28 +223,61 @@ function UpcomingActivitiesCard() {
 }
 
 function LeaveRequestCard() {
-  const leaves = [
-    { name: 'Rajesh Singh', type: 'Personal Leave', duration: '2 Days' },
-    { name: 'Aman Dev', type: 'Medical Leave', duration: '1 Day' },
-    { name: 'Arpit Bhatt', type: 'Emergency Leave', duration: '8 Days' },
-    { name: 'Radhika Mishra', type: 'Marriage Leave', duration: '1 week' },
-  ]
+  const navigate = useNavigate()
+
+  const {
+    requests,
+    totalCount,
+    loading,
+  } = usePendingLeaveRequests()
 
   return (
     <div className="bg-white rounded-[16px] border border-[#e5e5e5] p-6 shadow-sm">
-      <h3 className="text-[18px] font-extrabold text-[#111827] mb-4">Leave Request</h3>
+      <h3 className="text-[18px] font-extrabold text-[#111827] mb-4">
+        Leave Request
+      </h3>
+
       <div className="space-y-3">
-        {leaves.map((leave, idx) => (
-          <div key={idx} className="flex justify-between items-start pb-3 border-b border-[#e5e5e5] last:border-0">
-            <div>
-              <p className="text-[14px] font-semibold text-[#111827]">{leave.name}</p>
-              <p className="text-[12px] text-[#5f6679]">{leave.type}</p>
+        {loading ? (
+          <p className="text-[14px] text-[#6b7280]">
+            Loading leave requests...
+          </p>
+        ) : requests.length === 0 ? (
+          <p className="text-[14px] text-[#6b7280]">
+            No pending leave requests.
+          </p>
+        ) : (
+          requests.map((leave) => (
+            <div
+              key={leave.id}
+              className="flex justify-between items-start pb-3 border-b border-[#e5e5e5] last:border-0"
+            >
+              <div>
+                <p className="text-[14px] font-semibold text-[#111827]">
+                  {leave.employeeName}
+                </p>
+
+                <p className="text-[12px] text-[#5f6679]">
+                  {leave.leaveType}
+                </p>
+              </div>
+
+              <p className="text-[12px] text-[#5f6679]">
+                {leave.numberOfDays}{' '}
+                {leave.numberOfDays === 1 ? 'Day' : 'Days'}
+              </p>
             </div>
-            <p className="text-[12px] text-[#5f6679]">{leave.duration}</p>
-          </div>
-        ))}
+          ))
+        )}
       </div>
-      <button className="text-[#3b82f6] text-[14px] font-extrabold hover:underline mt-4">View all Leave Request (5)</button>
+
+      <button
+        type="button"
+        onClick={() => navigate('/leave/review')}
+        className="text-[#3b82f6] text-[14px] font-extrabold hover:underline mt-4"
+      >
+        View all Leave Request ({totalCount})
+      </button>
     </div>
   )
 }

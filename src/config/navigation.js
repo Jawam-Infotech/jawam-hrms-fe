@@ -53,7 +53,7 @@ export const NAV_CONFIG = {
     { id: 'timesheet', label: 'Timesheet', icon: '📋', path: '/timesheet' },
     { id: 'workupdate', label: 'Work Update', icon: '📝', path: '/workupdate' },
     { id: 'recruitment', label: 'Recruitment', icon: '➕', path: '/recruitment' },
-    { id: 'leave', label: 'Leave', icon: '🏖️', path: '/leave' },
+    { id: 'leave', label: 'Leave', icon: '🏖️', path: '/leave/review' },
     { id: 'projects', label: 'Projects', icon: '📁', path: '/projects' },
     { id: 'learning', label: 'Learning and Training', icon: '🎓', path: '/learning' },
     { id: 'expenses', label: 'Expenses', icon: '🧾', path: '/expenses' },
