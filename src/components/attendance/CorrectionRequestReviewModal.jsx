@@ -137,7 +137,12 @@ function CorrectionRequestReviewModal({
    * Populate editable values whenever a new
    * correction request is loaded.
    */
-  useEffect(() => {
+useEffect(() => {
+  let cancelled = false
+
+  queueMicrotask(() => {
+    if (cancelled) return
+
     if (!correctionRequest) {
       setEditedCheckIn('')
       setEditedCheckOut('')
@@ -148,11 +153,15 @@ function CorrectionRequestReviewModal({
     }
 
     setEditedCheckIn(
-      formatTimeForInput(correctionRequest.proposed_check_in),
+      formatTimeForInput(
+        correctionRequest.proposed_check_in,
+      ),
     )
 
     setEditedCheckOut(
-      formatTimeForInput(correctionRequest.proposed_check_out),
+      formatTimeForInput(
+        correctionRequest.proposed_check_out,
+      ),
     )
 
     const breakItems = Array.isArray(
@@ -173,9 +182,17 @@ function CorrectionRequestReviewModal({
       })),
     )
 
-    setReviewComment(correctionRequest.review_comment || '')
+    setReviewComment(
+      correctionRequest.review_comment || '',
+    )
+
     setReviewCommentError('')
-  }, [correctionRequest])
+  })
+
+  return () => {
+    cancelled = true
+  }
+}, [correctionRequest])
 
   if (!isOpen) return null
 

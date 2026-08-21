@@ -1,5 +1,9 @@
 const permissions = {
   CEO: {
+  leave: {
+    canApply: false,
+    canReview: true,
+  },
   attendance: {
     canReviewCorrectionRequests: true,
   },
@@ -18,6 +22,10 @@ const permissions = {
   },
 },
   HR: {
+  leave: {
+    canApply: true,
+    canReview: true,
+  },
   attendance: {
     canReviewCorrectionRequests: true,
   },
@@ -36,6 +44,10 @@ const permissions = {
   },
 },
 TEAM_LEAD: {
+  leave: {
+    canApply: true,
+    canReview: true,
+  },
   attendance: {
     canReviewCorrectionRequests: false,
   },
@@ -54,6 +66,10 @@ TEAM_LEAD: {
   },
 },
   EMPLOYEE: {
+  leave: {
+    canApply: true,
+    canReview: false,
+  },
   attendance: {
     canReviewCorrectionRequests: false,
   },

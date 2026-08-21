@@ -173,10 +173,6 @@ const entry = isCurrentMonth ? recordsByDay[dayNumber] : null
                     const today = new Date()
 today.setHours(0, 0, 0, 0)
 
-const cellDate = new Date(date)
-cellDate.setHours(0, 0, 0, 0)
-
-const isFutureDate = cellDate > today
                     const isSelected = false
                     const isHoliday = calendarEntry?.status === 'HOLIDAY' || Boolean(holiday)
 

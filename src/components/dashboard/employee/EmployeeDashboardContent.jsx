@@ -95,7 +95,6 @@ function EmployeeDashboardContent() {
   const handleCorrectionRequest = (attendanceRecord) => {
     const attendanceId = attendanceRecord?.id ?? attendanceRecord?.attendance_id ?? null
 
-    console.log('Selected correction attendance record:', attendanceRecord)
     setSelectedAttendanceId(attendanceId)
     setShowCorrectionModal(true)
   }

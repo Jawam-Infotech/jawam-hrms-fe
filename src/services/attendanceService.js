@@ -81,12 +81,10 @@ function normalizePaginatedAttendance(data, summaryNormalizer) {
 async function getMyAttendance(params) {
   const data = await getMyAttendanceRequest(params)
 
-  console.log('RAW MY ATTENDANCE API:', data)
 
   const normalized = normalizePaginatedAttendance(data, normalizeEmployeeSummary)
 
-  console.log('NORMALIZED MY ATTENDANCE:', normalized)
-    console.log('FIRST RECORD:', normalized.records[0])
+
 
 
   return normalized
@@ -150,7 +148,6 @@ async function getTeamAttendanceOverview(params) {
     normalizeTeamSummary
   )
 
-  console.log('TEAM OVERVIEW', data)
 
   return data
 }
@@ -177,7 +174,6 @@ async function getMissedCheckouts() {
 
 async function getAttendanceTrend(view) {
   const data = await getAttendanceTrendRequest(view)
-    console.log(`TREND API (${view})`, data)
 
 
   return data

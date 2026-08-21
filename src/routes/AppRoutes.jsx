@@ -20,7 +20,8 @@ import HolidayManagement from '../pages/attendance/HolidayManagement.jsx'
 import CorrectionRequests from '../pages/attendance/CorrectionRequests.jsx'
 import WorkUpdate from '../pages/workupdate/WorkUpdate.jsx'
 import Recruitment from '../pages/recruitment/Recruitment.jsx'
-import Leave from '../pages/leave/Leave.jsx'
+import LeaveEntry from '../pages/leave/LeaveEntry.jsx'
+import LeaveReview from '../pages/leave/LeaveReview.jsx'
 import Projects from '../pages/projects/Projects.jsx'
 import ProjectDetails from '../pages/projects/ProjectDetails.jsx'
 import Performance from '../pages/performance/Performance.jsx'
@@ -204,7 +205,15 @@ function AppRoutes() {
           path="/leave"
           element={
             <ProtectedRoute>
-              <Leave />
+              <LeaveEntry />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leave/review"
+          element={
+            <ProtectedRoute requiredPermission="leave.canReview">
+              <LeaveReview />
             </ProtectedRoute>
           }
         />

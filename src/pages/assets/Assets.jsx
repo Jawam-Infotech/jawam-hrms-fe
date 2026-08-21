@@ -28,12 +28,7 @@ function RaiseAssetRequestModal({ isOpen, onClose, initialType = null }) {
   }
 
   const handleSubmit = () => {
-    console.log({
-      requestType,
-      assetName,
-      reason,
-      attachment,
-    })
+  
     onClose()
   }
 

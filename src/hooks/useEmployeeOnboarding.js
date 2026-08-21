@@ -314,14 +314,12 @@ useEffect(() => {
   setSubmissionError('')
 
   if (Object.keys(nextErrors).length > 0) {
-    console.log('❌ Validation failed')
     return { ok: false, errors: nextErrors }
   }
   setIsSubmitting(true)
 
   try {
     const payload = buildCreateUserPayload(formData, isEditMode)
-    console.log('Payload:', payload)
 
     let employee
 
@@ -329,9 +327,7 @@ if (isEditMode) {
   employee = await updateEmployee(employeeId, payload)
 
   if (originalRole !== formData.role) {
-    console.log(
-      `Updating role from ${originalRole} to ${formData.role}`
-    )
+
 
     await updateEmployeeRole(employeeId, formData.role)
   }

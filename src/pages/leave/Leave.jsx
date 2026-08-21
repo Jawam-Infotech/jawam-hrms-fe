@@ -1,250 +1,270 @@
-import { useState, useMemo } from 'react'
-import DashboardLayout from '../../layouts/DashboardLayout'
+import {
+  useCallback,
+  useContext,
+  useState,
+} from 'react'
+import { useNavigate } from 'react-router-dom'
 
-const leaveTypes = [
-  { value: 'Casual Leave', label: 'Casual Leave (CL)' },
-  { value: 'Sick Leave', label: 'Sick Leave (SL)' },
-  { value: 'Privilege Leave', label: 'Privilege Leave (PL)' },
-  { value: 'Maternity Leave', label: 'Maternity Leave (ML)' },
-  { value: 'Work From Home', label: 'Work From Home (WFH)' },
-]
+import LeaveApplicationForm from '../../components/leave/LeaveApplicationForm.jsx'
+import LeaveCancellationModal from '../../components/leave/LeaveCancellationModal.jsx'
+import LeaveDetailsModal from '../../components/leave/LeaveDetailsModal.jsx'
+import LeaveHistory from '../../components/leave/LeaveHistory.jsx'
+import LeaveSummary from '../../components/leave/LeaveSummary.jsx'
 
-const durationOptions = ['Full Day', 'First Half', 'Second Half']
+import DashboardLayout from '../../layouts/DashboardLayout.jsx'
 
-const initialHistory = [
-  { id: '1', date: '12/05/2026', leaveType: 'Casual Leave', days: 5, reason: 'Family Marriage', status: 'Pending' },
-  { id: '2', date: '12/03/2026', leaveType: 'Casual Leave', days: 4, reason: 'Urgent Work', status: 'Accepted' },
-  { id: '3', date: '12/01/2026', leaveType: 'Sick Leave', days: 1, reason: 'Urgent Work', status: 'Rejected' },
-]
+import { UserContext } from '../../context/UserContext.jsx'
+import getPermissions from '../../utils/getPermissions.js'
 
-const statusStyles = {
-  Pending: 'bg-[#fef3c7] text-[#b45309]',
-  Accepted: 'bg-[#d1fae5] text-[#059669]',
-  Rejected: 'bg-[#fee2e2] text-[#dc2626]',
-}
+import useLeave from '../../hooks/useLeave.js'
+
 
 function Leave() {
-  const [formState, setFormState] = useState({
-    leaveType: 'Casual Leave',
-    startDate: '',
-    endDate: '',
-    duration: 'Full Day',
-    reason: 'Type your reason here...',
-    attachment: null,
-  })
-  const [history, setHistory] = useState(initialHistory)
+  const { user } = useContext(UserContext)
+  const navigate = useNavigate()
 
-  const summary = useMemo(() => ({
-    available: 4,
-    approved: history.filter((item) => item.status === 'Accepted').length,
-    inProcess: history.filter((item) => item.status === 'Pending').length,
-    rejected: history.filter((item) => item.status === 'Rejected').length,
-  }), [history])
 
-  const handleFieldChange = (name, value) => {
-    setFormState((prev) => ({ ...prev, [name]: value }))
-  }
+  /*
+   * =========================
+   * PERMISSIONS
+   * =========================
+   */
 
-  const handleApplyLeave = () => {
-    const newEntry = {
-      id: String(history.length + 1),
-      date: formState.startDate || 'N/A',
-      leaveType: formState.leaveType,
-      days: formState.duration === 'Full Day' ? 1 : 0.5,
-      reason: formState.reason,
-      status: 'Pending',
-    }
-    setHistory((current) => [newEntry, ...current])
-    setFormState({
-      leaveType: 'Casual Leave',
-      startDate: '',
-      endDate: '',
-      duration: 'Full Day',
-      reason: 'Type your reason here...',
-      attachment: null,
-    })
-  }
+  const permissions = getPermissions(
+    user?.role,
+  )
 
-  const handleCancel = () => {
-    setFormState({
-      leaveType: 'Casual Leave',
-      startDate: '',
-      endDate: '',
-      duration: 'Full Day',
-      reason: 'Waiting for API integration.',
-      attachment: null,
-    })
-  }
+  const canReview =
+    permissions?.leave?.canReview === true
 
-  const handleDelete = (id) => {
-    setHistory((current) => current.filter((item) => item.id !== id))
-  }
+
+  /*
+   * =========================
+   * LEAVE DATA & ACTIONS
+   * =========================
+   */
+
+  const {
+    leaveTypes,
+    summary,
+    history,
+
+    historyPagination,
+    changeHistoryPage,
+
+    leaveTypesLoading,
+    summaryLoading,
+    historyLoading,
+
+    leaveTypesError,
+    historyError,
+
+    formState,
+    handleFieldChange,
+    handleApplyLeave,
+    resetLeaveForm,
+
+    applyLoading,
+    applyError,
+
+    cancellationRequest,
+    cancellationLoading,
+    handleCancelRequest,
+    handleRequestCancellation,
+    clearCancellationRequest,
+  } = useLeave()
+
+
+  /*
+   * =========================
+   * LOCAL UI STATE
+   * =========================
+   */
+
+  const [
+    selectedHistoryRequest,
+    setSelectedHistoryRequest,
+  ] = useState(null)
+
+
+  /*
+   * =========================
+   * HANDLERS
+   * =========================
+   */
+
+  const handleOpenReview = useCallback(() => {
+    navigate('/leave/review')
+  }, [navigate])
+
+
+  const handleViewHistoryRequest =
+    useCallback((request) => {
+      setSelectedHistoryRequest(request)
+    }, [])
+
+
+  const handleCloseHistoryDetails =
+    useCallback(() => {
+      setSelectedHistoryRequest(null)
+    }, [])
+
+
+  const handleHistoryPageChange =
+    useCallback(
+      (page) => {
+        void changeHistoryPage(page)
+      },
+      [changeHistoryPage],
+    )
+
+
+  /*
+   * =========================
+   * RENDER
+   * =========================
+   */
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <div>
-          <h1 className="text-[32px] font-black text-[#111827]">Leave Management</h1>
-          <p className="text-[16px] text-[#5f6679] mt-2">Apply and track your leave requests</p>
-        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
-            <p className="text-[14px] font-semibold text-[#6b7280]">Available Leaves</p>
-            <p className="mt-4 text-[28px] font-black text-[#111827]">{summary.available}</p>
-          </div>
-          <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
-            <p className="text-[14px] font-semibold text-[#6b7280]">Approved Leaves</p>
-            <p className="mt-4 text-[28px] font-black text-[#10b981]">{summary.approved}</p>
-          </div>
-          <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
-            <p className="text-[14px] font-semibold text-[#6b7280]">In Process Leave</p>
-            <p className="mt-4 text-[28px] font-black text-[#f59e0b]">{summary.inProcess}</p>
-          </div>
-          <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
-            <p className="text-[14px] font-semibold text-[#6b7280]">Rejected Leaves</p>
-            <p className="mt-4 text-[28px] font-black text-[#ef4444]">{summary.rejected}</p>
-          </div>
-        </div>
+        {/* =========================
+            PAGE HEADER
+        ========================== */}
 
-        <div className="rounded-[30px] border border-[#e5e7eb] bg-white p-8 shadow-sm">
-          <h2 className="text-[22px] font-black text-[#111827]">Apply Leave</h2>
-          <div className="mt-6 grid gap-6 xl:grid-cols-2">
-            <div className="space-y-4">
-              <label className="block text-[14px] font-semibold text-[#111827]">Leave Type</label>
-              <select
-                value={formState.leaveType}
-                onChange={(event) => handleFieldChange('leaveType', event.target.value)}
-                className="h-12 w-full rounded-[18px] border border-[#d1d5db] bg-[#f8fafc] px-4 text-[14px] text-[#111827] outline-none focus:border-[#3b82f6] focus:ring-2 focus:ring-[#bfdbfe]/50"
-              >
-                {leaveTypes.map((type) => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
-                ))}
-              </select>
-            </div>
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
-            <div className="space-y-4">
-              <label className="block text-[14px] font-semibold text-[#111827]">Start Date</label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={formState.startDate}
-                  onChange={(event) => handleFieldChange('startDate', event.target.value)}
-                  className="h-12 w-full rounded-[18px] border border-[#d1d5db] bg-white px-4 pr-12 text-[14px] text-[#111827] outline-none transition-all duration-200 focus:border-[#3b82f6] focus:ring-2 focus:ring-[#bfdbfe]/50"
-                />
-                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#6b7280] text-lg">📅</span>
-              </div>
-            </div>
+          <div>
+            <h1 className="text-[32px] font-black text-[#111827]">
+              Leave Management
+            </h1>
 
-            <div className="space-y-4">
-              <label className="block text-[14px] font-semibold text-[#111827]">End Date</label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={formState.endDate}
-                  onChange={(event) => handleFieldChange('endDate', event.target.value)}
-                  className="h-12 w-full rounded-[18px] border border-[#d1d5db] bg-white px-4 pr-12 text-[14px] text-[#111827] outline-none transition-all duration-200 focus:border-[#3b82f6] focus:ring-2 focus:ring-[#bfdbfe]/50"
-                />
-                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#6b7280] text-lg">📅</span>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <label className="block text-[14px] font-semibold text-[#111827]">Duration</label>
-              <select
-                value={formState.duration}
-                onChange={(event) => handleFieldChange('duration', event.target.value)}
-                className="h-12 w-full rounded-[18px] border border-[#d1d5db] bg-[#f8fafc] px-4 text-[14px] text-[#111827] outline-none focus:border-[#3b82f6] focus:ring-2 focus:ring-[#bfdbfe]/50"
-              >
-                {durationOptions.map((duration) => (
-                  <option key={duration} value={duration}>{duration}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-4 xl:col-span-2">
-              <label className="block text-[14px] font-semibold text-[#111827]">Reason</label>
-              <textarea
-                value={formState.reason}
-                onChange={(event) => handleFieldChange('reason', event.target.value)}
-                rows={3}
-                className="w-full rounded-[18px] border border-[#d1d5db] bg-[#f8fafc] px-4 py-3 text-[14px] text-[#111827] outline-none focus:border-[#3b82f6] focus:ring-2 focus:ring-[#bfdbfe]/50"
-              />
-            </div>
-
-            <div className="space-y-4 xl:col-span-2">
-              <label className="block text-[14px] font-semibold text-[#111827]">Attachments (Optional)</label>
-              <input
-                type="file"
-                onChange={(event) => handleFieldChange('attachment', event.target.files?.[0] || null)}
-                className="w-full rounded-[18px] border border-[#d1d5db] bg-[#f8fafc] px-4 py-3 text-[14px] text-[#111827] outline-none focus:border-[#3b82f6] focus:ring-2 focus:ring-[#bfdbfe]/50"
-              />
-            </div>
+            <p className="mt-2 text-[16px] text-[#5f6679]">
+              Apply and track your leave requests
+            </p>
           </div>
 
-          <div className="mt-6 flex flex-wrap gap-3">
+
+          {canReview && (
             <button
               type="button"
-              onClick={handleCancel}
-              className="rounded-full border border-[#fca5a5] bg-white px-7 py-3 text-[14px] font-bold text-[#ef4444] transition-all hover:bg-[#fef2f2]"
+              onClick={handleOpenReview}
+              className="rounded-full bg-[#3b82f6] px-5 py-2.5 text-[14px] font-extrabold text-white transition hover:bg-[#2563eb] focus:outline-none focus:ring-2 focus:ring-[#bfdbfe] focus:ring-offset-2"
             >
-              Cancel
+              Review Leave
             </button>
-            <button
-              type="button"
-              onClick={handleApplyLeave}
-              className="rounded-full bg-[#10b981] px-7 py-3 text-[14px] font-bold text-white transition-all hover:bg-[#059669]"
-            >
-              Apply leave
-            </button>
-          </div>
-        </div>
+          )}
 
-        <div className="rounded-[30px] border border-[#e5e7eb] bg-white p-8 shadow-sm">
-          <h2 className="text-[20px] font-black text-[#111827]">Leave History</h2>
-          <div className="mt-6 overflow-x-auto">
-            <table className="min-w-full text-left text-[14px]">
-              <thead>
-                <tr className="border-b border-[#e5e7eb] text-[#6b7280]">
-                  <th className="px-6 py-4 font-semibold">Date</th>
-                  <th className="px-6 py-4 font-semibold">Leave Type</th>
-                  <th className="px-6 py-4 font-semibold">Days</th>
-                  <th className="px-6 py-4 font-semibold">Reason</th>
-                  <th className="px-6 py-4 font-semibold">Status</th>
-                  <th className="px-6 py-4 font-semibold">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((entry) => (
-                  <tr key={entry.id} className="border-b border-[#f1f5f9] hover:bg-[#f8fafc]">
-                    <td className="px-6 py-4 text-[#111827]">{entry.date}</td>
-                    <td className="px-6 py-4 text-[#111827]">{entry.leaveType}</td>
-                    <td className="px-6 py-4 text-[#111827]">{entry.days}</td>
-                    <td className="px-6 py-4 text-[#111827]">{entry.reason}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-[12px] font-bold ${statusStyles[entry.status]}`}>
-                        {entry.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(entry.id)}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#fee2e2] text-[#dc2626] transition-all hover:bg-[#fecaca]"
-                        aria-label="Delete leave entry"
-                      >
-                        🗑️
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        </header>
+
+
+        {/* =========================
+            LEAVE SUMMARY
+        ========================== */}
+
+        <LeaveSummary
+          summary={summary}
+          loading={summaryLoading}
+        />
+
+
+        {/* =========================
+            APPLY LEAVE
+        ========================== */}
+
+        <LeaveApplicationForm
+          leaveTypes={leaveTypes}
+          leaveTypesLoading={
+            leaveTypesLoading
+          }
+          leaveTypesError={
+            leaveTypesError
+          }
+          formState={formState}
+          onFieldChange={
+            handleFieldChange
+          }
+          onSubmit={
+            handleApplyLeave
+          }
+          onCancel={
+            resetLeaveForm
+          }
+          loading={
+            applyLoading
+          }
+          error={
+            applyError
+          }
+        />
+
+
+        {/* =========================
+            LEAVE HISTORY
+        ========================== */}
+
+        <LeaveHistory
+          history={history}
+          loading={historyLoading}
+          error={historyError}
+          onView={
+            handleViewHistoryRequest
+          }
+          onCancel={
+            handleCancelRequest
+          }
+          pagination={
+            historyPagination
+          }
+          onPageChange={
+            handleHistoryPageChange
+          }
+        />
+
       </div>
+
+
+      {/* =========================
+          LEAVE DETAILS MODAL
+      ========================== */}
+
+      {selectedHistoryRequest && (
+        <LeaveDetailsModal
+          request={
+            selectedHistoryRequest
+          }
+          onClose={
+            handleCloseHistoryDetails
+          }
+        />
+      )}
+
+
+      {/* =========================
+          CANCELLATION MODAL
+      ========================== */}
+
+      {cancellationRequest && (
+        <LeaveCancellationModal
+          request={
+            cancellationRequest
+          }
+          onClose={
+            clearCancellationRequest
+          }
+          onConfirm={
+            handleRequestCancellation
+          }
+          loading={
+            cancellationLoading
+          }
+        />
+      )}
+
     </DashboardLayout>
   )
 }
+
 
 export default Leave
