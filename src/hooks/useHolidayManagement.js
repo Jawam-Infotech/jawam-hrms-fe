@@ -30,11 +30,14 @@ function useHolidayManagement(user) {
     refreshHolidays,
   } = useHolidayCatalog()
 
-  const canManage = useMemo(() => {
-const role = String(user?.role || '').toLowerCase()
+  const userRole = user?.role
+  const userName = user?.name
 
-return role === 'admin' || role === 'hr'
-  }, [user?.role])
+  const canManage = useMemo(() => {
+    const role = String(userRole || '').toLowerCase()
+
+    return role === 'admin' || role === 'hr'
+  }, [userRole])
 
   const openAddHoliday = useCallback(() => {
     setFormMode('add')
@@ -51,7 +54,9 @@ return role === 'admin' || role === 'hr'
 
     setFormState({
       holidayName: holiday.holidayName || '',
-      holidayDate: toHolidayInputDate(holiday.holidayDate),
+      holidayDate: toHolidayInputDate(
+        holiday.holidayDate
+      ),
     })
 
     setIsFormOpen(true)
@@ -65,102 +70,131 @@ return role === 'admin' || role === 'hr'
     setActionError(null)
   }, [])
 
-  const handleFormChange = useCallback((field, value) => {
-    setFormState((current) => ({
-      ...current,
-      [field]: value,
-    }))
-  }, [])
+  const handleFormChange = useCallback(
+    (field, value) => {
+      setFormState((current) => ({
+        ...current,
+        [field]: value,
+      }))
+    },
+    []
+  )
 
-  const handleFormSubmit = useCallback(async () => {
-    const holidayName = formState.holidayName.trim()
-    const holidayDate = formState.holidayDate
+  const handleFormSubmit = useCallback(
+    async () => {
+      const holidayName =
+        formState.holidayName.trim()
 
-    if (!holidayName || !holidayDate) {
-      return { ok: false }
-    }
+      const holidayDate =
+        formState.holidayDate
 
-    setSaving(true)
-    setActionError(null)
-
-    try {
-      if (formMode === 'add') {
-        await createHoliday({
-          holidayName,
-          holidayDate,
-          createdBy: user?.name || 'HR Team',
-        })
-      } else {
-        await updateHoliday(selectedHolidayId, {
-          holidayName,
-          holidayDate,
-        })
+      if (!holidayName || !holidayDate) {
+        return { ok: false }
       }
 
-      await refreshHolidays()
-      closeForm()
+      setSaving(true)
+      setActionError(null)
 
-      return { ok: true }
-    } catch (err) {
-      setActionError(err.message || 'Failed to save holiday.')
-      return {
-        ok: false,
-        error: err,
+      try {
+        if (formMode === 'add') {
+          await createHoliday({
+            holidayName,
+            holidayDate,
+            createdBy:
+              userName || 'HR Team',
+          })
+        } else {
+          await updateHoliday(
+            selectedHolidayId,
+            {
+              holidayName,
+              holidayDate,
+            }
+          )
+        }
+
+        await refreshHolidays()
+        closeForm()
+
+        return { ok: true }
+      } catch (err) {
+        setActionError(
+          err.message ||
+            'Failed to save holiday.'
+        )
+
+        return {
+          ok: false,
+          error: err,
+        }
+      } finally {
+        setSaving(false)
       }
-    } finally {
-      setSaving(false)
-    }
-  }, [
-    closeForm,
-    formMode,
-    formState.holidayDate,
-    formState.holidayName,
-    refreshHolidays,
-    selectedHolidayId,
-  ])
+    },
+    [
+      closeForm,
+      formMode,
+      formState.holidayDate,
+      formState.holidayName,
+      refreshHolidays,
+      selectedHolidayId,
+      userName,
+    ]
+  )
 
-  const openDeleteHoliday = useCallback((holiday) => {
-    setDeleteTarget(holiday)
-    setActionError(null)
-  }, [])
+  const openDeleteHoliday = useCallback(
+    (holiday) => {
+      setDeleteTarget(holiday)
+      setActionError(null)
+    },
+    []
+  )
 
   const closeDeleteHoliday = useCallback(() => {
     setDeleteTarget(null)
     setActionError(null)
   }, [])
 
-  const confirmDeleteHoliday = useCallback(async () => {
-    if (!deleteTarget) {
-      return { ok: false }
-    }
-
-    setDeletingId(deleteTarget.id)
-    setActionError(null)
-
-    try {
-      await deleteHoliday(deleteTarget.id)
-
-      await refreshHolidays()
-
-      setDeleteTarget(null)
-
-      return { ok: true }
-    } catch (err) {
-      setActionError(err.message || 'Failed to delete holiday.')
-
-      return {
-        ok: false,
-        error: err,
+  const confirmDeleteHoliday =
+    useCallback(async () => {
+      if (!deleteTarget) {
+        return { ok: false }
       }
-    } finally {
-      setDeletingId(null)
-    }
-  }, [deleteTarget, refreshHolidays])
+
+      setDeletingId(deleteTarget.id)
+      setActionError(null)
+
+      try {
+        await deleteHoliday(deleteTarget.id)
+
+        await refreshHolidays()
+
+        setDeleteTarget(null)
+
+        return { ok: true }
+      } catch (err) {
+        setActionError(
+          err.message ||
+            'Failed to delete holiday.'
+        )
+
+        return {
+          ok: false,
+          error: err,
+        }
+      } finally {
+        setDeletingId(null)
+      }
+    }, [
+      deleteTarget,
+      refreshHolidays,
+    ])
 
   return {
     holidays,
     loading,
-    error: actionError || catalogError,
+    error:
+      actionError || catalogError,
 
     canManage,
 

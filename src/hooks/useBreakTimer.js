@@ -63,8 +63,6 @@ function useBreakTimer(attendance) {
   useEffect(() => {
     if (!shouldRun) return undefined
 
-    setCurrentTime(Date.now())
-
     const intervalId = window.setInterval(() => {
       setCurrentTime(Date.now())
     }, 1000)
