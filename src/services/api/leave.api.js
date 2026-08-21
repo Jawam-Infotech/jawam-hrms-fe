@@ -7,7 +7,6 @@ async function getLeaveTypes() {
   return data
 }
 
-
 async function getLeaveSummary() {
   const { data } = await api.get(LEAVE_ENDPOINTS.summary)
   return data
