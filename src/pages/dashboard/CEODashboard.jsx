@@ -7,6 +7,7 @@ import ListSectionCard from '../../components/ui/ListSectionCard'
 import useAttendance from '../../hooks/useAttendance.js'
 import useCompanyAttendance from '../../hooks/useCompanyAttendance.js'
 import ConfirmationModal from '../../components/shared/ConfirmationModal.jsx'
+import usePendingLeaveRequests from '../../hooks/usePendingLeaveRequests.js'
 
 
 const departmentPerformance = [
@@ -43,13 +44,6 @@ const upcomingMeetings = [
   { name: 'Meeting Scheduled', time: '12:30 PM', status: 'Next Meeting' },
   { name: 'Meeting Scheduled', time: '02:00 PM', status: 'Next Meeting' },
   { name: 'EOD Scheduled', time: '5:45 PM', status: 'EOD End of Day' },
-]
-
-const leaveRequests = [
-  { name: 'Rajesh Singh', type: 'Personal Leave', days: '7 Days' },
-  { name: 'Aman Dev', type: 'Medical Leave', days: '1 Day' },
-  { name: 'Arpit Bhatt', type: 'Emergency Leave', days: '8 Days' },
-  { name: 'Radhika Mishra', type: 'Marriage Leave', days: '1 week' },
 ]
 
 function CEODashboard() {
@@ -110,6 +104,8 @@ const isCheckedIn = ['PRESENT', 'LATE', 'HALF_DAY'].includes(todayStatus)
 const hasCheckedOut = Boolean(
   attendance?.checkOut && attendance.checkOut !== '-'
 )
+  const { requests: pendingLeaveRequests, totalCount: pendingLeaveCount, loading: pendingLeaveLoading,} = usePendingLeaveRequests()
+
 
   return (
     <DashboardLayout>
@@ -319,19 +315,45 @@ onClick={ isCheckedIn && !hasCheckedOut ? () => setShowCheckoutModal(true) : han
         </div>
 
         {/* Leave Request */}
-        <ListSectionCard title="Leave Request" footerText="View all Leave Request (5)">
-          <div className="space-y-3">
-            {leaveRequests.map((leave, idx) => (
-              <div key={idx} className="flex justify-between items-start pb-3 border-b border-[#e5e7eb] last:border-0">
-                <div>
-                  <p className="text-[14px] font-semibold text-[#111827]">{leave.name}</p>
-                  <p className="text-[12px] text-[#6b7280]">{leave.type}</p>
-                </div>
-                <p className="text-[12px] text-[#6b7280]">{leave.days}</p>
-              </div>
-            ))}
+       <ListSectionCard
+  title="Leave Request"
+  footerText={`View all Leave Request (${pendingLeaveCount})`}
+  onFooterClick={() => navigate('/leave/review')}
+>
+  <div className="space-y-3">
+    {pendingLeaveLoading ? (
+      <p className="text-[14px] text-[#6b7280]">
+        Loading leave requests...
+      </p>
+    ) : pendingLeaveRequests.length === 0 ? (
+      <p className="text-[14px] text-[#6b7280]">
+        No pending leave requests.
+      </p>
+    ) : (
+      pendingLeaveRequests.map((leave) => (
+        <div
+          key={leave.id}
+          className="flex justify-between items-start pb-3 border-b border-[#e5e7eb] last:border-0"
+        >
+          <div>
+            <p className="text-[14px] font-semibold text-[#111827]">
+              {leave.employeeName}
+            </p>
+
+            <p className="text-[12px] text-[#6b7280]">
+              {leave.leaveType}
+            </p>
           </div>
-        </ListSectionCard>
+
+          <p className="text-[12px] text-[#6b7280]">
+            {leave.numberOfDays}{' '}
+            {leave.numberOfDays === 1 ? 'Day' : 'Days'}
+          </p>
+        </div>
+      ))
+    )}
+  </div>
+</ListSectionCard>
       </div>
       <ConfirmationModal
   isOpen={showCheckoutModal}

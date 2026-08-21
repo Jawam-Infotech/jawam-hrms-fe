@@ -481,7 +481,9 @@ function useCompanyAttendancePage(
     setAttendanceDate,
 
     department,
+
     searchQuery,
+
     statusFilter,
 
     onDepartmentChange,
@@ -504,10 +506,13 @@ function useCompanyAttendancePage(
       attendanceRecords,
 
     loading,
+
     error,
 
     currentPage,
+
     totalCount,
+
     totalPages,
 
     goToPage,

@@ -47,8 +47,26 @@ rejectCorrectionRequest: (requestId) =>
 correctionStatusMap: 'attendance/correction-requests/status-map/',
 }
 
+const LEAVE_ENDPOINTS = {
+  types: 'leave/types/',
+  summary: 'leave/summary/',
+  balance: 'leave/balance/',
+  leaves: 'leave/',
+  pending: 'leave/pending/',
+  byId: (leaveId) => `leave/${leaveId}/`,
+  cancel: (leaveId) => `leave/${leaveId}/cancel/`,
+  approve: (leaveId) => `leave/${leaveId}/approve/`,
+  reject: (leaveId) => `leave/${leaveId}/reject/`,
+  partialApprove: (leaveId) => `leave/${leaveId}/partial-approve/`,
+  approveCancellation: (leaveId) =>
+    `leave/${leaveId}/approve-cancellation/`,
+  rejectCancellation: (leaveId) =>
+    `leave/${leaveId}/reject-cancellation/`,
+  upcoming: 'leave/upcoming/',
+}
+
 
 export const HOLIDAY_ENDPOINTS = {
   holidays: 'holidays/',
 }
-export { AUTH_ENDPOINTS, EMPLOYEE_ENDPOINTS, ATTENDANCE_ENDPOINTS}
+export { AUTH_ENDPOINTS, EMPLOYEE_ENDPOINTS, ATTENDANCE_ENDPOINTS, LEAVE_ENDPOINTS}

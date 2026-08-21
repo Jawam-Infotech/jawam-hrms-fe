@@ -33,6 +33,7 @@ import {
   normalizeTrendData,
 } from '../utils/attendanceHelpers.js'
 
+
 async function checkIn() {
   return await checkInRequest()
 }
