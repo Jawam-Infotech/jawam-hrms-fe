@@ -129,17 +129,12 @@ function useBreakTimer(attendance) {
       return undefined
     }
 
-    const intervalId =
-      window.setInterval(() => {
-        setCurrentTime(Date.now())
-      }, 1000)
+    const intervalId = window.setInterval(() => {
+      setCurrentTime(Date.now())
+    }, 1000)
 
-    return () =>
-      window.clearInterval(intervalId)
-  }, [
-    shouldRun,
-    activeBreakStart,
-  ])
+    return () => window.clearInterval(intervalId)
+  }, [shouldRun, activeBreakStart])
 
   if (!shouldRun) {
     return completedBreakSeconds > 0

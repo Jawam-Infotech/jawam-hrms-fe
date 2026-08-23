@@ -12,12 +12,10 @@ import {
   toHolidayInputDate,
 } from '../utils/holidayUtils.js'
 
-
 const DEFAULT_FORM_STATE = {
   holidayName: '',
   holidayDate: '',
 }
-
 
 function useHolidayManagement(user) {
   const [isFormOpen, setIsFormOpen] =
@@ -48,14 +46,12 @@ function useHolidayManagement(user) {
   const [actionError, setActionError] =
     useState(null)
 
-
   const {
     holidays,
     loading,
     error: catalogError,
     refreshHolidays,
   } = useHolidayCatalog()
-
 
   /*
    * =========================
@@ -65,7 +61,6 @@ function useHolidayManagement(user) {
 
   const userRole = user?.role
   const userName = user?.name
-
 
   /*
    * =========================
@@ -84,7 +79,6 @@ function useHolidayManagement(user) {
     )
   }, [userRole])
 
-
   /*
    * =========================
    * ADD HOLIDAY
@@ -101,7 +95,6 @@ function useHolidayManagement(user) {
       setActionError(null)
       setIsFormOpen(true)
     }, [])
-
 
   /*
    * =========================
@@ -129,7 +122,6 @@ function useHolidayManagement(user) {
       setIsFormOpen(true)
     }, [])
 
-
   /*
    * =========================
    * CLOSE FORM
@@ -147,7 +139,6 @@ function useHolidayManagement(user) {
       setActionError(null)
     }, [])
 
-
   /*
    * =========================
    * FORM CHANGE
@@ -164,7 +155,6 @@ function useHolidayManagement(user) {
       },
       [],
     )
-
 
   /*
    * =========================
@@ -246,7 +236,6 @@ function useHolidayManagement(user) {
       ],
     )
 
-
   /*
    * =========================
    * DELETE HOLIDAY
@@ -259,7 +248,6 @@ function useHolidayManagement(user) {
       setActionError(null)
     }, [])
 
-
   /*
    * =========================
    * CLOSE DELETE
@@ -271,7 +259,6 @@ function useHolidayManagement(user) {
       setDeleteTarget(null)
       setActionError(null)
     }, [])
-
 
   /*
    * =========================
@@ -326,7 +313,6 @@ function useHolidayManagement(user) {
       ],
     )
 
-
   /*
    * =========================
    * RETURN
@@ -339,8 +325,7 @@ function useHolidayManagement(user) {
     loading,
 
     error:
-      actionError ||
-      catalogError,
+      actionError || catalogError,
 
     canManage,
 
@@ -373,6 +358,5 @@ function useHolidayManagement(user) {
     confirmDeleteHoliday,
   }
 }
-
 
 export default useHolidayManagement

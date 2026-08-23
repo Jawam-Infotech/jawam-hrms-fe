@@ -33,6 +33,7 @@ import {
   normalizeTrendData,
 } from '../utils/attendanceHelpers.js'
 
+
 async function checkIn() {
   return await checkInRequest()
 }
@@ -83,7 +84,6 @@ async function getMyAttendance(params) {
 
 
   const normalized = normalizePaginatedAttendance(data, normalizeEmployeeSummary)
-
 
 
 

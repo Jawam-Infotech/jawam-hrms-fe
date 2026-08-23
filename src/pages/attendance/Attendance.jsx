@@ -170,8 +170,6 @@ function Attendance() {
 const calendarEntry = isCurrentMonth ? calendar.find((item) => item.date === dateKey) : null
 const holiday = isCurrentMonth ? holidayMap[dateKey] : null
 const entry = isCurrentMonth ? recordsByDay[dayNumber] : null
-                    const today = new Date()
-today.setHours(0, 0, 0, 0)
 
                     const isSelected = false
                     const isHoliday = calendarEntry?.status === 'HOLIDAY' || Boolean(holiday)

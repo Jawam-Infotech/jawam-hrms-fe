@@ -107,33 +107,6 @@ async function updateEmployee(employeeId, payload) {
   return cacheEmployee(data)
 }
 
-function deleteEmployee(employeeId) {
-  const normalizedEmployeeId = String(employeeId).trim()
-  if (!employeeCache.has(normalizedEmployeeId)) {
-    return false
-  }
 
-  employeeCache.delete(normalizedEmployeeId)
-  return true
-}
 
-function generateEmployeeId() {
-  const numericIds = [...employeeCache.values()]
-    .map((employee) => Number.parseInt(getEmployeeDisplayId(employee), 10))
-    .filter((value) => Number.isFinite(value))
-
-  const nextId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 101
-  return String(nextId)
-}
-
-function uploadDocument(documentKey, file) {
-  return {
-    file,
-    fileName: file.name,
-    previewUrl: URL.createObjectURL(file),
-    status: 'Uploaded',
-    key: documentKey,
-  }
-}
-
-export { getEmployees, createEmployee, updateEmployee, deleteEmployee, generateEmployeeId, getManagers, uploadDocument, getEmployeeById, updateEmployeeRole }
+export { getEmployees, createEmployee, updateEmployee, getManagers, getEmployeeById, updateEmployeeRole }

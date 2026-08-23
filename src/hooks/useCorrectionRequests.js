@@ -9,13 +9,21 @@ import {
   rejectCorrectionRequest,
 } from '../services/attendanceService.js'
 
-async function getAllCorrectionRequestPages(params = {}) {
-  let response = await getCorrectionRequests(params)
+async function getAllPaginatedCorrectionRequests(
+  requestFn,
+  params = {},
+) {
+  let response = await requestFn({
+    ...params,
+    page: 1,
+  })
+
   let page = 1
   const requests = []
 
   while (response) {
-    const results = response?.results ?? response ?? []
+    const results =
+      response?.results ?? response ?? []
 
     if (Array.isArray(results)) {
       requests.push(...results)
@@ -26,31 +34,32 @@ async function getAllCorrectionRequestPages(params = {}) {
     }
 
     page += 1
-    response = await getCorrectionRequests({ ...params, page })
+
+    response = await requestFn({
+      ...params,
+      page,
+    })
   }
 
   return requests
 }
 
-async function getAllCompanyCorrectionRequestPages(params = {}) {
-  let response = await getAllCorrectionRequests(params)
-  let page = 1
-  const requests = []
+async function getAllCorrectionRequestPages(
+  params = {},
+) {
+  return getAllPaginatedCorrectionRequests(
+    getCorrectionRequests,
+    params,
+  )
+}
 
-  while (response) {
-    const results = response?.results ?? response ?? []
-
-    if (Array.isArray(results)) {
-      requests.push(...results)
-    }
-
-    if (!response?.next) break
-
-    page += 1
-    response = await getAllCorrectionRequests({ ...params, page })
-  }
-
-  return requests
+async function getAllCompanyCorrectionRequestPages(
+  params = {},
+) {
+  return getAllPaginatedCorrectionRequests(
+    getAllCorrectionRequests,
+    params,
+  )
 }
 
 function useCorrectionRequests() {
@@ -154,64 +163,6 @@ function useCorrectionRequests() {
    * endpoint directly. The attendance management page uses the separated
    * allRequests/actionableRequests state above.
    */
-  const loadLegacyReviewRequests = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const [pendingResponse, approvedResponse, rejectedResponse] =
-        await Promise.all([
-          getAllCorrectionRequestPages(),
-          getAllCorrectionRequestPages({ status: 'APPROVED' }),
-          getAllCorrectionRequestPages({ status: 'REJECTED' }),
-        ])
-
-      const pendingRequests =
-        pendingResponse?.results ?? pendingResponse ?? []
-
-      const approvedRequests =
-        approvedResponse?.results ?? approvedResponse ?? []
-
-      const rejectedRequests =
-        rejectedResponse?.results ?? rejectedResponse ?? []
-
-      /*
-       * Combine all three lists.
-       *
-       * Map by request ID first so the same request can never
-       * appear twice if the backend returns overlapping data.
-       */
-      const requestMap = new Map()
-
-      ;[
-        ...pendingRequests,
-        ...approvedRequests,
-        ...rejectedRequests,
-      ].forEach((request) => {
-        if (request?.id !== undefined && request?.id !== null) {
-          requestMap.set(request.id, request)
-        }
-      })
-
-      const combinedRequests = Array.from(requestMap.values())
-
-      setRequests(combinedRequests)
-
-      return combinedRequests
-    } catch (requestError) {
-      setError(
-        requestError.response?.data?.detail ||
-          requestError.message ||
-          'Failed to load correction requests.'
-      )
-
-      setRequests([])
-
-      throw requestError
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
   const loadMyRequests = useCallback(async (params = {}) => {
     try {
@@ -393,7 +344,6 @@ function useCorrectionRequests() {
 
     loadRequests,
     loadReviewRequests,
-    loadLegacyReviewRequests,
     loadMyRequests,
     loadCorrectionStatusMap,
     loadRequestDetail,

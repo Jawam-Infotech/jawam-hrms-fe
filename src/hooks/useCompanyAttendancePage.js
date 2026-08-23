@@ -6,9 +6,7 @@ import {
   useState,
 } from 'react'
 
-import {
-  ATTENDANCE_PAGE_SIZE,
-} from '../constants/attendance.js'
+import { ATTENDANCE_PAGE_SIZE } from '../constants/attendance.js'
 
 import {
   getCompanyAttendanceOverview,
@@ -30,16 +28,12 @@ function useCompanyAttendancePage(
 ) {
   const { scope = 'company' } = options
 
+  const userRole = user?.role
+
   const todayDate = useMemo(
     () => getTodayDateInput(),
     [],
   )
-
-  /*
-   * Keep only the primitive role value
-   * needed by the callback.
-   */
-  const userRole = user?.role
 
   const [attendanceDate, setAttendanceDate] =
     useState(todayDate)
@@ -60,10 +54,8 @@ function useCompanyAttendancePage(
     absent: 0,
   })
 
-  const [
-    attendanceRecords,
-    setAttendanceRecords,
-  ] = useState([])
+  const [attendanceRecords, setAttendanceRecords] =
+    useState([])
 
   const [trendData, setTrendData] =
     useState({
@@ -80,8 +72,7 @@ function useCompanyAttendancePage(
   const [currentPage, setCurrentPage] =
     useState(1)
 
-  const requestSequence =
-    useRef(0)
+  const requestSequence = useRef(0)
 
 
   /*
@@ -101,7 +92,7 @@ function useCompanyAttendancePage(
 
   /*
    * =========================
-   * FETCH ATTENDANCE DATA
+   * FETCH ATTENDANCE BUNDLE
    * =========================
    */
 
@@ -146,7 +137,6 @@ function useCompanyAttendancePage(
           }
 
           const canViewTrend = [
-            'admin',
             'hr',
             'ceo',
           ].includes(
@@ -180,7 +170,8 @@ function useCompanyAttendancePage(
           }
 
           setAttendanceRecords(
-            selectedResponse.records || [],
+            selectedResponse.records ||
+              [],
           )
 
           setSummary(
@@ -219,7 +210,6 @@ function useCompanyAttendancePage(
           }
 
           setAttendanceRecords([])
-
           setTrendData({
             weekly: [],
             monthly: [],
@@ -252,7 +242,7 @@ function useCompanyAttendancePage(
 
   /*
    * =========================
-   * LOAD ATTENDANCE
+   * INITIAL / DATE LOAD
    * =========================
    */
 
@@ -283,22 +273,19 @@ function useCompanyAttendancePage(
    */
 
   const refreshAttendance =
-    useCallback(
-      async () => {
-        await fetchAttendanceBundle(
-          attendanceDate,
-        )
-      },
-      [
+    useCallback(async () => {
+      await fetchAttendanceBundle(
         attendanceDate,
-        fetchAttendanceBundle,
-      ],
-    )
+      )
+    }, [
+      attendanceDate,
+      fetchAttendanceBundle,
+    ])
 
 
   /*
    * =========================
-   * DEPARTMENT OPTIONS
+   * DEPARTMENTS
    * =========================
    */
 
@@ -314,13 +301,15 @@ function useCompanyAttendancePage(
 
   /*
    * =========================
-   * FILTER RECORDS
+   * FILTERED RECORDS
    * =========================
    */
 
   const filteredRecords = useMemo(() => {
     const search =
-      searchQuery.trim().toLowerCase()
+      searchQuery
+        .trim()
+        .toLowerCase()
 
     return attendanceRecords.filter(
       (record) => {
@@ -360,10 +349,11 @@ function useCompanyAttendancePage(
             record.checkOut,
           ]
             .filter(Boolean)
-            .some((value) =>
-              String(value)
-                .toLowerCase()
-                .includes(search),
+            .some(
+              (value) =>
+                String(value)
+                  .toLowerCase()
+                  .includes(search),
             )
 
         return (
@@ -398,7 +388,6 @@ function useCompanyAttendancePage(
     ),
   )
 
-
   const paginatedRecords =
     useMemo(() => {
       const startIndex =
@@ -418,36 +407,33 @@ function useCompanyAttendancePage(
 
   /*
    * =========================
-   * PAGINATION ACTIONS
+   * PAGE CONTROLS
    * =========================
    */
 
-  const goToPage = useCallback(
-    (page) => {
-      if (
-        page < 1 ||
-        page > totalPages
-      ) {
-        return
-      }
+  const goToPage =
+    useCallback(
+      (page) => {
+        if (
+          page < 1 ||
+          page > totalPages
+        ) {
+          return
+        }
 
-      setCurrentPage(page)
-    },
-    [totalPages],
-  )
+        setCurrentPage(page)
+      },
+      [totalPages],
+    )
 
-
-  const goToNextPage = useCallback(
-    () => {
+  const goToNextPage =
+    useCallback(() => {
       setCurrentPage((page) =>
         page < totalPages
           ? page + 1
           : page,
       )
-    },
-    [totalPages],
-  )
-
+    }, [totalPages])
 
   const goToPreviousPage =
     useCallback(() => {
@@ -461,7 +447,7 @@ function useCompanyAttendancePage(
 
   /*
    * =========================
-   * FILTER ACTIONS
+   * FILTER CONTROLS
    * =========================
    */
 
@@ -471,13 +457,11 @@ function useCompanyAttendancePage(
       setCurrentPage(1)
     }, [])
 
-
   const onStatusFilterChange =
     useCallback((value) => {
       setStatusFilter(value)
       setCurrentPage(1)
     }, [])
-
 
   const onSearchQueryChange =
     useCallback((value) => {
@@ -488,7 +472,7 @@ function useCompanyAttendancePage(
 
   /*
    * =========================
-   * RETURN
+   * PUBLIC API
    * =========================
    */
 
