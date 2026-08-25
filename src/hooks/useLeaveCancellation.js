@@ -4,6 +4,10 @@ import {
   requestLeaveCancellation,
 } from '../services/leaveService.js'
 
+import {
+  getApiErrorMessage,
+} from '../utils/apiErrorMessage.js'
+
 
 function useLeaveCancellation(refresh) {
   /*
@@ -35,8 +39,7 @@ function useLeaveCancellation(refresh) {
    *
    * PENDING → CANCELLED
    *
-   * Pending leaves do not need the
-   * cancellation modal.
+   * Reason is NOT required.
    */
 
   const cancelPendingLeave =
@@ -64,8 +67,10 @@ function useLeaveCancellation(refresh) {
           )
 
           const message =
-            error?.message ||
-            'Unable to cancel this leave request.'
+            getApiErrorMessage(
+              error,
+              'Unable to cancel this leave request.',
+            )
 
           setCancellationError(message)
 
@@ -82,9 +87,6 @@ function useLeaveCancellation(refresh) {
    * =========================
    * OPEN CANCELLATION FLOW
    * =========================
-   *
-   * Determines which cancellation
-   * workflow should be used.
    */
 
   const handleCancelRequest =
@@ -154,7 +156,7 @@ function useLeaveCancellation(refresh) {
    *
    * Accepted / Partially Accepted
    *
-   * → Cancellation Requested
+   * → CANCELLATION_REQUESTED
    */
 
   const handleRequestCancellation =
@@ -162,12 +164,21 @@ function useLeaveCancellation(refresh) {
       async ({
         cancellationReason = '',
       } = {}) => {
+
         if (!cancellationRequest?.id) {
           return
         }
 
+
         const trimmedReason =
           cancellationReason.trim()
+
+
+        /*
+         * Backend requires a reason
+         * for approved / partially
+         * approved cancellation.
+         */
 
         if (!trimmedReason) {
           throw new Error(
@@ -175,39 +186,45 @@ function useLeaveCancellation(refresh) {
           )
         }
 
+
         try {
           setCancellationLoading(true)
           setCancellationError('')
 
-          /*
-           * The current service contract only
-           * accepts the leave request ID.
-           *
-           * Keep the reason available in the
-           * UI workflow until the backend
-           * contract is implemented.
-           */
 
           await requestLeaveCancellation(
             cancellationRequest.id,
+            {
+              cancellationReason:
+                trimmedReason,
+            },
           )
+
 
           await refresh()
 
+
           setCancellationRequest(null)
+
         } catch (error) {
           console.error(
             'Failed to request leave cancellation:',
             error,
           )
 
+
           const message =
-            error?.message ||
-            'Unable to request leave cancellation.'
+            getApiErrorMessage(
+              error,
+              'Unable to request leave cancellation.',
+            )
+
 
           setCancellationError(message)
 
+
           throw error
+
         } finally {
           setCancellationLoading(false)
         }

@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import {useState, } from 'react'
+import useHolidayCatalog from '../../hooks/useHolidayCatalog.js'
 import { X } from 'lucide-react'
+
 
 import {
   formatLeaveDate,
@@ -17,13 +19,17 @@ function PartialLeaveCalendarModal({
   onConfirm,
   loading = false,
 }) {
+    const { holidayMap } =
+    useHolidayCatalog()
   const requestedDates = getLeaveDates(
-    request?.startDate,
-    request?.endDate,
-  )
+  request?.startDate,
+  request?.endDate,
+  holidayMap,
+)
 
   const [approvedDates, setApprovedDates] =
     useState(requestedDates)
+
 
   const [error, setError] =
     useState('')

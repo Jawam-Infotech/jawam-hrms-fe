@@ -122,6 +122,7 @@ function formatApprovedLeaveDates(
 function calculateLeaveDays(
   startDate,
   endDate,
+  holidayMap = {},
 ) {
   const start = toDate(startDate)
   const end = toDate(endDate)
@@ -134,13 +135,44 @@ function calculateLeaveDays(
     return 0
   }
 
-  return (
-    Math.floor(
-      (end.getTime() -
-        start.getTime()) /
-        86_400_000,
-    ) + 1
-  )
+  let eligibleDays = 0
+  const current = new Date(start)
+
+  while (current <= end) {
+    const dayOfWeek =
+      current.getDay()
+
+    const year =
+      current.getFullYear()
+
+    const month = String(
+      current.getMonth() + 1,
+    ).padStart(2, '0')
+
+    const day = String(
+      current.getDate(),
+    ).padStart(2, '0')
+
+    const dateKey =
+      `${year}-${month}-${day}`
+
+    const isWeekend =
+      dayOfWeek === 0 ||
+      dayOfWeek === 6
+
+    const isHoliday =
+      Boolean(holidayMap[dateKey])
+
+    if (!isWeekend && !isHoliday) {
+      eligibleDays += 1
+    }
+
+    current.setDate(
+      current.getDate() + 1,
+    )
+  }
+
+  return eligibleDays
 }
 
 
@@ -153,6 +185,7 @@ function calculateLeaveDays(
 function getLeaveDates(
   startDate,
   endDate,
+  holidayMap = {},
 ) {
   const start = toDate(startDate)
   const end = toDate(endDate)
@@ -169,6 +202,9 @@ function getLeaveDates(
   const current = new Date(start)
 
   while (current <= end) {
+    const dayOfWeek =
+      current.getDay()
+
     const year =
       current.getFullYear()
 
@@ -180,9 +216,19 @@ function getLeaveDates(
       current.getDate(),
     ).padStart(2, '0')
 
-    dates.push(
-      `${year}-${month}-${day}`,
-    )
+    const dateKey =
+      `${year}-${month}-${day}`
+
+    const isWeekend =
+      dayOfWeek === 0 ||
+      dayOfWeek === 6
+
+    const isHoliday =
+      Boolean(holidayMap[dateKey])
+
+    if (!isWeekend && !isHoliday) {
+      dates.push(dateKey)
+    }
 
     current.setDate(
       current.getDate() + 1,

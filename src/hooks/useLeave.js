@@ -1,6 +1,7 @@
 import useLeaveApplication from './useLeaveApplication.js'
 import useLeaveCancellation from './useLeaveCancellation.js'
 import useLeaveData from './useLeaveData.js'
+import useHolidayCatalog from './useHolidayCatalog.js'
 
 
 function useLeave() {
@@ -40,17 +41,23 @@ function useLeave() {
    */
 
   const {
-    formState,
-    handleFieldChange,
-    handleApplyLeave,
-    resetLeaveForm,
+  holidayMap,
+} = useHolidayCatalog()
+  
 
-    validationErrors,
-    requestedDays,
-
-    applyLoading,
-    applyError,
-  } = useLeaveApplication(refresh)
+const {
+  formState,
+  handleFieldChange,
+  handleApplyLeave,
+  resetLeaveForm,
+  validationErrors,
+  requestedDays,
+  applyLoading,
+  applyError,
+} = useLeaveApplication(
+  refresh,
+  holidayMap,
+)
 
 
   /*
