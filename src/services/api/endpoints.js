@@ -53,15 +53,31 @@ const LEAVE_ENDPOINTS = {
   balance: 'leave/balance/',
   leaves: 'leave/',
   pending: 'leave/pending/',
-  byId: (leaveId) => `leave/${leaveId}/`,
-  cancel: (leaveId) => `leave/${leaveId}/cancel/`,
-  approve: (leaveId) => `leave/${leaveId}/approve/`,
-  reject: (leaveId) => `leave/${leaveId}/reject/`,
-  partialApprove: (leaveId) => `leave/${leaveId}/partial-approve/`,
+
+  byId: (leaveId) =>
+    `leave/${leaveId}/`,
+
+  history: (leaveId) =>
+    `leave/${leaveId}/history/`,
+
+  cancel: (leaveId) =>
+    `leave/${leaveId}/cancel/`,
+
+  approve: (leaveId) =>
+    `leave/${leaveId}/approve/`,
+
+  reject: (leaveId) =>
+    `leave/${leaveId}/reject/`,
+
+  partialApprove: (leaveId) =>
+    `leave/${leaveId}/partial-approve/`,
+
   approveCancellation: (leaveId) =>
     `leave/${leaveId}/approve-cancellation/`,
+
   rejectCancellation: (leaveId) =>
     `leave/${leaveId}/reject-cancellation/`,
+
   upcoming: 'leave/upcoming/',
 }
 

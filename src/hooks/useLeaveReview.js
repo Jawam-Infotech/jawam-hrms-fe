@@ -1,9 +1,12 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useState,
 } from 'react'
+
+import {
+  getApiErrorMessage,
+} from '../utils/apiErrorMessage.js'
 
 import {
   LEAVE_REVIEW_PAGE_SIZE,
@@ -11,6 +14,8 @@ import {
 
 import {
   approveLeave,
+  getLeaveHistory,
+  getLeaveTypes,
   getPendingRequests,
   partiallyAcceptLeave,
   rejectLeave,
@@ -18,34 +23,16 @@ import {
   rejectLeaveCancellation,
 } from '../services/leaveService.js'
 
-import {
-  filterLeaveRequests,
-  sortLeaveRequests,
-} from '../utils/leaveUtils.js'
-
 
 function useLeaveReview() {
-  /*
-   * =========================
-   * REQUEST DATA
-   * =========================
-   */
-
   const [requests, setRequests] =
     useState([])
 
   const [loading, setLoading] =
-    useState(true)
+    useState(false)
 
   const [error, setError] =
     useState(null)
-
-
-  /*
-   * =========================
-   * FILTERS
-   * =========================
-   */
 
   const [search, setSearch] =
     useState('')
@@ -59,44 +46,82 @@ function useLeaveReview() {
   const [sortBy, setSortBy] =
     useState('newest')
 
-
-  /*
-   * =========================
-   * PAGINATION
-   * =========================
-   */
+  const [leaveTypes, setLeaveTypes] =
+    useState([])
 
   const [currentPage, setCurrentPage] =
     useState(1)
 
+  const [totalCount, setTotalCount] =
+    useState(0)
+
+  const [nextPage, setNextPage] =
+    useState(null)
+
+  const [previousPage, setPreviousPage] =
+    useState(null)
+
+  const [
+    selectedRequest,
+    setSelectedRequest,
+  ] = useState(null)
+
+  const [
+    actionLoading,
+    setActionLoading,
+  ] = useState(false)
+
+  const [
+    actionError,
+    setActionError,
+  ] = useState(null)
+
+  const [
+    queueStatus,
+    setQueueStatus,
+  ] = useState('PENDING')
+
 
   /*
    * =========================
-   * REVIEW STATE
+   * HISTORY
    * =========================
    */
 
-  const [selectedRequest, setSelectedRequest] =
-    useState(null)
+  const [
+    leaveHistory,
+    setLeaveHistory,
+  ] = useState([])
 
-  const [actionLoading, setActionLoading] =
-    useState(false)
+  const [
+    historyLoading,
+    setHistoryLoading,
+  ] = useState(false)
 
-  const [actionError, setActionError] =
-    useState(null)
+  const [
+    historyPage,
+    setHistoryPage,
+  ] = useState(1)
 
+  const [
+    historyError,
+    setHistoryError,
+  ] = useState(null)
 
-  /*
-   * =========================
-   * REVIEW QUEUE
-   * =========================
-   *
-   * PENDING
-   * CANCELLATION_REQUESTED
-   */
+  const [
+    historyCount,
+    setHistoryCount,
+  ] = useState(0)
 
-  const [queueStatus, setQueueStatus] =
-    useState('PENDING')
+  const [
+    historyNextPage,
+    setHistoryNextPage,
+  ] = useState(null)
+
+  const [
+    historyPreviousPage,
+    setHistoryPreviousPage,
+  ] = useState(null)
 
 
   /*
@@ -107,7 +132,10 @@ function useLeaveReview() {
 
   const loadLeaveRequests =
     useCallback(
-      async (requestedQueueStatus = 'PENDING') => {
+      async (
+        requestedQueueStatus = 'PENDING',
+        requestedPage = 1,
+      ) => {
         try {
           setLoading(true)
           setError(null)
@@ -116,14 +144,41 @@ function useLeaveReview() {
             await getPendingRequests({
               status:
                 requestedQueueStatus,
+              page:
+                requestedPage,
             })
 
           setRequests(
             response?.results || [],
           )
+
+          setTotalCount(
+            response?.count || 0,
+          )
+
+          setNextPage(
+            response?.next || null,
+          )
+
+          setPreviousPage(
+            response?.previous || null,
+          )
+
+          return response
         } catch (requestError) {
           setRequests([])
-          setError(requestError)
+          setTotalCount(0)
+          setNextPage(null)
+          setPreviousPage(null)
+
+          setError(
+            getApiErrorMessage(
+              requestError,
+              'Unable to load leave requests.',
+            ),
+          )
+
+          throw requestError
         } finally {
           setLoading(false)
         }
@@ -134,96 +189,147 @@ function useLeaveReview() {
 
   /*
    * =========================
-   * INITIAL / QUEUE LOAD
+   * LOAD QUEUE
+   * =========================
+   */
+
+  const loadQueue =
+    useCallback(
+      async (
+        requestedQueueStatus,
+        requestedPage,
+      ) => {
+        return loadLeaveRequests(
+          requestedQueueStatus ??
+            queueStatus,
+          requestedPage ??
+            currentPage,
+        )
+      },
+      [
+        loadLeaveRequests,
+        queueStatus,
+        currentPage,
+      ],
+    )
+
+
+  /*
+   * =========================
+   * LOAD LEAVE TYPES
    * =========================
    */
 
   useEffect(() => {
     let cancelled = false
 
-    queueMicrotask(() => {
-      if (cancelled) return
+    const loadTypes = async () => {
+      try {
+        const response =
+          await getLeaveTypes()
 
-      void loadLeaveRequests(
-        queueStatus,
-      )
-    })
+        if (cancelled) {
+          return
+        }
+
+        setLeaveTypes(
+          Array.isArray(response)
+            ? response.filter(
+                (type) =>
+                  type?.is_active !== false,
+              )
+            : [],
+        )
+      } catch (requestError) {
+        if (!cancelled) {
+          setLeaveTypes([])
+        }
+
+        console.error(
+          'Failed to load leave types:',
+          requestError,
+        )
+      }
+    }
+
+    void loadTypes()
 
     return () => {
       cancelled = true
     }
-  }, [
-    loadLeaveRequests,
-    queueStatus,
-  ])
+  }, [])
 
 
   /*
    * =========================
-   * FILTER + SORT
+   * LOAD HISTORY
    * =========================
    */
 
-  const filteredRequests =
-    useMemo(
-      () =>
-        sortLeaveRequests(
-          filterLeaveRequests(
-            requests,
-            {
-              search,
-              status,
-              leaveType,
-            },
-          ),
-          sortBy,
-        ),
-      [
-        leaveType,
-        requests,
-        search,
-        sortBy,
-        status,
-      ],
-    )
+  const loadLeaveHistory =
+    useCallback(
+      async (
+        requestId,
+        page = 1,
+      ) => {
+        if (!requestId) {
+          setLeaveHistory([])
+          setHistoryCount(0)
+          setHistoryNextPage(null)
+          setHistoryPreviousPage(null)
 
+          return
+        }
 
-  /*
-   * =========================
-   * PAGINATION
-   * =========================
-   */
+        try {
+          setHistoryLoading(true)
+          setHistoryError(null)
 
-  const totalCount =
-    filteredRequests.length
+          const response =
+            await getLeaveHistory(
+              requestId,
+              {
+                page,
+              },
+            )
 
-  const totalPages =
-    Math.max(
-      1,
-      Math.ceil(
-        totalCount /
-          LEAVE_REVIEW_PAGE_SIZE,
-      ),
-    )
+          setLeaveHistory(
+            response?.results || [],
+          )
 
+          setHistoryCount(
+            response?.count || 0,
+          )
 
-  const paginatedRequests =
-    useMemo(
-      () => {
-        const startIndex =
-          (currentPage - 1) *
-          LEAVE_REVIEW_PAGE_SIZE
+          setHistoryNextPage(
+            response?.next || null,
+          )
 
-        return filteredRequests.slice(
-          startIndex,
-          startIndex +
-            LEAVE_REVIEW_PAGE_SIZE,
-        )
+          setHistoryPreviousPage(
+            response?.previous || null,
+          )
+
+          setHistoryPage(page)
+        } catch (requestError) {
+          setLeaveHistory([])
+
+          setHistoryCount(0)
+
+          setHistoryNextPage(null)
+
+          setHistoryPreviousPage(null)
+
+          setHistoryError(
+            getApiErrorMessage(
+              requestError,
+              'Unable to load approval history.',
+            ),
+          )
+        } finally {
+          setHistoryLoading(false)
+        }
       },
-      [
-        currentPage,
-        filteredRequests,
-      ],
+      [],
     )
 
 
@@ -247,16 +353,6 @@ function useLeaveReview() {
    * =========================
    * REVIEW ACTION
    * =========================
-   *
-   * After every successful action:
-   *
-   * 1. Clear action error
-   * 2. Execute backend action
-   * 3. Refresh current queue
-   * 4. Update selected request
-   *
-   * The backend remains the
-   * source of truth.
    */
 
   const runReviewAction =
@@ -269,30 +365,29 @@ function useLeaveReview() {
           const updatedRequest =
             await action()
 
-          /*
-           * Keep the latest returned
-           * request available for the
-           * currently open modal.
-           */
           setSelectedRequest(
             updatedRequest,
           )
 
-          /*
-           * Reload the queue from the
-           * backend because the request
-           * may have moved out of the
-           * current queue.
-           */
           await loadLeaveRequests(
             queueStatus,
+            currentPage,
           )
+
+          if (updatedRequest?.id) {
+            await loadLeaveHistory(
+              updatedRequest.id,
+              1,
+            )
+          }
 
           return updatedRequest
         } catch (requestError) {
           setActionError(
-            requestError?.message ||
+            getApiErrorMessage(
+              requestError,
               'Unable to update this leave request.',
+            ),
           )
 
           throw requestError
@@ -302,7 +397,9 @@ function useLeaveReview() {
       },
       [
         loadLeaveRequests,
+        loadLeaveHistory,
         queueStatus,
+        currentPage,
       ],
     )
 
@@ -430,14 +527,21 @@ function useLeaveReview() {
       (request) => {
         setSelectedRequest(request)
         setActionError(null)
+
+        setHistoryPage(1)
+
+        void loadLeaveHistory(
+          request?.id,
+          1,
+        )
       },
-      [],
+      [loadLeaveHistory],
     )
 
 
   /*
    * =========================
-   * CLEAR SELECTED REQUEST
+   * CLEAR REQUEST
    * =========================
    */
 
@@ -445,12 +549,49 @@ function useLeaveReview() {
     useCallback(() => {
       setSelectedRequest(null)
       setActionError(null)
+
+      setLeaveHistory([])
+      setHistoryError(null)
+      setHistoryCount(0)
+      setHistoryNextPage(null)
+      setHistoryPreviousPage(null)
+      setHistoryPage(1)
     }, [])
 
 
   /*
    * =========================
-   * CHANGE QUEUE
+   * HISTORY PAGINATION
+   * =========================
+   */
+
+  const changeHistoryPage =
+    useCallback(
+      async (page) => {
+        if (
+          !selectedRequest?.id ||
+          page < 1 ||
+          historyLoading
+        ) {
+          return
+        }
+
+        await loadLeaveHistory(
+          selectedRequest.id,
+          page,
+        )
+      },
+      [
+        selectedRequest,
+        historyLoading,
+        loadLeaveHistory,
+      ],
+    )
+
+
+  /*
+   * =========================
+   * QUEUE CHANGE
    * =========================
    */
 
@@ -464,6 +605,13 @@ function useLeaveReview() {
         setCurrentPage(1)
         setSelectedRequest(null)
         setActionError(null)
+
+        setLeaveHistory([])
+        setHistoryError(null)
+        setHistoryCount(0)
+        setHistoryNextPage(null)
+        setHistoryPreviousPage(null)
+        setHistoryPage(1)
       },
       [],
     )
@@ -471,46 +619,55 @@ function useLeaveReview() {
 
   /*
    * =========================
-   * MANUAL REFRESH
+   * REFRESH
    * =========================
    */
 
   const refresh =
     useCallback(
       async () => {
-        await loadLeaveRequests(
+        return loadLeaveRequests(
           queueStatus,
+          currentPage,
         )
       },
       [
         loadLeaveRequests,
         queueStatus,
+        currentPage,
       ],
     )
 
 
   /*
    * =========================
-   * RETURN PUBLIC API
+   * PAGINATION
+   * =========================
+   */
+
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        totalCount /
+          LEAVE_REVIEW_PAGE_SIZE,
+      ),
+    )
+
+
+  /*
+   * =========================
+   * RETURN
    * =========================
    */
 
   return {
-    /*
-     * Requests
-     */
-    requests:
-      paginatedRequests,
+    requests,
+    leaveTypes,
 
-    /*
-     * State
-     */
     loading,
     error,
 
-    /*
-     * Filters
-     */
     search,
     status,
     leaveType,
@@ -528,55 +685,47 @@ function useLeaveReview() {
     setSortBy:
       updateFilter(setSortBy),
 
-    /*
-     * Queue
-     */
     queueStatus,
 
     setQueueStatus:
       changeQueueStatus,
 
-    /*
-     * Pagination
-     */
     currentPage,
     totalPages,
     totalCount,
+    nextPage,
+    previousPage,
 
     setCurrentPage,
 
-    /*
-     * Refresh
-     */
+    loadQueue,
+
     refresh,
 
-    /*
-     * Selected request
-     */
     selectedRequest,
 
     selectRequest,
-
     clearSelectedRequest,
 
-    /*
-     * Review action state
-     */
     actionLoading,
     actionError,
 
-    /*
-     * Review actions
-     */
     acceptRequest,
     rejectRequest,
     partiallyAcceptRequest,
 
-    /*
-     * Cancellation actions
-     */
     approveCancellationRequest,
     rejectCancellationRequest,
+
+    leaveHistory,
+    historyLoading,
+    historyPage,
+    historyError,
+    historyCount,
+    historyNextPage,
+    historyPreviousPage,
+
+    changeHistoryPage,
   }
 }
 

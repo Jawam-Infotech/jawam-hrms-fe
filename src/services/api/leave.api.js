@@ -45,11 +45,30 @@ async function getLeaveRequestById(leaveId) {
   return data
 }
 
+async function getLeaveHistory(
+  leaveId,
+  params = {},
+) {
+  const { data } = await api.get(
+    LEAVE_ENDPOINTS.history(leaveId),
+    {
+      params,
+    },
+  )
 
-async function cancelLeave(leaveId) {
+  return data
+}
+
+
+async function cancelLeave(
+  leaveId,
+  payload = {},
+) {
   const { data } = await api.post(
     LEAVE_ENDPOINTS.cancel(leaveId),
+    payload,
   )
+
   return data
 }
 
@@ -129,6 +148,7 @@ export {
   getMyLeaveRequests,
   createLeaveRequest,
   getLeaveRequestById,
+  getLeaveHistory,
   cancelLeave,
   getPendingLeaveRequests,
   approveLeaveRequest,

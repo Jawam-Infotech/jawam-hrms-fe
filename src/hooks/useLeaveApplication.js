@@ -5,6 +5,7 @@ import {
 } from 'react'
 
 import { applyLeave } from '../services/leaveService.js'
+import {getApiErrorMessage,} from '../utils/apiErrorMessage.js'
 
 import {
   calculateLeaveDays,
@@ -116,7 +117,10 @@ function validateLeaveForm(formState) {
  * =========================
  */
 
-function useLeaveApplication(refresh) {
+function useLeaveApplication(
+  refresh,
+  holidayMap,
+) {
   /*
    * =========================
    * FORM STATE
@@ -189,6 +193,7 @@ function useLeaveApplication(refresh) {
       calculateLeaveDays(
         startDate,
         endDate,
+        holidayMap,
       )
 
     if (totalDays <= 0) {
@@ -200,7 +205,7 @@ function useLeaveApplication(refresh) {
     }
 
     return totalDays
-  }, [formState])
+  }, [formState, holidayMap])
 
 
   /*
@@ -364,8 +369,10 @@ function useLeaveApplication(refresh) {
         )
 
         const message =
-          error?.message ||
-          'Unable to apply for leave.'
+  getApiErrorMessage(
+    error,
+    'Unable to apply for leave.',
+  )
 
         setApplyError(message)
 

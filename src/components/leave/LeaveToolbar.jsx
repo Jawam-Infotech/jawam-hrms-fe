@@ -1,7 +1,6 @@
 import {
   LEAVE_SORT_OPTIONS,
   LEAVE_STATUSES,
-  LEAVE_TYPES,
 } from '../../constants/leave.js'
 
 
@@ -9,6 +8,7 @@ function LeaveToolbar({
   search = '',
   status = 'All',
   leaveType = 'All',
+  leaveTypes = [],
   sortBy = 'newest',
   onSearchChange,
   onStatusChange,
@@ -104,16 +104,18 @@ function LeaveToolbar({
           }
           className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-[14px] text-[#111827] outline-none transition focus:border-[#3b82f6] focus:ring-2 focus:ring-[#bfdbfe]/50 lg:w-auto"
         >
-          {LEAVE_TYPES.map(
-            (option) => (
-              <option
-                key={option}
-                value={option}
-              >
-                {option}
-              </option>
-            ),
-          )}
+          <option value="All">
+  All
+</option>
+
+{leaveTypes.map((type) => (
+  <option
+    key={type.code || type.id}
+    value={type.name}
+  >
+    {type.name}
+  </option>
+))}
         </select>
 
       </div>

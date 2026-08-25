@@ -1,515 +1,833 @@
-import { useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from 'react'
 
-import DashboardLayout from '../../layouts/DashboardLayout.jsx'
+import { getApiErrorMessage } from '../../utils/apiErrorMessage.js'
 
-import LeavePageHeader from '../../components/leave/LeavePageHeader.jsx'
-import LeaveTable from '../../components/leave/LeaveTable.jsx'
-import LeaveToolbar from '../../components/leave/LeaveToolbar.jsx'
-import LeaveReviewDetails from '../../components/leave/LeaveReviewDetails.jsx'
-import UpcomingLeavesTable from '../../components/leave/UpcomingLeavesTable.jsx'
-import LeavePagination from '../../components/leave/LeavePagination.jsx'
+import {
+  LEAVE_REVIEW_PAGE_SIZE,
+} from '../../constants/leave.js'
 
-import useLeaveReview from '../../hooks/useLeaveReview.js'
-import useUpcomingLeave from '../../hooks/useUpcomingLeave.js'
+import {
+  approveLeave,
+  getLeaveHistory,
+  getLeaveTypes,
+  getPendingRequests,
+  partiallyAcceptLeave,
+  rejectLeave,
+  approveLeaveCancellation,
+  rejectLeaveCancellation,
+} from '../../services/leaveService.js'
 
 
-function LeaveReview() {
+function useLeaveReview() {
   /*
    * =========================
-   * ACTIVE SECTION
+   * REQUEST DATA
    * =========================
-   *
-   * This controls which section is
-   * displayed in the review page.
-   *
-   * REQUESTS
-   * CANCELLATIONS
-   * UPCOMING
+   */
+
+  const [requests, setRequests] =
+    useState([])
+
+  const [loading, setLoading] =
+    useState(false)
+
+  const [error, setError] =
+    useState(null)
+
+
+  /*
+   * =========================
+   * FILTERS
+   * =========================
+   */
+
+  const [search, setSearch] =
+    useState('')
+
+  const [status, setStatus] =
+    useState('All')
+
+  const [leaveType, setLeaveType] =
+    useState('All')
+
+  const [sortBy, setSortBy] =
+    useState('newest')
+
+  const [leaveTypes, setLeaveTypes] =
+    useState([])
+
+
+  /*
+   * =========================
+   * PAGINATION
+   * =========================
+   */
+
+  const [currentPage, setCurrentPage] =
+    useState(1)
+
+  const [totalCount, setTotalCount] =
+    useState(0)
+
+  const [nextPage, setNextPage] =
+    useState(null)
+
+  const [previousPage, setPreviousPage] =
+    useState(null)
+
+
+  /*
+   * =========================
+   * REVIEW STATE
+   * =========================
    */
 
   const [
-    activeSection,
-    setActiveSection,
-  ] = useState('REQUESTS')
+    selectedRequest,
+    setSelectedRequest,
+  ] = useState(null)
+
+  const [
+    actionLoading,
+    setActionLoading,
+  ] = useState(false)
+
+  const [
+    actionError,
+    setActionError,
+  ] = useState(null)
+
+
+  /*
+   * =========================
+   * APPROVAL HISTORY
+   * =========================
+   */
+
+  const [
+    leaveHistory,
+    setLeaveHistory,
+  ] = useState([])
+
+  const [
+    historyLoading,
+    setHistoryLoading,
+  ] = useState(false)
+
+  const [
+    historyError,
+    setHistoryError,
+  ] = useState(null)
+
+  const [
+    historyCount,
+    setHistoryCount,
+  ] = useState(0)
+
+  const [
+    historyNextPage,
+    setHistoryNextPage,
+  ] = useState(null)
+
+  const [
+    historyPreviousPage,
+    setHistoryPreviousPage,
+  ] = useState(null)
+
+  const [
+    historyPage,
+    setHistoryPage,
+  ] = useState(1)
 
 
   /*
    * =========================
    * REVIEW QUEUE
    * =========================
-   *
-   * useLeaveReview only handles
-   * actionable review queues:
-   *
-   * PENDING
-   * CANCELLATION_REQUESTED
    */
 
-  const {
+  const [
+    queueStatus,
+    setQueueStatus,
+  ] = useState('PENDING')
+
+
+  /*
+   * =========================
+   * LOAD REQUESTS
+   * =========================
+   */
+
+  const loadLeaveRequests =
+    useCallback(
+      async (
+        requestedQueueStatus = 'PENDING',
+        requestedPage = 1,
+      ) => {
+        try {
+          setLoading(true)
+          setError(null)
+
+          const response =
+            await getPendingRequests({
+              status:
+                requestedQueueStatus,
+              page:
+                requestedPage,
+            })
+
+          setRequests(
+            response?.results || [],
+          )
+
+          setTotalCount(
+            response?.count || 0,
+          )
+
+          setNextPage(
+            response?.next || null,
+          )
+
+          setPreviousPage(
+            response?.previous || null,
+          )
+
+          return response
+        } catch (requestError) {
+          setRequests([])
+          setTotalCount(0)
+          setNextPage(null)
+          setPreviousPage(null)
+
+          const message =
+            getApiErrorMessage(
+              requestError,
+              'Unable to load leave requests.',
+            )
+
+          setError(message)
+
+          throw requestError
+        } finally {
+          setLoading(false)
+        }
+      },
+      [],
+    )
+
+
+  /*
+   * =========================
+   * PUBLIC QUEUE LOADER
+   * =========================
+   *
+   * The page calls this explicitly.
+   *
+   * We intentionally do NOT call
+   * loadLeaveRequests from an effect.
+   * This avoids the React
+   * set-state-in-effect lint rule.
+   */
+
+  const loadQueue =
+    useCallback(
+      async (
+        requestedQueueStatus = queueStatus,
+        requestedPage = currentPage,
+      ) => {
+        return loadLeaveRequests(
+          requestedQueueStatus,
+          requestedPage,
+        )
+      },
+      [
+        loadLeaveRequests,
+        queueStatus,
+        currentPage,
+      ],
+    )
+
+
+  /*
+   * =========================
+   * LOAD LEAVE HISTORY
+   * =========================
+   */
+
+  const loadLeaveHistory =
+    useCallback(
+      async (
+        requestId,
+        page = 1,
+      ) => {
+        if (!requestId) {
+          setLeaveHistory([])
+          setHistoryCount(0)
+          setHistoryNextPage(null)
+          setHistoryPreviousPage(null)
+          setHistoryPage(1)
+
+          return
+        }
+
+        try {
+          setHistoryLoading(true)
+          setHistoryError(null)
+
+          const response =
+            await getLeaveHistory(
+              requestId,
+              {
+                page,
+              },
+            )
+
+          setHistoryPage(page)
+
+          setLeaveHistory(
+            response?.results || [],
+          )
+
+          setHistoryCount(
+            response?.count || 0,
+          )
+
+          setHistoryNextPage(
+            response?.next || null,
+          )
+
+          setHistoryPreviousPage(
+            response?.previous || null,
+          )
+        } catch (requestError) {
+          setLeaveHistory([])
+          setHistoryCount(0)
+          setHistoryNextPage(null)
+          setHistoryPreviousPage(null)
+
+          const message =
+            getApiErrorMessage(
+              requestError,
+              'Unable to load approval history.',
+            )
+
+          setHistoryError(message)
+        } finally {
+          setHistoryLoading(false)
+        }
+      },
+      [],
+    )
+
+
+  /*
+   * =========================
+   * LOAD LEAVE TYPES
+   * =========================
+   */
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadLeaveTypes = async () => {
+      try {
+        const response =
+          await getLeaveTypes()
+
+        if (cancelled) {
+          return
+        }
+
+        setLeaveTypes(
+          Array.isArray(response)
+            ? response.filter(
+                (type) =>
+                  type?.is_active !== false,
+              )
+            : [],
+        )
+      } catch (requestError) {
+        if (!cancelled) {
+          setLeaveTypes([])
+        }
+
+        console.error(
+          'Failed to load leave types:',
+          requestError,
+        )
+      }
+    }
+
+    void loadLeaveTypes()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+
+  /*
+   * =========================
+   * FILTER HELPERS
+   * =========================
+   */
+
+  const updateFilter =
+    useCallback(
+      (setter) => (value) => {
+        setter(value)
+        setCurrentPage(1)
+      },
+      [],
+    )
+
+
+  /*
+   * =========================
+   * REVIEW ACTION
+   * =========================
+   */
+
+  const runReviewAction =
+    useCallback(
+      async (action) => {
+        try {
+          setActionLoading(true)
+          setActionError(null)
+
+          const updatedRequest =
+            await action()
+
+          setSelectedRequest(
+            updatedRequest,
+          )
+
+          await loadLeaveRequests(
+            queueStatus,
+            currentPage,
+          )
+
+          await loadLeaveHistory(
+            updatedRequest?.id,
+            historyPage,
+          )
+
+          return updatedRequest
+        } catch (requestError) {
+          const message =
+            getApiErrorMessage(
+              requestError,
+              'Unable to update this leave request.',
+            )
+
+          setActionError(message)
+
+          throw requestError
+        } finally {
+          setActionLoading(false)
+        }
+      },
+      [
+        loadLeaveRequests,
+        loadLeaveHistory,
+        queueStatus,
+        currentPage,
+        historyPage,
+      ],
+    )
+
+
+  /*
+   * =========================
+   * APPROVE
+   * =========================
+   */
+
+  const acceptRequest =
+    useCallback(
+      async (
+        requestId,
+        payload = {},
+      ) => {
+        return runReviewAction(
+          () =>
+            approveLeave(
+              requestId,
+              payload,
+            ),
+        )
+      },
+      [runReviewAction],
+    )
+
+
+  /*
+   * =========================
+   * REJECT
+   * =========================
+   */
+
+  const rejectRequest =
+    useCallback(
+      async (
+        requestId,
+        payload = {},
+      ) => {
+        return runReviewAction(
+          () =>
+            rejectLeave(
+              requestId,
+              payload,
+            ),
+        )
+      },
+      [runReviewAction],
+    )
+
+
+  /*
+   * =========================
+   * PARTIAL APPROVAL
+   * =========================
+   */
+
+  const partiallyAcceptRequest =
+    useCallback(
+      async (
+        requestId,
+        payload = {},
+      ) => {
+        return runReviewAction(
+          () =>
+            partiallyAcceptLeave(
+              requestId,
+              payload,
+            ),
+        )
+      },
+      [runReviewAction],
+    )
+
+
+  /*
+   * =========================
+   * APPROVE CANCELLATION
+   * =========================
+   */
+
+  const approveCancellationRequest =
+    useCallback(
+      async (requestId) => {
+        return runReviewAction(
+          () =>
+            approveLeaveCancellation(
+              requestId,
+            ),
+        )
+      },
+      [runReviewAction],
+    )
+
+
+  /*
+   * =========================
+   * REJECT CANCELLATION
+   * =========================
+   */
+
+  const rejectCancellationRequest =
+    useCallback(
+      async (requestId) => {
+        return runReviewAction(
+          () =>
+            rejectLeaveCancellation(
+              requestId,
+            ),
+        )
+      },
+      [runReviewAction],
+    )
+
+
+  /*
+   * =========================
+   * SELECT REQUEST
+   * =========================
+   */
+
+  const selectRequest =
+    useCallback(
+      (request) => {
+        setSelectedRequest(request)
+        setActionError(null)
+
+        setHistoryPage(1)
+
+        void loadLeaveHistory(
+          request?.id,
+          1,
+        )
+      },
+      [loadLeaveHistory],
+    )
+
+
+  /*
+   * =========================
+   * CLEAR SELECTED REQUEST
+   * =========================
+   */
+
+  const clearSelectedRequest =
+    useCallback(
+      () => {
+        setSelectedRequest(null)
+        setActionError(null)
+
+        setLeaveHistory([])
+        setHistoryError(null)
+        setHistoryCount(0)
+        setHistoryNextPage(null)
+        setHistoryPreviousPage(null)
+        setHistoryPage(1)
+      },
+      [],
+    )
+
+
+  /*
+   * =========================
+   * CHANGE HISTORY PAGE
+   * =========================
+   */
+
+  const changeHistoryPage =
+    useCallback(
+      async (page) => {
+        if (
+          !selectedRequest?.id ||
+          page < 1 ||
+          historyLoading
+        ) {
+          return
+        }
+
+        await loadLeaveHistory(
+          selectedRequest.id,
+          page,
+        )
+      },
+      [
+        selectedRequest,
+        historyLoading,
+        loadLeaveHistory,
+      ],
+    )
+
+
+  /*
+   * =========================
+   * CHANGE QUEUE
+   * =========================
+   */
+
+  const changeQueueStatus =
+    useCallback(
+      (nextQueueStatus) => {
+        setQueueStatus(
+          nextQueueStatus,
+        )
+
+        setCurrentPage(1)
+        setSelectedRequest(null)
+        setActionError(null)
+
+        setLeaveHistory([])
+        setHistoryError(null)
+        setHistoryCount(0)
+        setHistoryNextPage(null)
+        setHistoryPreviousPage(null)
+        setHistoryPage(1)
+      },
+      [],
+    )
+
+
+  /*
+   * =========================
+   * MANUAL REFRESH
+   * =========================
+   */
+
+  const refresh =
+    useCallback(
+      async () => {
+        return loadLeaveRequests(
+          queueStatus,
+          currentPage,
+        )
+      },
+      [
+        loadLeaveRequests,
+        queueStatus,
+        currentPage,
+      ],
+    )
+
+
+  /*
+   * =========================
+   * TOTAL PAGES
+   * =========================
+   */
+
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        totalCount /
+          LEAVE_REVIEW_PAGE_SIZE,
+      ),
+    )
+
+
+  /*
+   * =========================
+   * PUBLIC API
+   * =========================
+   */
+
+  return {
+    /*
+     * Requests
+     */
+
     requests,
+    leaveTypes,
+
+
+    /*
+     * State
+     */
+
     loading,
     error,
+
+
+    /*
+     * Filters
+     */
 
     search,
     status,
     leaveType,
     sortBy,
 
-    setSearch,
-    setStatus,
-    setLeaveType,
-    setSortBy,
+    setSearch:
+      updateFilter(setSearch),
+
+    setStatus:
+      updateFilter(setStatus),
+
+    setLeaveType:
+      updateFilter(setLeaveType),
+
+    setSortBy:
+      updateFilter(setSortBy),
+
+
+    /*
+     * Queue
+     */
+
+    queueStatus,
+
+    setQueueStatus:
+      changeQueueStatus,
+
+
+    /*
+     * Pagination
+     */
+
+    currentPage,
+    totalPages,
+    totalCount,
+    nextPage,
+    previousPage,
+
+    setCurrentPage,
+
+
+    /*
+     * Queue loading
+     */
+
+    loadQueue,
+
+
+    /*
+     * Refresh
+     */
+
+    refresh,
+
+
+    /*
+     * Selected request
+     */
 
     selectedRequest,
+
     selectRequest,
+
     clearSelectedRequest,
 
-    setQueueStatus,
+
+    /*
+     * Review action state
+     */
 
     actionLoading,
     actionError,
+
+
+    /*
+     * Review actions
+     */
 
     acceptRequest,
     rejectRequest,
     partiallyAcceptRequest,
 
-    approveCancellationRequest,
-    rejectCancellationRequest,
-  } = useLeaveReview()
-
-
-  /*
-   * =========================
-   * UPCOMING LEAVES
-   * =========================
-   *
-   * Completely separate from the
-   * review queue.
-   *
-   * Backend endpoint:
-   *
-   * GET /leave/upcoming/
-   */
-
-  const {
-    requests: upcomingLeaves,
-    loading: upcomingLoading,
-    error: upcomingError,
-    pagination: upcomingPagination,
-    changePage: changeUpcomingPage,
-  } = useUpcomingLeave()
-
-  const handleViewUpcomingLeave = (
-  request,
-) => {
-  selectRequest(request)
-}
-
-  /*
-   * =========================
-   * SECTION HANDLERS
-   * =========================
-   */
-
-  const handleRequestsSection = () => {
-    setActiveSection('REQUESTS')
-
-    setQueueStatus('PENDING')
-  }
-
-
-  const handleCancellationsSection = () => {
-    setActiveSection(
-      'CANCELLATIONS',
-    )
-
-    setQueueStatus(
-      'CANCELLATION_REQUESTED',
-    )
-  }
-
-
-  const handleUpcomingSection = () => {
-    setActiveSection('UPCOMING')
 
     /*
-     * Important:
-     *
-     * Do NOT call setQueueStatus('UPCOMING').
-     *
-     * Upcoming Leaves uses its own
-     * backend endpoint and hook.
+     * Cancellation actions
      */
+
+    approveCancellationRequest,
+    rejectCancellationRequest,
+
+
+    /*
+     * Approval history
+     */
+
+    leaveHistory,
+    historyLoading,
+    historyPage,
+    historyError,
+    historyCount,
+    historyNextPage,
+    historyPreviousPage,
+
+    changeHistoryPage,
   }
-
-
-  /*
-   * =========================
-   * SELECTED REQUEST ACTIONS
-   * =========================
-   */
-
-  const handleAccept = async (
-    payload,
-  ) => {
-    if (!selectedRequest) {
-      return
-    }
-
-    await acceptRequest(
-      selectedRequest.id,
-      payload,
-    )
-  }
-
-
-  const handleReject = async (
-    payload,
-  ) => {
-    if (!selectedRequest) {
-      return
-    }
-
-    await rejectRequest(
-      selectedRequest.id,
-      payload,
-    )
-  }
-
-
-  const handlePartialAccept =
-    async (payload) => {
-      if (!selectedRequest) {
-        return
-      }
-
-      await partiallyAcceptRequest(
-        selectedRequest.id,
-        payload,
-      )
-    }
-
-
-  const handleApproveCancellation =
-    async () => {
-      if (!selectedRequest) {
-        return
-      }
-
-      await approveCancellationRequest(
-        selectedRequest.id,
-      )
-    }
-
-
-  const handleRejectCancellation =
-    async () => {
-      if (!selectedRequest) {
-        return
-      }
-
-      await rejectCancellationRequest(
-        selectedRequest.id,
-      )
-    }
-
-
-  /*
-   * =========================
-   * RENDER
-   * =========================
-   */
-
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
-
-        {/* =========================
-            PAGE HEADER
-            ========================= */}
-
-        <LeavePageHeader />
-
-
-        {/* =========================
-            REVIEW SECTIONS
-            ========================= */}
-
-        <div
-          className="flex w-fit flex-wrap rounded-xl bg-[#f3f4f6] p-1"
-          role="tablist"
-          aria-label="Leave review sections"
-        >
-
-          {/* =========================
-              LEAVE REQUESTS
-              ========================= */}
-
-          <button
-            type="button"
-            role="tab"
-            aria-selected={
-              activeSection === 'REQUESTS'
-            }
-            onClick={
-              handleRequestsSection
-            }
-            className={`rounded-lg px-5 py-2.5 text-[14px] font-bold transition ${
-              activeSection === 'REQUESTS'
-                ? 'bg-white text-[#111827] shadow-sm'
-                : 'text-[#6b7280] hover:text-[#111827]'
-            }`}
-          >
-            Leave Requests
-          </button>
-
-
-          {/* =========================
-              CANCELLATION REQUESTS
-              ========================= */}
-
-          <button
-            type="button"
-            role="tab"
-            aria-selected={
-              activeSection ===
-              'CANCELLATIONS'
-            }
-            onClick={
-              handleCancellationsSection
-            }
-            className={`rounded-lg px-5 py-2.5 text-[14px] font-bold transition ${
-              activeSection ===
-              'CANCELLATIONS'
-                ? 'bg-white text-[#111827] shadow-sm'
-                : 'text-[#6b7280] hover:text-[#111827]'
-            }`}
-          >
-            Cancellation Requests
-          </button>
-
-
-          {/* =========================
-              UPCOMING LEAVES
-              ========================= */}
-
-          <button
-            type="button"
-            role="tab"
-            aria-selected={
-              activeSection ===
-              'UPCOMING'
-            }
-            onClick={
-              handleUpcomingSection
-            }
-            className={`rounded-lg px-5 py-2.5 text-[14px] font-bold transition ${
-              activeSection === 'UPCOMING'
-                ? 'bg-white text-[#111827] shadow-sm'
-                : 'text-[#6b7280] hover:text-[#111827]'
-            }`}
-          >
-            Upcoming Leaves
-          </button>
-
-        </div>
-
-
-        {/* =====================================================
-            UPCOMING LEAVES
-            ===================================================== */}
-
-        {activeSection ===
-        'UPCOMING' ? (
-          <section
-            aria-labelledby="upcoming-leaves-title"
-            className="space-y-4"
-          >
-
-            {/* HEADER */}
-
-            <div>
-              <h2
-                id="upcoming-leaves-title"
-                className="text-[20px] font-black text-[#111827]"
-              >
-                Upcoming Leaves
-              </h2>
-
-              <p className="mt-1 text-[14px] text-[#6b7280]">
-                Approved leaves scheduled
-                for the upcoming period.
-              </p>
-            </div>
-
-
-            {/* ERROR */}
-
-            {upcomingError && (
-              <div
-                role="alert"
-                className="rounded-[14px] border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-[14px] font-semibold text-[#b91c1c]"
-              >
-                Failed to load upcoming
-                leaves. Please try again.
-              </div>
-            )}
-
-
-            {/* TABLE */}
-
-            <UpcomingLeavesTable
-              requests={
-                upcomingLeaves
-              }
-              loading={
-                upcomingLoading
-              }
-              onView={
-              handleViewUpcomingLeave
-              }
-            />
-
-
-            {/* PAGINATION */}
-
-            <LeavePagination
-              page={
-                upcomingPagination.page
-              }
-              count={
-                upcomingPagination.count
-              }
-              pageSize={
-                upcomingPagination.pageSize
-              }
-              next={
-                upcomingPagination.next
-              }
-              previous={
-                upcomingPagination.previous
-              }
-              loading={
-                upcomingLoading
-              }
-              onPageChange={
-                changeUpcomingPage
-              }
-            />
-
-          </section>
-        ) : (
-          /*
-           * =====================================================
-           * REVIEW QUEUES
-           * =====================================================
-           */
-
-          <>
-
-            {/* =========================
-                LOAD ERROR
-                ========================= */}
-
-            {error && (
-              <div
-                role="alert"
-                className="rounded-[14px] border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-[14px] font-semibold text-[#b91c1c]"
-              >
-                Failed to load leave
-                requests. Please try
-                again.
-              </div>
-            )}
-
-
-            {/* =========================
-                FILTER TOOLBAR
-                ========================= */}
-
-            <LeaveToolbar
-              search={search}
-              status={status}
-              leaveType={leaveType}
-              sortBy={sortBy}
-              onSearchChange={
-                setSearch
-              }
-              onStatusChange={
-                setStatus
-              }
-              onLeaveTypeChange={
-                setLeaveType
-              }
-              onSortChange={
-                setSortBy
-              }
-            />
-
-
-            {/* =========================
-                REQUEST TABLE
-                ========================= */}
-
-            <LeaveTable
-              requests={requests}
-              loading={loading}
-              onView={
-                selectRequest
-              }
-            />
-
-          </>
-        )}
-
-
-        {/* =====================================================
-            REVIEW DETAILS MODAL
-            ===================================================== */}
-
-        {selectedRequest && (
-          <LeaveReviewDetails
-            request={
-              selectedRequest
-            }
-            onClose={
-              clearSelectedRequest
-            }
-
-            actionLoading={
-              actionLoading
-            }
-
-            actionError={
-              actionError
-            }
-
-            onAccept={
-              handleAccept
-            }
-
-            onReject={
-              handleReject
-            }
-
-            onPartiallyAccept={
-              handlePartialAccept
-            }
-
-            onApproveCancellation={
-              handleApproveCancellation
-            }
-
-            onRejectCancellation={
-              handleRejectCancellation
-            }
-          />
-        )}
-
-      </div>
-    </DashboardLayout>
-  )
 }
 
 
-export default LeaveReview
+export default useLeaveReview

@@ -4,6 +4,7 @@ import {
   getLeaveBalance as getLeaveBalanceApi,
   getMyLeaveRequests,
   getLeaveRequestById as getLeaveRequestByIdApi,
+  getLeaveHistory as getLeaveHistoryApi,
   createLeaveRequest,
   cancelLeave,
   getPendingLeaveRequests,
@@ -21,7 +22,8 @@ const STATUS_MAP = {
   APPROVED: 'Accepted',
   REJECTED: 'Rejected',
   PARTIALLY_APPROVED: 'Partially Accepted',
-  CANCELLATION_REQUESTED: 'Cancellation Requested',
+  CANCELLATION_REQUESTED:
+    'Cancellation Requested',
   CANCELLED: 'Cancelled',
 }
 
@@ -33,17 +35,22 @@ const STATUS_MAP = {
  */
 
 function getEmployeeName(user) {
-  if (!user) return '--'
+  if (!user) {
+    return '--'
+  }
 
   return (
-    `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
-    '--'
+    `${user.first_name || ''} ${
+      user.last_name || ''
+    }`.trim() || '--'
   )
 }
 
 
 function getReviewerName(reviewer) {
-  if (!reviewer) return ''
+  if (!reviewer) {
+    return ''
+  }
 
   return `${reviewer.first_name || ''} ${
     reviewer.last_name || ''
@@ -52,7 +59,9 @@ function getReviewerName(reviewer) {
 
 
 function normalizeLeaveRequest(request) {
-  if (!request) return null
+  if (!request) {
+    return null
+  }
 
   const approvedDates =
     request.approved_dates || []
@@ -61,36 +70,9 @@ function normalizeLeaveRequest(request) {
     request.rejected_dates || []
 
   const isPartiallyApproved =
-    request.status === 'PARTIALLY_APPROVED'
+    request.status ===
+    'PARTIALLY_APPROVED'
 
-
-  /*
-   * =========================
-   * CONFLICT NORMALIZATION
-   * =========================
-   *
-   * Backend:
-   *
-   * conflicts: [
-   *   {
-   *     date: '2026-08-24',
-   *     employees_on_leave: 2,
-   *     conflict_percentage: 33,
-   *     level: 'medium'
-   *   }
-   * ]
-   *
-   * Frontend:
-   *
-   * conflicts: [
-   *   {
-   *     date: '2026-08-24',
-   *     employeesOnLeave: 2,
-   *     conflictPercentage: 33,
-   *     level: 'medium'
-   *   }
-   * ]
-   */
 
   const conflicts =
     Array.isArray(request.conflicts)
@@ -100,13 +82,15 @@ function normalizeLeaveRequest(request) {
 
             employeesOnLeave:
               Number.parseInt(
-                conflict.employees_on_leave ?? 0,
+                conflict.employees_on_leave ??
+                  0,
                 10,
               ),
 
             conflictPercentage:
               Number.parseFloat(
-                conflict.conflict_percentage ?? 0,
+                conflict.conflict_percentage ??
+                  0,
               ),
 
             level:
@@ -120,51 +104,51 @@ function normalizeLeaveRequest(request) {
     ...request,
 
     /*
-     * =========================
-     * EMPLOYEE INFORMATION
-     * =========================
+     * EMPLOYEE
      */
 
     employeeName:
-      getEmployeeName(request.user),
+      getEmployeeName(
+        request.user,
+      ),
 
     department:
-      request.user?.department || '--',
+      request.user?.department ||
+      '--',
 
     designation:
-      request.user?.designation || '--',
+      request.user?.designation ||
+      '--',
 
 
     /*
-     * =========================
      * LEAVE TYPE
-     * =========================
      */
 
     leaveType:
-      request.leave_type?.name || '--',
+      request.leave_type?.name ||
+      '--',
 
     leaveTypeCode:
-      request.leave_type?.code || '',
+      request.leave_type?.code ||
+      '',
 
-
-      /*
- * =========================
- * AVAILABLE LEAVE BALANCE
- * =========================
- */
-
-availableLeaveBalance:
-  request.available_leave_balance == null
-    ? null
-    : Number.parseFloat(
-        request.available_leave_balance,
-      ),
 
     /*
-     * =========================
+     * BALANCE
+     */
+
+    availableLeaveBalance:
+      request.available_leave_balance ==
+      null
+        ? null
+        : Number.parseFloat(
+            request.available_leave_balance,
+          ),
+
+
+    /*
      * DATES
-     * =========================
      */
 
     startDate:
@@ -175,9 +159,7 @@ availableLeaveBalance:
 
 
     /*
-     * =========================
      * DAYS
-     * =========================
      */
 
     numberOfDays:
@@ -187,32 +169,29 @@ availableLeaveBalance:
 
 
     /*
-     * =========================
      * DURATION
-     * =========================
      */
 
     duration:
-      request.half_day_period === 'NONE'
+      request.half_day_period ===
+      'NONE'
         ? 'Full Day'
-        : request.half_day_period || '--',
+        : request.half_day_period ||
+          '--',
 
 
     /*
-     * =========================
      * STATUS
-     * =========================
      */
 
     status:
-      STATUS_MAP[request.status] ||
-      request.status,
+      STATUS_MAP[
+        request.status
+      ] || request.status,
 
 
     /*
-     * =========================
      * PARTIAL APPROVAL
-     * =========================
      */
 
     approvedDates,
@@ -238,18 +217,14 @@ availableLeaveBalance:
 
 
     /*
-     * =========================
-     * CONFLICT INFORMATION
-     * =========================
+     * CONFLICTS
      */
 
     conflicts,
 
 
     /*
-     * =========================
      * REVIEWER
-     * =========================
      */
 
     reviewedBy:
@@ -266,12 +241,18 @@ availableLeaveBalance:
 }
 
 
-function normalizeLeaveResponse(response) {
+function normalizeLeaveResponse(
+  response,
+) {
   if (!response) {
     return response
   }
 
-  if (Array.isArray(response.results)) {
+  if (
+    Array.isArray(
+      response.results,
+    )
+  ) {
     return {
       ...response,
 
@@ -304,10 +285,23 @@ async function getLeaveRequests(
   params = {},
 ) {
   const response =
-    await getMyLeaveRequests(params)
+    await getMyLeaveRequests(
+      params,
+    )
 
   return normalizeLeaveResponse(
     response,
+  )
+}
+
+
+async function getLeaveHistory(
+  requestId,
+  params = {},
+) {
+  return getLeaveHistoryApi(
+    requestId,
+    params,
   )
 }
 
@@ -326,7 +320,9 @@ async function getLeaveRequestById(
 }
 
 
-async function applyLeave(payload) {
+async function applyLeave(
+  payload,
+) {
   const response =
     await createLeaveRequest(
       payload,
@@ -338,11 +334,55 @@ async function applyLeave(payload) {
 }
 
 
+/*
+ * =========================
+ * CANCELLATION
+ * =========================
+ *
+ * Pending:
+ *   no reason required
+ *
+ * Approved /
+ * Partially Approved:
+ *   reason required
+ */
+
 async function requestLeaveCancellation(
   requestId,
+  {
+    cancellationReason = '',
+  } = {},
 ) {
+  const reason =
+    cancellationReason.trim()
+
+
+  /*
+   * If a reason is supplied,
+   * send it to the backend.
+   *
+   * If no reason is supplied,
+   * send an empty payload.
+   *
+   * This supports the backend
+   * contract for both:
+   *
+   * PENDING
+   * APPROVED / PARTIALLY_APPROVED
+   */
+
+  const payload =
+    reason
+      ? { reason }
+      : {}
+
+
   const response =
-    await cancelLeave(requestId)
+    await cancelLeave(
+      requestId,
+      payload,
+    )
+
 
   return normalizeLeaveRequest(
     response,
@@ -386,13 +426,16 @@ async function getUpcomingRequests(
 
 async function approveLeave(
   requestId,
-  { reviewComment = '' } = {},
+  {
+    reviewComment = '',
+  } = {},
 ) {
   const response =
     await approveLeaveRequest(
       requestId,
       {
-        note: reviewComment.trim(),
+        note:
+          reviewComment.trim(),
       },
     )
 
@@ -404,7 +447,9 @@ async function approveLeave(
 
 async function rejectLeave(
   requestId,
-  { reviewComment } = {},
+  {
+    reviewComment,
+  } = {},
 ) {
   if (
     !String(
@@ -416,13 +461,16 @@ async function rejectLeave(
     )
   }
 
+
   const response =
     await rejectLeaveRequest(
       requestId,
       {
-        note: reviewComment.trim(),
+        note:
+          reviewComment.trim(),
       },
     )
+
 
   return normalizeLeaveRequest(
     response,
@@ -432,16 +480,21 @@ async function rejectLeave(
 
 async function partiallyAcceptLeave(
   requestId,
-  { approvedDates } = {},
+  {
+    approvedDates,
+  } = {},
 ) {
   if (
-    !Array.isArray(approvedDates) ||
+    !Array.isArray(
+      approvedDates,
+    ) ||
     approvedDates.length === 0
   ) {
     throw new Error(
       'Select at least one approved date.',
     )
   }
+
 
   await partiallyApproveLeave(
     requestId,
@@ -451,15 +504,12 @@ async function partiallyAcceptLeave(
     },
   )
 
-  /*
-   * Partial approval endpoint does not
-   * return the complete Leave object.
-   */
 
   const updatedRequest =
     await getLeaveRequestByIdApi(
       requestId,
     )
+
 
   return normalizeLeaveRequest(
     updatedRequest,
@@ -503,7 +553,7 @@ async function rejectLeaveCancellation(
 
 /*
  * =========================
- * LEAVE CATALOG / SUMMARY
+ * CATALOG / SUMMARY
  * =========================
  */
 
@@ -520,7 +570,9 @@ async function getLeaveSummary() {
 async function getLeaveBalance(
   params = {},
 ) {
-  return getLeaveBalanceApi(params)
+  return getLeaveBalanceApi(
+    params,
+  )
 }
 
 
@@ -537,6 +589,7 @@ export {
 
   getLeaveRequests,
   getLeaveRequestById,
+  getLeaveHistory,
 
   applyLeave,
   requestLeaveCancellation,

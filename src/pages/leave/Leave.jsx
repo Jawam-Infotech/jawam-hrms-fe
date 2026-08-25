@@ -47,6 +47,8 @@ function Leave() {
   const {
     leaveTypes,
     summary,
+    leaveBalances,
+    balanceLoading,
     history,
 
     historyPagination,
@@ -164,9 +166,11 @@ function Leave() {
         ========================== */}
 
         <LeaveSummary
-          summary={summary}
-          loading={summaryLoading}
-        />
+  summary={summary}
+  loading={summaryLoading}
+  leaveBalances={leaveBalances}
+  balanceLoading={balanceLoading}
+/>
 
 
         {/* =========================
