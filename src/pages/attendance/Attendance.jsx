@@ -11,7 +11,7 @@ function Attendance() {
   const navigate = useNavigate()
   const { user } = useContext(UserContext)
   const [currentDate, setCurrentDate] = useState(new Date())
-  const canManageHolidays = user?.role === 'admin' || user?.role === 'hr'
+  const canManageHolidays = user?.role === 'CEO' || user?.role === 'hr'
   const {
     recordsByDay,
     calendar,
@@ -61,7 +61,7 @@ function Attendance() {
                 Check Team Attendance
               </button>
             )}
-            {(user?.role === 'admin' || user?.role === 'hr') && (
+            {(user?.role === 'CEO' || user?.role === 'hr') && (
               <>
                 <button
                   type="button"

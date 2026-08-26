@@ -74,7 +74,7 @@ function useHolidayManagement(user) {
     ).toLowerCase()
 
     return (
-      role === 'admin' ||
+      role === 'CEO' ||
       role === 'hr'
     )
   }, [userRole])

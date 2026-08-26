@@ -40,34 +40,16 @@ function formatHolidayDate(value) {
 
 function normalizeHolidayRecord(record = {}) {
   return {
-    id:
-      record.id ||
-      record.holidayId ||
-      `holiday-${record.holidayName || record.name || 'holiday'}-${record.holidayDate || record.date || ''}`,
-
-    holidayName:
-      record.holidayName ||
-      record.name ||
-      '',
-
-    holidayDate: toHolidayInputDate(
-      record.holidayDate ||
-      record.holiday_date ||
-      record.date
-    ),
+    id: record.id || '',
+    holidayName: record.name || '',
+    holidayDate: toHolidayInputDate(record.date),
 
     createdBy:
-  typeof record.created_by === 'object'
-    ? `${record.created_by?.first_name || ''} ${record.created_by?.last_name || ''}`.trim()
-    : record.createdBy ||
-      record.created_by_name ||
-      record.created_by ||
-      '',
+      typeof record.created_by === 'object'
+        ? `${record.created_by?.first_name || ''} ${record.created_by?.last_name || ''}`.trim()
+        : record.created_by || '',
 
-    createdAt:
-      record.createdAt ||
-      record.created_at ||
-      '',
+    createdAt: record.created_at || '',
   }
 }
 
