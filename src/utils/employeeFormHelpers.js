@@ -52,19 +52,51 @@ function formatEmployeeRoleLabel(role = '') {
     '-'
   )
 }
+function getAssignableEmployeeRoleOptions(
+  creatorRole = '',
+  isEditMode = false,
+  originalRole = ''
+) {
+  const normalizedCreatorRole =
+    normalizeEmployeeRoleValue(creatorRole)
 
-function getAssignableEmployeeRoleOptions(creatorRole = '') {
-  const normalizedRole = String(creatorRole || '').trim().toLowerCase()
+  const normalizedOriginalRole =
+    normalizeEmployeeRoleValue(originalRole)
 
-  const allowedRoleValues =
-    normalizedRole === 'admin'
-      ? ['EMPLOYEE', 'TL', 'HR', 'CEO']
-      : normalizedRole === 'hr'
-        ? ['EMPLOYEE', 'TL']
-        : ['EMPLOYEE']
+  // CEO can assign/change any supported role.
+  if (normalizedCreatorRole === 'CEO') {
+    return EMPLOYEE_ROLE_OPTIONS.filter((option) =>
+      ['EMPLOYEE', 'TL', 'HR', 'CEO'].includes(option.value)
+    )
+  }
 
-  return EMPLOYEE_ROLE_OPTIONS.filter((option) => allowedRoleValues.includes(option.value))
+  // HR can create EMPLOYEE/TL.
+  // During edit, HR can only change EMPLOYEE -> TL.
+  if (normalizedCreatorRole === 'HR') {
+    if (isEditMode) {
+      if (normalizedOriginalRole === 'EMPLOYEE') {
+        return EMPLOYEE_ROLE_OPTIONS.filter((option) =>
+          ['EMPLOYEE', 'TL'].includes(option.value)
+        )
+      }
+
+      // Existing TL/HR/CEO cannot be changed by HR.
+      return EMPLOYEE_ROLE_OPTIONS.filter(
+        (option) => option.value === normalizedOriginalRole
+      )
+    }
+
+    return EMPLOYEE_ROLE_OPTIONS.filter((option) =>
+      ['EMPLOYEE', 'TL'].includes(option.value)
+    )
+  }
+
+  // Other roles can only assign EMPLOYEE.
+  return EMPLOYEE_ROLE_OPTIONS.filter(
+    (option) => option.value === 'EMPLOYEE'
+  )
 }
+getAssignableEmployeeRoleOptions
 
 function getDefaultEmployeeRole(creatorRole = '') {
   return getAssignableEmployeeRoleOptions(creatorRole)[0]?.value || 'EMPLOYEE'

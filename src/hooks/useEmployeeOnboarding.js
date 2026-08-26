@@ -270,19 +270,20 @@ function useEmployeeOnboarding({
     setIsLoadingEmployee,
   ] = useState(false)
 
-  const [
+    const [
     originalRole,
     setOriginalRole,
   ] = useState('')
 
-  const roleOptions =
-    useMemo(
-      () =>
-        getAssignableEmployeeRoleOptions(
-          creatorRole,
-        ),
-      [creatorRole],
-    )
+  const roleOptions = useMemo(
+  () =>
+    getAssignableEmployeeRoleOptions(
+      creatorRole,
+      isEditMode,
+      originalRole,
+    ),
+  [creatorRole, isEditMode, originalRole],
+)
 
   const allowedRoleValues =
     useMemo(
@@ -443,7 +444,6 @@ function useEmployeeOnboarding({
   }, [
     isEditMode,
     employeeId,
-    roleOptions,
   ])
 
 

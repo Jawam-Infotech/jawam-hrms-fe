@@ -85,16 +85,26 @@ function getRecordDate(record = {}) {
     record.attendance_date ||
     record.work_date ||
     record.check_in ||
-    record.checkIn ||
     ''
   )
 }
 
 function getEmployeeName(record = {}) {
   const user = record.user || record.employee || {}
-  const firstName = record.first_name || user.first_name || user.firstName || ''
-  const lastName = record.last_name || user.last_name || user.lastName || ''
-  const fullName = [firstName, lastName].filter(Boolean).join(' ')
+
+  const firstName =
+    record.first_name ||
+    user.first_name ||
+    ''
+
+  const lastName =
+    record.last_name ||
+    user.last_name ||
+    ''
+
+  const fullName = [firstName, lastName]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     record.name ||
@@ -109,66 +119,88 @@ function getEmployeeName(record = {}) {
 function normalizeBreakSession(session = {}) {
   return {
     id: session.id || session.break_id || '',
-    breakStart: session.break_start || session.breakStart || '',
-    breakEnd: session.break_end || session.breakEnd || null,
+    breakStart: session.break_start || '',
+    breakEnd: session.break_end || null,
   }
 }
 
 function normalizeAttendanceRecord(record = {}) {
-const finalStatus = record.final_status || record.finalStatus || ''
-const displayStatus = record.display_status || record.displayStatus || finalStatus
+  const finalStatus = record.final_status || ''
+  const displayStatus = record.display_status || finalStatus
+
   const breakSessions = Array.isArray(record.break_sessions)
     ? record.break_sessions.map(normalizeBreakSession)
-    : Array.isArray(record.breakSessions)
-      ? record.breakSessions.map(normalizeBreakSession)
-      : []
+    : []
 
   return {
-    id: record.id || record.attendance_id || `${getEmployeeName(record)}-${getRecordDate(record)}`,
-userId:
-  record.user_id ||
-  record.userId ||
-  (typeof record.user === 'number' ? record.user : record.user?.id) ||
-  record.employee?.id ||
-  '',
-    employeeId: record.employee_id || record.employeeId || record.user?.employee_id || '',
+    id:
+      record.id ||
+      record.attendance_id ||
+      `${getEmployeeName(record)}-${getRecordDate(record)}`,
+
+    userId:
+      record.user_id ||
+      (typeof record.user === 'number'
+        ? record.user
+        : record.user?.id) ||
+      record.employee?.id ||
+      '',
+
+    employeeId:
+      record.employee_id ||
+      record.user?.employee_id ||
+      '',
+
     name: getEmployeeName(record),
-    department: record.department || record.user?.department || record.employee?.department || '-',
+
+    department:
+      record.department ||
+      record.user?.department ||
+      record.employee?.department ||
+      '-',
+
     designation:
       record.designation ||
       record.user?.designation ||
       record.employee?.designation ||
       record.job_title ||
       '-',
+
     date: formatLocalDate(getRecordDate(record)),
     rawDate: getRecordDate(record),
-    rawCheckIn: record.check_in || record.checkIn || '',
-    rawCheckOut: record.check_out || record.checkOut || '',
-    checkIn: formatLocalTime(record.check_in || record.checkIn),
-    checkOut: formatLocalTime(record.check_out || record.checkOut),
-    breakEnd: formatLocalTime(record.break_end || record.breakEnd),
+
+    rawCheckIn: record.check_in || '',
+    rawCheckOut: record.check_out || '',
+
+    checkIn: formatLocalTime(record.check_in),
+    checkOut: formatLocalTime(record.check_out),
+
+    breakEnd: formatLocalTime(record.break_end),
+
     breakSessions,
+
     breakDuration: formatDuration(
       record.total_break_duration ||
-      record.totalBreakDuration ||
-      record.break_duration ||
-      record.breakDuration
+      record.break_duration
     ),
+
     workingHours: formatDuration(
       record.working_hours ||
-      record.workingHours ||
       record.effective_work_duration ||
-      record.effective_working_duration ||
-      record.effectiveWorkingDuration
+      record.effective_working_duration
     ),
+
     effectiveWorkingDuration: formatDuration(
       record.effective_work_duration ||
-      record.effective_working_duration ||
-      record.effectiveWorkingDuration
+      record.effective_working_duration
     ),
+
     finalStatus: normalizeStatus(finalStatus),
-displayStatus: normalizeStatus(displayStatus),
-statusLabel: formatStatusLabel(displayStatus),
+
+    displayStatus: normalizeStatus(displayStatus),
+
+    statusLabel: formatStatusLabel(displayStatus),
+
     attendance:
       record.attendance ||
       record.remark ||
@@ -201,11 +233,20 @@ function normalizeEmployeeSummary(summary = {}, records = []) {
   const calculated = calculateSummary(records)
 
   return {
-    presentDays: summary.present_days ?? summary.presentDays ?? calculated.present,
-    absentDays: summary.absent_days ?? summary.absentDays ?? calculated.absent,
-    lateArrival: summary.late_arrival ?? summary.lateArrival ?? summary.late ?? calculated.late,
+    presentDays:
+      summary.present_days ?? calculated.present,
+
+    absentDays:
+      summary.absent_days ?? calculated.absent,
+
+    lateArrival:
+      summary.late_arrival ??
+      summary.late ??
+      calculated.late,
+
     attendanceRate:
-      summary.attendance_rate ?? summary.attendanceRate ?? calculated.attendanceRate,
+      summary.attendance_rate ??
+      calculated.attendanceRate,
   }
 }
 
@@ -216,26 +257,22 @@ function normalizeTeamSummary(summary = {}, records = []) {
     totalMembers:
       summary.total_members ??
       summary.total_employees ??
-      summary.totalMembers ??
       summary.total ??
       calculated.total,
 
     presentToday:
       summary.present_today ??
-      summary.presentToday ??
       summary.present ??
       calculated.present,
 
     absentToday:
       summary.absent_today ??
-      summary.absentToday ??
       summary.absent ??
       calculated.absent,
 
     lateArrival:
       summary.late_today ??
       summary.late_arrival ??
-      summary.lateArrival ??
       summary.late ??
       calculated.late,
   }
@@ -265,29 +302,51 @@ function normalizeCompanySummary(summary = {}, records = []) {
 
 function normalizeAlert(alert = {}) {
   return {
-    id: alert.employee_id || alert.employeeId || alert.id || alert.user_id || alert.name,
+    id:
+      alert.employee_id ||
+      alert.id ||
+      alert.user_id ||
+      alert.name,
+
     name: getEmployeeName(alert),
-    department: alert.department || alert.user?.department || '-',
-    issue: formatStatusLabel(alert.issue || alert.final_status || alert.status),
+
+    department:
+      alert.department ||
+      alert.user?.department ||
+      '-',
+
+    issue: formatStatusLabel(
+      alert.issue ||
+      alert.final_status ||
+      alert.status
+    ),
+
     reliability:
       alert.reliability ||
       alert.attendance_reliability ||
-      alert.attendanceReliability ||
       '-',
   }
 }
 
 function normalizeAlerts(data) {
   const payload = unwrapAttendanceResponse(data)
-  const alerts = payload.alerts || payload.attendance_alerts || payload.attendanceAlerts || []
-
+  const alerts = payload.alerts || payload.attendance_alerts ||[]
   return Array.isArray(alerts) ? alerts.map(normalizeAlert) : []
 }
 
 function normalizeTrendPoint(point = {}, index) {
   return {
-    label: point.label || point.month || point.week || String(index + 1),
-    value: Number(point.value ?? point.attendance_rate ?? point.attendanceRate ?? 0),
+    label:
+      point.label ||
+      point.month ||
+      point.week ||
+      String(index + 1),
+
+    value: Number(
+      point.value ??
+      point.attendance_rate ??
+      0
+    ),
   }
 }
 
