@@ -7,6 +7,7 @@ function EmployeeToolbar({
   onRoleChange,
   departmentFilter,
   onDepartmentChange,
+  departmentOptions,
   onResetFilters,
 }) {
   return (
@@ -29,11 +30,12 @@ function EmployeeToolbar({
         className="rounded-full border border-[#d1d5db] bg-white px-4 py-3 text-[14px] font-medium text-[#111827] outline-none focus:border-[#3b82f6]"
       >
         <option value="all">All Departments</option>
-        <option value="Development">Development</option>
-        <option value="HR">HR</option>
-        <option value="Design">Design</option>
-        <option value="Marketing">Marketing</option>
-        <option value="Finance">Finance</option>
+
+{departmentOptions.map((department) => (
+  <option key={department.value} value={department.value}>
+    {department.label}
+  </option>
+))}
       </select>
 
       <Button

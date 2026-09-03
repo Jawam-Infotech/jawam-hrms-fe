@@ -1,3 +1,4 @@
+import { getMediaUrl } from '../../utils/mediaUrl.js'
 function EmployeeProfileHeader({ employee, hideMissingSensitiveFields = false }) {
   const avatarInitial = employee.name?.charAt(0)?.toUpperCase() || 'U'
   const contactNumber = employee.phone
@@ -5,12 +6,13 @@ function EmployeeProfileHeader({ employee, hideMissingSensitiveFields = false })
   const shouldShowContactNumber = !hideMissingSensitiveFields || Boolean(contactNumber)
   const shouldShowJoiningDate = !hideMissingSensitiveFields || Boolean(joiningDate)
 
+
   return (
     <div className="flex items-center gap-6 rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-sm max-[760px]:flex-col max-[760px]:items-start">
       <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e6f9f0] text-[42px] font-black text-[#10b981]">
         {employee.avatar || employee.photo ? (
           <img
-            src={employee.avatar || employee.photo}
+            src={getMediaUrl(employee.avatar || employee.photo)}
             alt={`${employee.name} avatar`}
             className="size-full object-cover"
           />

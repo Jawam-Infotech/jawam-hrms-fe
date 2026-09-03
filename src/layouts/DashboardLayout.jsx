@@ -2,6 +2,8 @@ import { useState, useContext } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { UserContext } from '../context/UserContext'
 import { NAV_CONFIG } from '../config/navigation'
+import useNotifications from '../hooks/useNotifications.js'
+import NotificationDropdown from '../components/notifications/NotificationDropdown.jsx'
 //import { UserContext } from '../context/UserContext.jsx'
 
 function DashboardLayout({ children }) {
@@ -9,6 +11,21 @@ function DashboardLayout({ children }) {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+
+const {
+  notifications,
+  unreadCount,
+  loading: notificationsLoading,
+  error: notificationsError,
+  isMarkingAllRead,
+  markAsRead,
+  markAllAsRead,
+  removeNotification,
+  deletingNotificationId,
+  clearAll,
+  isClearingAll,
+} = useNotifications()
 
   const menuItems = NAV_CONFIG[user.role] || []
   const location = useLocation()
@@ -110,7 +127,42 @@ function DashboardLayout({ children }) {
             </div>
 
             {/* Notifications */}
-            <button className="p-2 hover:bg-[#f5fbf8] rounded-lg transition-all text-[20px]">🔔</button>
+<div className="relative">
+  <button
+    type="button"
+    onClick={() =>
+      setNotificationsOpen((current) => !current)
+    }
+    className="relative rounded-lg p-2 text-[20px] transition-all hover:bg-[#f5fbf8]"
+    aria-label="Notifications"
+    aria-expanded={notificationsOpen}
+  >
+    🔔
+
+    {unreadCount > 0 && (
+      <span className="absolute -right-1 -top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#ef4444] px-1 text-[10px] font-bold text-white">
+        {unreadCount > 99 ? '99+' : unreadCount}
+      </span>
+    )}
+  </button>
+
+  {notificationsOpen && (
+    <NotificationDropdown
+      notifications={notifications}
+      loading={notificationsLoading}
+      error={notificationsError}
+      unreadCount={unreadCount}
+      onMarkAsRead={markAsRead}
+      onMarkAllAsRead={markAllAsRead}
+      onDelete={removeNotification}
+      deletingNotificationId={deletingNotificationId}
+      onClearAll={clearAll}
+      isClearingAll={isClearingAll}
+      isMarkingAllRead={isMarkingAllRead}
+      onClose={() => setNotificationsOpen(false)}
+    />
+  )}
+</div>
 
             {/* User Profile (click to open menu) */}
             <div className="relative">

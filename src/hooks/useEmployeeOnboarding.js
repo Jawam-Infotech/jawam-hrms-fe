@@ -5,6 +5,8 @@ import {
   updateEmployee,
   getEmployeeById,
   updateEmployeeRole,
+  getDepartments,
+getDesignations,
 } from '../services/employeeService.js'
 import {
   buildCreateUserPayload,
@@ -36,6 +38,7 @@ const BACKEND_FIELD_MAP = {
   employment_type: 'employmentType',
   employment_status: 'employmentStatus',
   joining_date: 'joiningDate',
+  exit_date: 'exitDate',
   work_location: 'workLocation',
   shift: 'shift',
 }
@@ -260,6 +263,9 @@ function useEmployeeOnboarding({
     setManagerOptions,
   ] = useState([])
 
+  const [departmentOptions, setDepartmentOptions] = useState([])
+const [designationOptions, setDesignationOptions] = useState([])
+
   const [
     submissionError,
     setSubmissionError,
@@ -302,32 +308,50 @@ function useEmployeeOnboarding({
    * =========================
    */
 
-  useEffect(() => {
-    async function loadManagers() {
-      try {
-        const managers =
-          await getManagers()
+useEffect(() => {
+  async function loadMasterData() {
+    try {
+      const [managers, departments, designations] =
+        await Promise.all([
+          getManagers(),
+          getDepartments(),
+          getDesignations(),
+        ])
 
-        setManagerOptions(
-          managers.map(
-            (manager) => ({
-              value: manager.id,
-              label: manager.label,
-            }),
-          ),
-        )
-      } catch (error) {
-        console.error(
-          'Failed to load managers:',
-          error,
-        )
+      setManagerOptions(
+        managers.map((manager) => ({
+          value: manager.id,
+          label: manager.label,
+        })),
+      )
 
-        setManagerOptions([])
-      }
+      setDepartmentOptions(
+        departments.map((department) => ({
+          value: department.name,
+          label: department.name,
+        })),
+      )
+
+      setDesignationOptions(
+        designations.map((designation) => ({
+          value: designation.name,
+          label: designation.name,
+        })),
+      )
+    } catch (error) {
+      console.error(
+        'Failed to load employee master data:',
+        error,
+      )
+
+      setManagerOptions([])
+      setDepartmentOptions([])
+      setDesignationOptions([])
     }
+  }
 
-    loadManagers()
-  }, [])
+  loadMasterData()
+}, [])
 
 
   /*
@@ -419,6 +443,10 @@ function useEmployeeOnboarding({
 
             joiningDate:
               employee.date_of_joining ||
+              '',
+
+            exitDate:
+              employee.exit_date ||
               '',
 
             workLocation:
@@ -803,7 +831,7 @@ const handleDocumentChange = async (
       }
 
       setIsSubmitting(true)
-
+      
       try {
         const payload =
           buildCreateUserPayload(
@@ -949,6 +977,8 @@ const handleDocumentChange = async (
     isSubmitting,
     isDraftSaving,
     draftSavedAt,
+    departmentOptions,
+designationOptions,
   }
 }
 

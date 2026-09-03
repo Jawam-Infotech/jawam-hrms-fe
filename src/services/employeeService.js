@@ -1,10 +1,23 @@
-import { updateEmployeeRole as updateEmployeeRoleRequest, getEmployeeById as getEmployeeByIdRequest, getEmployees as getEmployeesRequest, createEmployee as createEmployeeRequest, updateEmployee as updateEmployeeRequest, getManagers as getManagersRequest,} from './api/employee.api.js'
+import {
+  updateEmployeeRole as updateEmployeeRoleRequest,
+  getEmployeeById as getEmployeeByIdRequest,
+  getEmployees as getEmployeesRequest,
+  createEmployee as createEmployeeRequest,
+  updateEmployee as updateEmployeeRequest,
+  getManagers as getManagersRequest,
+  getDepartments as getDepartmentsRequest,
+  createDepartment as createDepartmentRequest,
+  updateDepartment as updateDepartmentRequest,
+  getDesignations as getDesignationsRequest,
+  createDesignation as createDesignationRequest,
+  updateDesignation as updateDesignationRequest,
+} from './api/employee.api.js'
 import { getEmployeeDisplayId } from '../utils/employeeHelpers.js'
 
 const employeeCache = new Map()
 
 function normalizeEmployeeRecord(employee = {}) {
-  const id = String(employee.employee_id || employee.employeeId || employee.id || '').trim()
+  const id = String(employee.user_id ?? employee.id ?? '').trim()
   const firstName = String(employee.first_name || employee.firstName || '').trim()
   const lastName = String(employee.last_name || employee.lastName || '').trim()
   const name =
@@ -15,7 +28,7 @@ function normalizeEmployeeRecord(employee = {}) {
   return {
     ...employee,
     id,
-    employeeId: getEmployeeDisplayId(employee) || id,
+    employeeId: getEmployeeDisplayId(employee),
     name,
     firstName,
     lastName,
@@ -27,6 +40,7 @@ function normalizeEmployeeRecord(employee = {}) {
     joiningDate: employee.joiningDate || employee.date_of_joining || employee.dateOfJoining || '',
     employmentType: employee.employmentType || employee.employment_type || '',
     employmentStatus: employee.employmentStatus || employee.employment_status || '',
+    exitDate: employee.exitDate || employee.exit_date || '',
     workLocation: employee.workLocation || employee.work_location || '',
   }
 }
@@ -39,9 +53,25 @@ function cacheEmployee(employee) {
   return normalizedEmployee
 }
 
-async function getEmployees({ page, role } = {}) {
-  const data = await getEmployeesRequest({ page, role })
-  const results = Array.isArray(data?.results) ? data.results : []
+async function getEmployees({
+  page,
+  role,
+  search,
+  department,
+  ordering,
+} = {}) {
+  const data = await getEmployeesRequest({
+    page,
+    role,
+    search,
+    department,
+    ordering,
+  })
+
+  const results = Array.isArray(data?.results)
+    ? data.results
+    : []
+
   const employees = results.map(cacheEmployee)
 
   return {
@@ -77,8 +107,9 @@ async function createEmployee(payload) {
   const normalizedEmployee = cacheEmployee({
     ...payload,
     ...data,
-    employee_id: data.employee_id || data.user_id || data.id || payload.employee_id,
-    id: data.id || data.user_id || payload.employee_id,
+    employee_id: data.employee_id || data.employeeId || payload.employee_id,
+    user_id: data.user_id || data.id,
+    id: data.user_id || data.id,
     first_name: payload.first_name,
     last_name: payload.last_name,
     email: data.email || payload.email,
@@ -107,6 +138,45 @@ async function updateEmployee(employeeId, payload) {
   return cacheEmployee(data)
 }
 
+async function getDepartments() {
+  const data = await getDepartmentsRequest()
 
+  return Array.isArray(data) ? data : []
+}
 
-export { getEmployees, createEmployee, updateEmployee, getManagers, getEmployeeById, updateEmployeeRole }
+async function createDepartment(payload) {
+  return createDepartmentRequest(payload)
+}
+
+async function updateDepartment(departmentId, payload) {
+  return updateDepartmentRequest(departmentId, payload)
+}
+
+async function getDesignations() {
+  const data = await getDesignationsRequest()
+
+  return Array.isArray(data) ? data : []
+}
+
+async function createDesignation(payload) {
+  return createDesignationRequest(payload)
+}
+
+async function updateDesignation(designationId, payload) {
+  return updateDesignationRequest(designationId, payload)
+}
+
+export {
+  getEmployees,
+  createEmployee,
+  updateEmployee,
+  getManagers,
+  getEmployeeById,
+  updateEmployeeRole,
+  getDepartments,
+  createDepartment,
+  updateDepartment,
+  getDesignations,
+  createDesignation,
+  updateDesignation,
+}

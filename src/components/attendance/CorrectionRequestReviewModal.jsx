@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Check,
   Clock3,
@@ -8,8 +8,22 @@ import {
 } from 'lucide-react'
 
 import Button from '../ui/Button.jsx'
-import { approveCorrectionRequest, rejectCorrectionRequest } from '../../services/attendanceService.js'
 
+function formatDisplayTime(value) {
+  if (!value) return '--'
+
+  const date = new Date(`1970-01-01T${value}`)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
 
 function formatTimeForInput(value) {
   if (!value) return ''
@@ -26,7 +40,6 @@ function formatTimeForInput(value) {
     hour12: false,
   })
 }
-
 
 function createInitialBreaks(correctionRequest) {
   const breakItems = Array.isArray(
@@ -46,12 +59,50 @@ function createInitialBreaks(correctionRequest) {
   }))
 }
 
+function createOriginalBreaks(correctionRequest) {
+  const breaks = Array.isArray(
+    correctionRequest?.old_snapshot?.breaks,
+  )
+    ? correctionRequest.old_snapshot.breaks
+    : []
+
+  return breaks.map((breakItem, index) => ({
+    id: breakItem.id ?? `original-break-${index}`,
+    break_start:
+      breakItem.break_start ||
+      breakItem.start ||
+      breakItem.original_break_start ||
+      '',
+    break_end:
+      breakItem.break_end ||
+      breakItem.end ||
+      breakItem.original_break_end ||
+      '',
+  }))
+}
+
+function Detail({ label, value }) {
+  return (
+    <div>
+      <dt className="text-[12px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+        {label}
+      </dt>
+
+      <dd className="mt-1 text-[14px] font-medium text-[#111827]">
+        {value || '--'}
+      </dd>
+    </div>
+  )
+}
 
 function CorrectionRequestReviewModal({
   isOpen,
   onClose,
   correctionRequest,
+  onApprove,
+  onReject,
   onSuccess,
+  readOnly = false,
 }) {
   const [reviewComment, setReviewComment] = useState(
     correctionRequest?.review_comment || '',
@@ -80,22 +131,77 @@ function CorrectionRequestReviewModal({
   const [isSubmitting, setIsSubmitting] =
     useState(false)
 
-  if (!isOpen) return null
+  const originalBreaks =
+    createOriginalBreaks(correctionRequest)
 
-  if (!correctionRequest) return null
+  useEffect(() => {
+    if (!isOpen || !correctionRequest) return
 
+    setReviewComment(
+      correctionRequest.review_comment || '',
+    )
+
+    setEditedCheckIn(
+      formatTimeForInput(
+        correctionRequest.proposed_check_in,
+      ),
+    )
+
+    setEditedCheckOut(
+      formatTimeForInput(
+        correctionRequest.proposed_check_out,
+      ),
+    )
+
+    setEditedBreaks(
+      createInitialBreaks(correctionRequest),
+    )
+
+    setReviewCommentError('')
+  }, [isOpen, correctionRequest])
+
+  if (!isOpen || !correctionRequest) {
+    return null
+  }
+
+  const originalCheckIn = formatTimeForInput(
+    correctionRequest.original_check_in ||
+      correctionRequest.check_in ||
+      correctionRequest.old_snapshot?.check_in,
+  )
+
+  const originalCheckOut = formatTimeForInput(
+    correctionRequest.original_check_out ||
+      correctionRequest.check_out ||
+      correctionRequest.old_snapshot?.check_out,
+  )
 
   const handleApprove = async () => {
+    if (correctionRequest?.status !== 'PENDING') {
+      setReviewCommentError(
+        'This correction request has already been reviewed.',
+      )
+      return
+    }
+
     setReviewCommentError('')
     setIsSubmitting(true)
 
     try {
-      await approveCorrectionRequest(
+      await onApprove?.(
         correctionRequest.id,
         {
           checkIn: editedCheckIn,
           checkOut: editedCheckOut,
-          breaks: editedBreaks,
+          breaks: editedBreaks.map((breakItem) => ({
+            ...breakItem,
+            break_start: breakItem.break_start
+              ? `${correctionRequest.date}T${breakItem.break_start}:00+05:30`
+              : null,
+            break_end: breakItem.break_end
+              ? `${correctionRequest.date}T${breakItem.break_end}:00+05:30`
+              : null,
+          })),
           reviewComment: reviewComment.trim(),
         },
       )
@@ -112,8 +218,14 @@ function CorrectionRequestReviewModal({
     }
   }
 
-
   const handleReject = async () => {
+    if (correctionRequest?.status !== 'PENDING') {
+      setReviewCommentError(
+        'This correction request has already been reviewed.',
+      )
+      return
+    }
+
     const trimmedComment =
       reviewComment.trim()
 
@@ -128,7 +240,7 @@ function CorrectionRequestReviewModal({
     setIsSubmitting(true)
 
     try {
-      await rejectCorrectionRequest(
+      await onReject?.(
         correctionRequest.id,
         {
           reviewComment: trimmedComment,
@@ -147,7 +259,6 @@ function CorrectionRequestReviewModal({
     }
   }
 
-
   const handleBreakChange = (
     breakId,
     field,
@@ -165,18 +276,25 @@ function CorrectionRequestReviewModal({
     )
   }
 
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b px-6 py-4">
+      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl">
+
+        {/* HEADER */}
+
+        <div className="flex items-center justify-between border-b border-[#e5e7eb] px-6 py-5">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2
+              id="attendance-correction-title"
+              className="text-[22px] font-black text-[#111827]"
+            >
               Review Correction Request
             </h2>
 
-            <p className="mt-1 text-sm text-gray-500">
-              Review and update the requested attendance correction.
+            <p className="mt-1 text-[14px] text-[#6b7280]">
+              {readOnly
+                ? 'View the details and status of your correction request.'
+                : 'Review and update the requested attendance correction.'}
             </p>
           </div>
 
@@ -184,85 +302,105 @@ function CorrectionRequestReviewModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="Close"
+            aria-label="Close correction request"
+            className="rounded-full p-1 text-[#6b7280] transition hover:bg-[#f3f4f6] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <X size={20} />
+            <X size={24} />
           </button>
         </div>
 
+        {/* CONTENT */}
 
-        <div className="space-y-6 p-6">
+        <div className="overflow-y-auto p-6">
 
-          {/* Employee information */}
-          <div className="rounded-xl border border-gray-200 p-4">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+          {/* REQUEST DETAILS */}
+
+          <div>
+            <h3 className="mb-4 flex items-center gap-2 text-[16px] font-extrabold text-[#111827]">
               <MessageSquare size={16} />
               Request Details
             </h3>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-xs text-gray-500">
-                  Employee
-                </p>
+            <dl className="grid gap-5 sm:grid-cols-2">
 
-                <p className="mt-1 text-sm font-medium text-gray-900">
-                  {correctionRequest.employeeName ||
-                    correctionRequest.user?.first_name ||
-                    '--'}
-                </p>
-              </div>
+              <Detail
+                label="Employee Name"
+                value={
+                  correctionRequest.employeeName ||
+                  [
+                    correctionRequest.user?.first_name,
+                    correctionRequest.user?.last_name,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+                }
+              />
 
-              <div>
-                <p className="text-xs text-gray-500">
-                  Date
-                </p>
+              <Detail
+                label="Date"
+                value={
+                  correctionRequest.date ||
+                  correctionRequest.attendance_date
+                }
+              />
 
-                <p className="mt-1 text-sm font-medium text-gray-900">
-                  {correctionRequest.date ||
-                    correctionRequest.attendance_date ||
-                    '--'}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-500">
-                  Requested On
-                </p>
-
-                <p className="mt-1 text-sm font-medium text-gray-900">
-                  {correctionRequest.created_at
+              <Detail
+                label="Requested On"
+                value={
+                  correctionRequest.created_at
                     ? new Date(
                         correctionRequest.created_at,
                       ).toLocaleString()
-                    : '--'}
-                </p>
-              </div>
+                    : '--'
+                }
+              />
 
-              <div>
-                <p className="text-xs text-gray-500">
-                  Status
-                </p>
+              <Detail
+                label="Status"
+                value={
+                  correctionRequest.status ||
+                  'Pending'
+                }
+              />
 
-                <p className="mt-1 text-sm font-medium text-gray-900">
-                  {correctionRequest.status || 'Pending'}
-                </p>
-              </div>
-            </div>
+            </dl>
           </div>
 
+          {/* ATTENDANCE TIME */}
 
-          {/* Check in / Check out */}
-          <div className="rounded-xl border border-gray-200 p-4">
-            <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-900">
+          <div className="mt-6 border-t border-[#e5e7eb] pt-5">
+
+            <h3 className="mb-4 flex items-center gap-2 text-[16px] font-extrabold text-[#111827]">
               <Clock3 size={16} />
               Attendance Time
             </h3>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-gray-600">
+            <div className="mb-2 grid grid-cols-2 text-[12px] font-extrabold uppercase tracking-wide">
+              <span className="text-[#6b7280]">
+                Original
+              </span>
+
+              <span className="text-[#2563eb]">
+                Requested
+              </span>
+            </div>
+
+            {/* CHECK IN */}
+
+            <div className="grid grid-cols-2 gap-5">
+
+              <div>
+                <span className="mb-1 block text-[12px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+                  Check In
+                </span>
+
+                <div className="rounded-[14px] border border-[#e5e7eb] bg-[#fafafa] px-4 py-3 text-[14px] font-medium text-[#111827]">
+                  {formatDisplayTime(originalCheckIn)}
+                </div>
+              </div>
+
+              <div>
+                <span className="mb-1 block text-[12px] font-extrabold uppercase tracking-wide text-[#2563eb]">
                   Check In
                 </span>
 
@@ -274,13 +412,33 @@ function CorrectionRequestReviewModal({
                       event.target.value,
                     )
                   }
-                  disabled={isSubmitting}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500"
+                  disabled={
+                    readOnly || isSubmitting
+                  }
+                  className="w-full rounded-[14px] border border-[#bfdbfe] bg-white px-4 py-2.5 text-[14px] font-medium text-[#111827] outline-none transition focus:border-[#2563eb]"
                 />
-              </label>
+              </div>
 
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-gray-600">
+            </div>
+
+            {/* CHECK OUT */}
+
+            <div className="mt-4 grid grid-cols-2 gap-5">
+
+              <div>
+                <span className="mb-1 block text-[12px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+                  Check Out
+                </span>
+
+                <div className="rounded-[14px] border border-[#e5e7eb] bg-[#fafafa] px-4 py-3 text-[14px] font-medium text-[#111827]">
+                  {formatDisplayTime(
+                    originalCheckOut,
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <span className="mb-1 block text-[12px] font-extrabold uppercase tracking-wide text-[#2563eb]">
                   Check Out
                 </span>
 
@@ -292,164 +450,292 @@ function CorrectionRequestReviewModal({
                       event.target.value,
                     )
                   }
-                  disabled={isSubmitting}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500"
+                  disabled={
+                    readOnly || isSubmitting
+                  }
+                  className="w-full rounded-[14px] border border-[#bfdbfe] bg-white px-4 py-2.5 text-[14px] font-medium text-[#111827] outline-none transition focus:border-[#2563eb]"
                 />
-              </label>
+              </div>
+
             </div>
           </div>
 
+          {/* BREAKS */}
 
-          {/* Breaks */}
-          {editedBreaks.length > 0 && (
-            <div className="rounded-xl border border-gray-200 p-4">
-              <h3 className="mb-4 text-sm font-semibold text-gray-900">
-                Breaks
-              </h3>
+          <div className="mt-6 border-t border-[#e5e7eb] pt-5">
 
-              <div className="space-y-3">
-                {editedBreaks.map(
-                  (breakItem, index) => (
-                    <div
-                      key={
-                        breakItem.id ??
-                        `break-${index}`
-                      }
-                      className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-                    >
-                      <label className="block">
-                        <span className="mb-1 block text-xs font-medium text-gray-600">
-                          Break Start
-                        </span>
+            <h3 className="mb-4 text-[16px] font-extrabold text-[#111827]">
+              Breaks
+            </h3>
 
-                        <input
-                          type="time"
-                          value={
-                            breakItem.break_start
+            {originalBreaks.length === 0 &&
+            editedBreaks.length === 0 ? (
+              <p className="text-[14px] font-medium text-[#6b7280]">
+                No breaks recorded.
+              </p>
+            ) : (
+              <>
+                <div className="mb-3 grid grid-cols-2 gap-5">
+                  <span className="text-[12px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+                    Original
+                  </span>
+
+                  <span className="text-[12px] font-extrabold uppercase tracking-wide text-[#2563eb]">
+                    Requested
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+
+                  {Array.from(
+                    {
+                      length: Math.max(
+                        originalBreaks.length,
+                        editedBreaks.length,
+                      ),
+                    },
+                    (_, index) => {
+                      const original =
+                        originalBreaks[index]
+
+                      const requested =
+                        editedBreaks[index]
+
+                      return (
+                        <div
+                          key={
+                            requested?.id ||
+                            original?.id ||
+                            `break-${index}`
                           }
-                          onChange={(event) =>
-                            handleBreakChange(
-                              breakItem.id,
-                              'break_start',
-                              event.target.value,
-                            )
-                          }
-                          disabled={isSubmitting}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500"
-                        />
-                      </label>
+                          className="grid gap-5 sm:grid-cols-2"
+                        >
 
-                      <label className="block">
-                        <span className="mb-1 block text-xs font-medium text-gray-600">
-                          Break End
-                        </span>
+                          {/* ORIGINAL */}
 
-                        <input
-                          type="time"
-                          value={
-                            breakItem.break_end
-                          }
-                          onChange={(event) =>
-                            handleBreakChange(
-                              breakItem.id,
-                              'break_end',
-                              event.target.value,
-                            )
-                          }
-                          disabled={isSubmitting}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500"
-                        />
-                      </label>
-                    </div>
-                  ),
-                )}
-              </div>
-            </div>
-          )}
+                          <div>
+                            <span className="mb-1 block text-[12px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+                              Break {index + 1}
+                            </span>
 
+                            <div className="rounded-[14px] border border-[#e5e7eb] bg-[#fafafa] px-4 py-3 text-[14px] font-medium text-[#111827]">
+                              {original ? (
+                                <>
+                                  {formatTimeForInput(
+                                    original.break_start,
+                                  ) || '--'}
 
-          {/* Review comment */}
-          <div className="rounded-xl border border-gray-200 p-4">
-            <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-gray-900">
-                Review Comment
+                                  <span className="mx-2 text-[#9ca3af]">
+                                    →
+                                  </span>
+
+                                  {formatTimeForInput(
+                                    original.break_end,
+                                  ) || '--'}
+                                </>
+                              ) : (
+                                '--'
+                              )}
+                            </div>
+                          </div>
+
+                          {/* REQUESTED */}
+
+                          <div>
+                            <span className="mb-1 block text-[12px] font-extrabold uppercase tracking-wide text-[#2563eb]">
+                              Break {index + 1}
+                            </span>
+
+                            {requested ? (
+                              <div className="flex items-center gap-2">
+
+                                <input
+                                  type="time"
+                                  value={
+                                    requested.break_start ||
+                                    ''
+                                  }
+                                  onChange={(event) =>
+                                    handleBreakChange(
+                                      requested.id,
+                                      'break_start',
+                                      event.target.value,
+                                    )
+                                  }
+                                  disabled={
+                                    readOnly ||
+                                    isSubmitting
+                                  }
+                                  className="min-w-0 flex-1 rounded-[14px] border border-[#bfdbfe] bg-white px-3 py-2.5 text-[14px] font-medium text-[#111827] outline-none focus:border-[#2563eb]"
+                                />
+
+                                <span className="text-[#9ca3af]">
+                                  →
+                                </span>
+
+                                <input
+                                  type="time"
+                                  value={
+                                    requested.break_end ||
+                                    ''
+                                  }
+                                  onChange={(event) =>
+                                    handleBreakChange(
+                                      requested.id,
+                                      'break_end',
+                                      event.target.value,
+                                    )
+                                  }
+                                  disabled={
+                                    readOnly ||
+                                    isSubmitting
+                                  }
+                                  className="min-w-0 flex-1 rounded-[14px] border border-[#bfdbfe] bg-white px-3 py-2.5 text-[14px] font-medium text-[#111827] outline-none focus:border-[#2563eb]"
+                                />
+
+                              </div>
+                            ) : (
+                              <div className="rounded-[14px] border border-[#e5e7eb] bg-[#fafafa] px-4 py-3 text-[14px] font-medium text-[#6b7280]">
+                                --
+                              </div>
+                            )}
+                          </div>
+
+                        </div>
+                      )
+                    },
+                  )}
+
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* REASON */}
+
+          <div className="mt-6 border-t border-[#e5e7eb] pt-5">
+
+            <div>
+              <span className="mb-2 block text-[12px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+                Reason
               </span>
 
-              <textarea
-                value={reviewComment}
-                onChange={(event) => {
-                  setReviewComment(
-                    event.target.value,
-                  )
+              <div className="whitespace-pre-wrap rounded-[14px] border border-[#e5e7eb] bg-[#fafafa] px-4 py-3 text-[14px] font-medium text-[#111827]">
+                {correctionRequest.reason || '--'}
+              </div>
+            </div>
 
-                  if (
-                    reviewCommentError
-                  ) {
-                    setReviewCommentError('')
-                  }
-                }}
-                rows={4}
-                disabled={isSubmitting}
-                placeholder="Add a comment..."
-                className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500"
-              />
+            {/* REVIEW COMMENT */}
 
-              {reviewCommentError && (
-                <p className="mt-2 text-sm text-red-600">
-                  {reviewCommentError}
-                </p>
+            <div className="mt-4">
+
+              {readOnly ? (
+                reviewComment ? (
+                  <>
+                    <span className="mb-2 block text-[12px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+                      Review Comment
+                    </span>
+
+                    <div className="whitespace-pre-wrap rounded-[14px] border border-[#e5e7eb] bg-[#fafafa] px-4 py-3 text-[14px] font-medium text-[#111827]">
+                      {reviewComment}
+                    </div>
+                  </>
+                ) : null
+              ) : (
+                <>
+                  <span className="mb-2 block text-[12px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+                    Review Comment
+                  </span>
+
+                  <textarea
+                    value={reviewComment}
+                    onChange={(event) => {
+                      setReviewComment(
+                        event.target.value,
+                      )
+
+                      if (reviewCommentError) {
+                        setReviewCommentError('')
+                      }
+                    }}
+                    rows={4}
+                    disabled={isSubmitting}
+                    placeholder="Add a comment..."
+                    className="w-full resize-none rounded-[14px] border border-[#d1d5db] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#9ca3af]"
+                  />
+
+                  {reviewCommentError && (
+                    <p className="mt-2 text-[13px] font-medium text-[#dc2626]">
+                      {reviewCommentError}
+                    </p>
+                  )}
+                </>
               )}
-            </label>
+
+            </div>
           </div>
+
         </div>
 
+        {/* FOOTER */}
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t bg-gray-50 px-6 py-4">
+        <div className="flex flex-wrap justify-end gap-3 border-t border-[#e5e7eb] px-6 py-5">
+
           <Button
             type="button"
             variant="secondary"
             onClick={onClose}
             disabled={isSubmitting}
+            className="rounded-full px-5 py-2.5 text-[14px] font-bold"
           >
-            Cancel
+            {readOnly ? 'Close' : 'Cancel'}
           </Button>
 
-          <Button
-            type="button"
-            variant="danger"
-            onClick={handleReject}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <Loader2
-                size={16}
-                className="animate-spin"
-              />
-            ) : (
-              <X size={16} />
+          {!readOnly &&
+            correctionRequest?.status === 'PENDING' && (
+              <Button
+                type="button"
+                variant="danger"
+                onClick={handleReject}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 rounded-full border border-[#fecaca] px-5 py-2.5 text-[14px] font-bold text-[#dc2626]"
+              >
+                {isSubmitting ? (
+                  <Loader2
+                    size={16}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <X size={16} />
+                )}
+
+                Reject
+              </Button>
             )}
 
-            Reject
-          </Button>
+          {!readOnly &&
+            correctionRequest?.status === 'PENDING' && (
+              <Button
+                type="button"
+                onClick={handleApprove}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-5 py-2.5 text-[14px] font-bold text-white hover:bg-[#15803d]"
+              >
+                {isSubmitting ? (
+                  <Loader2
+                    size={16}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <Check size={16} />
+                )}
 
-          <Button
-            type="button"
-            onClick={handleApprove}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <Loader2
-                size={16}
-                className="animate-spin"
-              />
-            ) : (
-              <Check size={16} />
+                Approve
+              </Button>
             )}
 
-            Approve
-          </Button>
         </div>
+
       </div>
     </div>
   )

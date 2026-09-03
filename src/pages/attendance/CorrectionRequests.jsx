@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../layouts/DashboardLayout.jsx'
 import useCorrectionRequests from '../../hooks/useCorrectionRequests.js'
 import CorrectionRequestModal from '../../components/attendance/CorrectionRequestModal.jsx'
 import CorrectionRequestReviewModal from '../../components/attendance/CorrectionRequestReviewModal.jsx'
+import { UserContext } from '../../context/UserContext.jsx'
+import { getMyProfile } from '../../services/profileService.js'
 
 const formatDate = (date) => {
   if (!date) return '--'
@@ -27,6 +29,8 @@ const getTodayDateInput = () => {
 
 function CorrectionRequests() {
   const navigate = useNavigate()
+  const { user } = useContext(UserContext)
+  const [profile, setProfile] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [selectedRequestId, setSelectedRequestId] = useState(null)
   const {
@@ -43,6 +47,11 @@ function CorrectionRequests() {
   useEffect(() => {
     void loadMyRequests().catch(() => {})
   }, [loadMyRequests])
+
+  useEffect(() => {
+    if (!user?.id) return
+    void getMyProfile(user.id).then(setProfile).catch(() => setProfile(null))
+  }, [user?.id])
 
   const handleView = (requestId) => {
     setSelectedRequestId(requestId)
@@ -70,11 +79,11 @@ function CorrectionRequests() {
 
         <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-5 shadow-sm">
           {loading ? <div className="px-4 py-10 text-center text-[14px] font-semibold text-[#6b7280]">Loading correction requests...</div> : requests.length === 0 ? <div className="px-4 py-10 text-center text-[14px] font-semibold text-[#6b7280]">No correction requests found.</div> : (
-            <div className="overflow-x-auto"><table className="w-full min-w-[680px]"><thead><tr className="border-b border-[#e5e7eb]"><Header>Date</Header><Header>Reason</Header><Header>Status</Header><Header align="right">View</Header></tr></thead><tbody>{requests.map((request) => <tr key={request.id} className="border-b border-[#f3f4f6] last:border-b-0"><Cell>{formatDate(request.date)}</Cell><Cell>{request.reason || 'Not provided'}</Cell><Cell><span className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-bold ${statusClass[request.status] || 'bg-[#f3f4f6] text-[#6b7280]'}`}>{request.status}</span></Cell><Cell align="right"><button type="button" onClick={() => handleView(request.id)} className="text-[13px] font-bold text-[#2563eb] transition hover:text-[#1d4ed8]">View</button></Cell></tr>)}</tbody></table></div>
+            <div className="overflow-x-auto"><table className="w-full min-w-[680px]"><thead><tr className="border-b border-[#e5e7eb]"><Header>Date</Header><Header>Reason</Header><Header>Status</Header><Header align="right">View</Header></tr></thead><tbody>{requests.map((request) => <tr key={request.id} className="border-b border-[#f3f4f6] last:border-b-0"><Cell>{formatDate(request.date)}</Cell><Cell>{request.reason || 'Not provided'}</Cell><Cell><span className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-bold ${statusClass[request.status] || 'bg-[#f3f4f6] text-[#6b7280]'}`}>{request.status}</span></Cell><Cell align="right"><button type="button" onClick={() => handleView(request.id)} aria-label={`View correction request for ${formatDate(request.date)}`} className="inline-flex cursor-pointer items-center rounded-full border border-[#bfdbfe] bg-[#eff6ff] px-3.5 py-1.5 text-[13px] font-bold text-[#2563eb] transition hover:border-[#93c5fd] hover:bg-[#dbeafe] focus:outline-none focus:ring-2 focus:ring-[#93c5fd] focus:ring-offset-1">View</button></Cell></tr>)}</tbody></table></div>
           )}
         </div>
 
-        <CorrectionRequestModal isOpen={showForm} initialDate={getTodayDateInput()} onClose={() => setShowForm(false)} onSubmitSuccess={() => { setShowForm(false); void loadMyRequests().catch(() => {}) }} />
+        <CorrectionRequestModal isOpen={showForm} initialDate={getTodayDateInput()} joiningDate={profile?.dateOfJoining} exitDate={profile?.exitDate} onClose={() => setShowForm(false)} onSubmitSuccess={() => { setShowForm(false); void loadMyRequests().catch(() => {}) }} />
         {selectedRequestId && <CorrectionRequestReviewModal isOpen correctionRequestId={selectedRequestId} correctionRequest={selectedRequest} loading={detailLoading} error={error} readOnly onClose={handleCloseDetail} />}
       </div>
     </DashboardLayout>

@@ -71,11 +71,11 @@ function useHolidayManagement(user) {
   const canManage = useMemo(() => {
     const role = String(
       userRole || '',
-    ).toLowerCase()
+    ).trim().toUpperCase()
 
     return (
       role === 'CEO' ||
-      role === 'hr'
+      role === 'HR'
     )
   }, [userRole])
 

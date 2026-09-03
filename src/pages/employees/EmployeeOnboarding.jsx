@@ -41,6 +41,8 @@ function EmployeeOnboarding() {
     submitEmployee,
     isSubmitting,
     isDraftSaving,
+    departmentOptions,
+designationOptions,
   } = useEmployeeOnboarding({
   creatorRole: user.role,
   isEditMode,
@@ -118,12 +120,14 @@ if (isEditMode && isLoadingEmployee) {
         />
 
         <EmploymentInformationSection
-          formData={formData}
-          fieldError={fieldError}
-          onChange={handleFieldChange}
-          onBlur={handleFieldBlur}
-          managerOptions={managerOptions}
-        />
+  formData={formData}
+  fieldError={fieldError}
+  onChange={handleFieldChange}
+  onBlur={handleFieldBlur}
+  managerOptions={managerOptions}
+  departmentOptions={departmentOptions}
+  designationOptions={designationOptions}
+/>
 
         <DocumentUploadSection
           documents={formData.documents}

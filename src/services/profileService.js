@@ -15,7 +15,7 @@ function normalizeProfile(profile = {}) {
 
   return {
     ...profile,
-    id: String(profile.employee_id || profile.employeeId || profile.id || '').trim(),
+    id: String(profile.user_id ?? profile.id ?? '').trim(),
     employeeId: getEmployeeDisplayId(profile),
     firstName,
     lastName,
@@ -25,6 +25,8 @@ function normalizeProfile(profile = {}) {
     gender: profile.gender || '',
     maritalStatus: profile.marital_status || profile.maritalStatus || '',
     address: profile.address || '',
+    dateOfJoining: normalizeDateInputValue(profile.date_of_joining || profile.dateOfJoining),
+    exitDate: normalizeDateInputValue(profile.exit_date || profile.exitDate),
     photoPreviewUrl: profile.profile_photo || profile.photo || profile.avatar || '',
   }
 }

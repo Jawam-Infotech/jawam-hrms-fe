@@ -136,14 +136,8 @@ function useCompanyAttendancePage(
             return
           }
 
-          const canViewTrend = [
-            'hr',
-            'ceo',
-          ].includes(
-            String(
-              userRole || '',
-            ).toLowerCase(),
-          )
+          const normalizedUserRole = String(userRole || '').trim().toUpperCase()
+          const canViewTrend = ['HR', 'CEO'].includes(normalizedUserRole)
 
           let weeklyTrend = []
           let monthlyTrend = []

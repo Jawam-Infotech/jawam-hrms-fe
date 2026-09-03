@@ -3,8 +3,6 @@ import FormField from '../../auth/FormField.jsx'
 import SelectField from '../../ui/SelectField.jsx'
 import FieldError from '../../ui/FieldError.jsx'
 import {
-  EMPLOYEE_DEPARTMENT_OPTIONS,
-  EMPLOYEE_DESIGNATION_OPTIONS,
   EMPLOYEE_EMPLOYMENT_STATUS_OPTIONS,
   EMPLOYEE_EMPLOYMENT_TYPE_OPTIONS,
   EMPLOYEE_SHIFT_OPTIONS,
@@ -14,8 +12,16 @@ import {
 const inputClass =
   'h-[48px] w-full rounded-[9px] border-2 border-[#dedede] bg-white px-[16px] text-[#111827] outline-none transition-[border-color,box-shadow] duration-[250ms] focus:border-[#3a7be0] focus:shadow-[0_0_0_4px_rgba(58,123,224,0.16)] max-[380px]:h-14'
 
-function EmploymentInformationSection({ formData, managerOptions, fieldError, onChange, onBlur }) {
-  return (
+function EmploymentInformationSection({
+  formData,
+  managerOptions,
+  departmentOptions,
+  designationOptions,
+  fieldError,
+  onChange,
+  onBlur,
+}) {
+    return (
     <Card className="rounded-[24px] border border-[#e5e5e5] bg-white p-6 shadow-sm">
       <h3 className="mb-4 text-[18px] font-extrabold text-[#111827]">Employment Information</h3>
       <div className="grid gap-5 md:grid-cols-2">
@@ -25,7 +31,7 @@ function EmploymentInformationSection({ formData, managerOptions, fieldError, on
           value={formData.department}
           onChange={onChange}
           placeholder="Select department"
-          options={EMPLOYEE_DEPARTMENT_OPTIONS}
+          options={departmentOptions}
           className={inputClass}
         />
         <SelectField
@@ -34,7 +40,7 @@ function EmploymentInformationSection({ formData, managerOptions, fieldError, on
           value={formData.designation}
           onChange={onChange}
           placeholder="Select designation"
-          options={EMPLOYEE_DESIGNATION_OPTIONS}
+          options={designationOptions}
           className={inputClass}
         />
         <SelectField
@@ -73,6 +79,15 @@ function EmploymentInformationSection({ formData, managerOptions, fieldError, on
           onBlur={onBlur}
           className={inputClass}
         />
+        <FormField
+          label="Exit Date"
+          id="exitDate"
+          type="date"
+          value={formData.exitDate}
+          onChange={onChange}
+          onBlur={onBlur}
+          className={inputClass}
+          />
         <SelectField
           label="Work Location"
           id="workLocation"
@@ -100,6 +115,7 @@ function EmploymentInformationSection({ formData, managerOptions, fieldError, on
         <FieldError>{fieldError('employmentType')}</FieldError>
         <FieldError>{fieldError('employmentStatus')}</FieldError>
         <FieldError>{fieldError('joiningDate')}</FieldError>
+        <FieldError>{fieldError('exitDate')}</FieldError>
         <FieldError>{fieldError('workLocation')}</FieldError>
         <FieldError>{fieldError('shift')}</FieldError>
       </div>

@@ -12,6 +12,10 @@ const EMPLOYEE_ENDPOINTS = {
   listUsers: 'users/',
   createUser: 'users/create-user/',
   managers: '/users/managers/',
+  departments: 'departments/',
+departmentById: (departmentId) => `departments/${departmentId}/`,
+designations: 'designations/',
+designationById: (designationId) => `designations/${designationId}/`,
 }
 
 const ATTENDANCE_ENDPOINTS = {
@@ -81,8 +85,18 @@ const LEAVE_ENDPOINTS = {
   upcoming: 'leave/upcoming/',
 }
 
+const NOTIFICATION_ENDPOINTS = {
+  list: 'notifications/',
+  unreadCount: 'notifications/unread-count/',
+  markAsRead: (notificationId) =>
+    `notifications/${notificationId}/read/`,
+  markAllAsRead: 'notifications/mark-all-read/',
+  delete: (notificationId) => `notifications/${notificationId}/`,
+  clearAll: 'notifications/clear-all/',
+}
+
 
 export const HOLIDAY_ENDPOINTS = {
   holidays: 'holidays/',
 }
-export { AUTH_ENDPOINTS, EMPLOYEE_ENDPOINTS, ATTENDANCE_ENDPOINTS, LEAVE_ENDPOINTS}
+export { AUTH_ENDPOINTS, EMPLOYEE_ENDPOINTS, ATTENDANCE_ENDPOINTS, LEAVE_ENDPOINTS, NOTIFICATION_ENDPOINTS,}
