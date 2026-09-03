@@ -5,13 +5,8 @@ import AuthHeader from '../../components/auth/AuthHeader.jsx'
 import FormField from '../../components/auth/FormField.jsx'
 import PasswordEye from '../../components/auth/PasswordEye.jsx'
 import { UserContext } from '../../context/UserContext.jsx'
+import { roleToDashboard } from '../../utils/roles.js'
 
-const roleToDashboard = {
-  employee: '/dashboard',
-  manager: '/dashboard/team-leader',
-  hr: '/dashboard/hr',
-  admin: '/dashboard/ceo',
-}
 
 const emailInputClass =
   'h-[48px] w-full rounded-[9px] border-2 border-[#dedede] bg-white px-[16px] text-[#111827] outline-none transition-[border-color,box-shadow] duration-[250ms] focus:border-[#3a7be0] focus:shadow-[0_0_0_4px_rgba(58,123,224,0.16)] max-[380px]:h-14'

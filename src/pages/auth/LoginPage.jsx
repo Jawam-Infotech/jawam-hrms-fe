@@ -1,13 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import LoginMarketingPanel, { LogoMark } from './components/LoginMarketingPanel'
 import LoginForm from './components/LoginForm'
-
-const roleToDashboard = {
-  employee: '/dashboard',
-  manager: '/dashboard/team-leader',
-  hr: '/dashboard/hr',
-  admin: '/dashboard/ceo',
-}
+import { roleToDashboard } from '../../utils/roles.js'
 
 function LoginPage() {
   const navigate = useNavigate()

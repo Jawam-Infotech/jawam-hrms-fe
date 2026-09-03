@@ -1,13 +1,5 @@
 import { EMPLOYEE_DOCUMENT_TYPES, EMPLOYEE_ASSET_OPTIONS, EMPLOYEE_ROLE_OPTIONS } from '../constants/employeeFormFields.js'
 
-function generateEmployeeId(employees = []) {
-  const numericIds = employees
-    .map((employee) => Number.parseInt(employee.id, 10))
-    .filter((value) => Number.isFinite(value))
-
-  const nextId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 101
-  return String(nextId)
-}
 
 function createInitialDocumentState() {
   return EMPLOYEE_DOCUMENT_TYPES.reduce((accumulator, documentType) => {
@@ -33,11 +25,8 @@ function normalizeEmployeeRoleValue(role = '') {
   const lowerRole = normalizedRole.toLowerCase()
   const roleMap = {
     employee: 'EMPLOYEE',
-    manager: 'TL',
     'team lead': 'TL',
-    tl: 'TL',
     hr: 'HR',
-    admin: 'CEO',
     ceo: 'CEO',
   }
 
@@ -70,8 +59,8 @@ function getAssignableEmployeeRoleOptions(
     )
   }
 
-  // HR can create EMPLOYEE/TL.
-  // During edit, HR can only change EMPLOYEE -> TL.
+  // HR can create EMPLOYEE/TEAM_LEAD.
+  // During edit, HR can only change EMPLOYEE -> TEAM_LEAD.
   if (normalizedCreatorRole === 'HR') {
     if (isEditMode) {
       if (normalizedOriginalRole === 'EMPLOYEE') {
@@ -80,7 +69,7 @@ function getAssignableEmployeeRoleOptions(
         )
       }
 
-      // Existing TL/HR/CEO cannot be changed by HR.
+      // Existing TEAM_LEAD/HR/CEO cannot be changed by HR.
       return EMPLOYEE_ROLE_OPTIONS.filter(
         (option) => option.value === normalizedOriginalRole
       )
@@ -122,6 +111,7 @@ function createInitialEmployeeFormValues(creatorRole = '') {
     employmentType: '',
     employmentStatus: '',
     joiningDate: '',
+    exitDate: '',
     workLocation: '',
     shift: '',
     role: getDefaultEmployeeRole(creatorRole),
@@ -165,7 +155,7 @@ function formatCurrencyDisplayValue(value) {
   return String(value ?? '').replace(/\D/g, '')
 }
 
-function buildCreateUserPayload(formData, isEditMode = false)  {
+function buildCreateUserPayload(formData, isEditMode = false) {
   const payload = {
     email: formData.email,
     first_name: formData.firstName,
@@ -174,7 +164,7 @@ function buildCreateUserPayload(formData, isEditMode = false)  {
     role: normalizeEmployeeRoleValue(formData.role),
   }
 
-    if (!isEditMode || formData.password?.trim()) {
+  if (!isEditMode || formData.password?.trim()) {
     payload.password = formData.password
   }
 
@@ -187,7 +177,9 @@ function buildCreateUserPayload(formData, isEditMode = false)  {
     ['designation', formData.designation],
     ['reporting_manager', formData.reportingManager],
     ['employment_type', formData.employmentType],
-    ['employment_status', formData.employmentStatus],['date_of_joining', formData.joiningDate],
+    ['employment_status', formData.employmentStatus],
+    ['date_of_joining', formData.joiningDate],
+    ['exit_date', formData.exitDate],
     ['work_location', formData.workLocation],
     ['shift', formData.shift],
   ]
@@ -197,6 +189,19 @@ function buildCreateUserPayload(formData, isEditMode = false)  {
       payload[key] = value
     }
   })
+
+  // Employee photo upload
+  if (formData.photoFile) {
+    const multipartPayload = new FormData()
+
+    Object.entries(payload).forEach(([key, value]) => {
+      multipartPayload.append(key, value)
+    })
+
+    multipartPayload.append('photo', formData.photoFile)
+
+    return multipartPayload
+  }
 
   return payload
 }
@@ -215,7 +220,6 @@ export {
   formatEmployeeFieldValue,
   formatEmployeeRoleLabel,
   formatPhoneDisplayValue,
-  generateEmployeeId,
   getAssignableEmployeeRoleOptions,
   getDefaultEmployeeRole,
   normalizeEmployeeRoleValue,

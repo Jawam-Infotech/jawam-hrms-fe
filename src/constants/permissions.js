@@ -22,6 +22,7 @@ const permissions = {
       canViewAssets: true,
       canAssignTask: true,
       canViewWorkUpdates: true,
+      canManageMasterData: true,
     },
   },
 
@@ -48,6 +49,7 @@ const permissions = {
       canViewAssets: true,
       canAssignTask: false,
       canViewWorkUpdates: false,
+      canManageMasterData: true,
     },
   },
 
@@ -55,10 +57,10 @@ const permissions = {
     leave: {
       canApply: true,
 
-      // TL can review normal leave requests.
+      // TEAM_LEAD can review normal leave requests.
       canReview: true,
 
-      // TL cannot approve/reject cancellation requests.
+      // TEAM_LEAD cannot approve/reject cancellation requests.
       canReviewCancellation: false,
     },
 
@@ -78,6 +80,7 @@ const permissions = {
       canViewAssets: false,
       canAssignTask: true,
       canViewWorkUpdates: true,
+      canManageMasterData: false,
     },
   },
 
@@ -104,6 +107,7 @@ const permissions = {
       canViewAssets: false,
       canAssignTask: false,
       canViewWorkUpdates: false,
+      canManageMasterData: false,
     },
   },
 }

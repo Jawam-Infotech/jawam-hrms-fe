@@ -1,10 +1,11 @@
 import Card from '../ui/Card.jsx'
+import { getEmployeeDisplayId } from '../../utils/employeeHelpers.js'
 
 function EmployeeOtherInformation({ employee, title = 'Other Information' }) {
   const information = [
     {
       label: 'Employee ID',
-      value: employee.employeeId || 'EMP-001',
+      value: getEmployeeDisplayId(employee),
     },
     {
       label: 'Department',
@@ -20,7 +21,11 @@ function EmployeeOtherInformation({ employee, title = 'Other Information' }) {
     },
     {
       label: 'Employment Status',
-      value: employee.employmentStatus || 'Active',
+      value: employee.employmentStatus || 'N/A',
+    },
+    {
+      label: 'Exit Date',
+      value: employee.exitDate || 'N/A',
     },
     {
       label: 'Work Location',

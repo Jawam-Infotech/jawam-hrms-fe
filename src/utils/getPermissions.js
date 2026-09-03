@@ -9,12 +9,9 @@ function getPermissions(role) {
 
   const roleMap = {
     CEO: 'CEO',
-    ADMIN: 'CEO',
-
     HR: 'HR',
 
-    TEAM_LEAD: 'TEAM_LEAD',
-    MANAGER: 'TEAM_LEAD',
+    TL: 'TEAM_LEAD',
 
     EMPLOYEE: 'EMPLOYEE',
   }

@@ -50,9 +50,9 @@ export const EMPLOYEE_EMPLOYMENT_TYPE_OPTIONS = [
 ]
 
 export const EMPLOYEE_EMPLOYMENT_STATUS_OPTIONS = [
-  { value: 'Active', label: 'Active' },
-  { value: 'Probation', label: 'Probation' },
-  { value: 'Inactive', label: 'Inactive' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'ON_NOTICE', label: 'On Notice' },
+  { value: 'EXITED', label: 'Exited' },
 ]
 
 export const EMPLOYEE_WORK_LOCATION_OPTIONS = [

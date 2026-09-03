@@ -11,7 +11,7 @@ function Attendance() {
   const navigate = useNavigate()
   const { user } = useContext(UserContext)
   const [currentDate, setCurrentDate] = useState(new Date())
-  const canManageHolidays = user?.role === 'CEO' || user?.role === 'hr'
+  const canManageHolidays = user?.role === 'CEO' || user?.role === 'HR'
   const {
     recordsByDay,
     calendar,
@@ -52,7 +52,7 @@ function Attendance() {
             <p className="text-[16px] text-[#5f6679] mt-2">Check attendance month wise</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {user?.role === 'manager' && (
+            {user?.role === 'TL' && (
               <button
                 type="button"
                 onClick={() => navigate('/attendance/team')}
@@ -61,7 +61,7 @@ function Attendance() {
                 Check Team Attendance
               </button>
             )}
-            {(user?.role === 'CEO' || user?.role === 'hr') && (
+            {(user?.role === 'CEO' || user?.role === 'HR') && (
               <>
                 <button
                   type="button"
@@ -81,7 +81,7 @@ function Attendance() {
                 )}
               </>
             )}
-            {['employee', 'manager', 'hr'].includes(user?.role) && (
+            {['EMPLOYEE', 'TL', 'HR'].includes(user?.role) && (
               <button type="button" onClick={() => navigate('/attendance/correction-requests')} className="inline-flex items-center justify-center rounded-full bg-[#3b82f6] px-6 py-3 text-[14px] font-extrabold text-white hover:bg-[#2563eb] transition-all">Track Correction Requests</button>
             )}
           </div>

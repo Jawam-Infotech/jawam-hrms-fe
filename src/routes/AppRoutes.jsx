@@ -1,34 +1,42 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './ProtectedRoute.jsx'
+
 import LoginPage from '../pages/auth/LoginPage.jsx'
 import ForgotPasswordLayout from '../layouts/ForgotPasswordLayout.jsx'
 import NotFound from '../pages/NotFound.jsx'
-// import AuthLayout from '../layouts/AuthLayout.jsx'
-// import Login from '../pages/auth/Login.jsx'
+
 import EmployeeDashboard from '../pages/dashboard/EmployeeDashboard.jsx'
 import TeamLeaderDashboard from '../pages/dashboard/TeamLeaderDashboard.jsx'
 import HRDashboard from '../pages/dashboard/HRDashboard.jsx'
 import CEODashboard from '../pages/dashboard/CEODashboard.jsx'
+
 import EmployeeModule from '../pages/employees/EmployeeModule.jsx'
 import EmployeeProfile from '../pages/employees/EmployeeProfile.jsx'
 import EmployeeOnboarding from '../pages/employees/EmployeeOnboarding.jsx'
+
 import Clients from '../pages/clients/Clients.jsx'
+
 import Attendance from '../pages/attendance/Attendance.jsx'
 import TeamAttendance from '../pages/attendance/TeamAttendance.jsx'
 import CEOAttendance from '../pages/attendance/CEOAttendance.jsx'
 import HolidayManagement from '../pages/attendance/HolidayManagement.jsx'
 import CorrectionRequests from '../pages/attendance/CorrectionRequests.jsx'
+
 import WorkUpdate from '../pages/workupdate/WorkUpdate.jsx'
 import Recruitment from '../pages/recruitment/Recruitment.jsx'
+
 import LeaveEntry from '../pages/leave/LeaveEntry.jsx'
 import LeaveReview from '../pages/leave/LeaveReview.jsx'
+
 import Projects from '../pages/projects/Projects.jsx'
 import ProjectDetails from '../pages/projects/ProjectDetails.jsx'
+
 import Performance from '../pages/performance/Performance.jsx'
 import Payroll from '../pages/payroll/Payroll.jsx'
 import Expenses from '../pages/expenses/Expenses.jsx'
 import Assets from '../pages/assets/Assets.jsx'
 import Timesheet from '../pages/timesheet/Timesheet.jsx'
+
 import LearningDashboard from '../pages/jlearn/dashboard/LearningDashboard.jsx'
 import MyLearning from '../pages/jlearn/my-learning/MyLearning.jsx'
 import TrainingLibrary from '../pages/jlearn/training/TrainingLibrary.jsx'
@@ -37,58 +45,75 @@ import AIInterviewReport from '../pages/jlearn/ai_interview/AIInterviewReport.js
 import AIInterviewSession from '../pages/jlearn/ai_interview/AIInterviewSession.jsx'
 import LearningCalendar from '../pages/jlearn/calendar/LearningCalendar.jsx'
 import Report from '../pages/jlearn/report/Report.jsx'
+
 import Reports from '../pages/reports/Reports.jsx'
 import Invoice from '../pages/invoice/Invoice.jsx'
+
 import MyProfile from '../pages/profile/MyProfile.jsx'
 import EditProfile from '../pages/profile/EditProfile.jsx'
+
+import Settings from '../pages/settings/Settings.jsx'
+import Helpdesk from '../pages/helpdesk/Helpdesk.jsx'
 
 function AppRoutes() {
   return (
     <Router>
       <Routes>
-        {/* Public routes — no login required */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordLayout />} />
-        {/* <Route element={<AuthLayout />}>
-          <Route path="/login" element={<Login />} />
-        </Route>
-        <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* Role-locked dashboards — each role only sees its own */}
+        {/* ==================== PUBLIC ROUTES ==================== */}
+
+        <Route
+          path="/login"
+          element={<LoginPage />}
+        />
+
+        <Route
+          path="/forgot-password"
+          element={<ForgotPasswordLayout />}
+        />
+
+
+        {/* ==================== DASHBOARDS ==================== */}
+
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['employee']}>
+            <ProtectedRoute allowedRoles={['EMPLOYEE']}>
               <EmployeeDashboard />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/dashboard/team-leader"
           element={
-            <ProtectedRoute allowedRoles={['manager']}>
+            <ProtectedRoute allowedRoles={['TL']}>
               <TeamLeaderDashboard />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/dashboard/hr"
           element={
-            <ProtectedRoute allowedRoles={['hr']}>
+            <ProtectedRoute allowedRoles={['HR']}>
               <HRDashboard />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/dashboard/ceo"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'CEO']}>
+            <ProtectedRoute allowedRoles={['CEO']}>
               <CEODashboard />
             </ProtectedRoute>
           }
         />
 
-        {/* Shared pages — any logged-in role can access */}
+
+        {/* ==================== EMPLOYEES ==================== */}
+
         <Route
           path="/employees"
           element={
@@ -97,30 +122,25 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/clients"
-          element={
-            <ProtectedRoute allowedRoles={['hr', 'admin']}>
-              <Clients />
-            </ProtectedRoute>
-          }
-        />
+
         <Route
           path="/employees/new"
           element={
-            <ProtectedRoute allowedRoles={['hr', 'admin', 'CEO']}>
+            <ProtectedRoute allowedRoles={['HR', 'CEO']}>
               <EmployeeOnboarding />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/employees/:id/edit"
           element={
-            <ProtectedRoute allowedRoles={['hr', 'admin', 'CEO']}>
+            <ProtectedRoute allowedRoles={['HR', 'CEO']}>
               <EmployeeOnboarding />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/employees/:id"
           element={
@@ -129,6 +149,10 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== PROFILE ==================== */}
+
         <Route
           path="/profile"
           element={
@@ -137,6 +161,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/profile/edit"
           element={
@@ -145,6 +170,22 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== CLIENTS ==================== */}
+
+        <Route
+          path="/clients"
+          element={
+            <ProtectedRoute allowedRoles={['HR', 'CEO']}>
+              <Clients />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* ==================== ATTENDANCE ==================== */}
+
         <Route
           path="/attendance"
           element={
@@ -153,38 +194,46 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/attendance/team"
           element={
-            <ProtectedRoute allowedRoles={['manager']}>
+            <ProtectedRoute allowedRoles={['TL']}>
               <TeamAttendance />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/attendance/company"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'hr']}>
+            <ProtectedRoute allowedRoles={['CEO', 'HR']}>
               <CEOAttendance />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/attendance/holidays"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'hr']}>
+            <ProtectedRoute allowedRoles={['CEO', 'HR']}>
               <HolidayManagement />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/attendance/correction-requests"
           element={
-            <ProtectedRoute allowedRoles={['employee', 'manager', 'hr']}>
+            <ProtectedRoute allowedRoles={['EMPLOYEE', 'TL', 'HR']}>
               <CorrectionRequests />
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== WORK UPDATE ==================== */}
+
         <Route
           path="/workupdate"
           element={
@@ -193,14 +242,22 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== RECRUITMENT ==================== */}
+
         <Route
           path="/recruitment"
           element={
-            <ProtectedRoute allowedRoles={['hr', 'admin']}>
+            <ProtectedRoute allowedRoles={['HR', 'CEO']}>
               <Recruitment />
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== LEAVE ==================== */}
+
         <Route
           path="/leave"
           element={
@@ -209,6 +266,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/leave/review"
           element={
@@ -217,6 +275,10 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== PERFORMANCE ==================== */}
+
         <Route
           path="/performance"
           element={
@@ -225,14 +287,22 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== EXPENSES ==================== */}
+
         <Route
           path="/expenses"
           element={
-            <ProtectedRoute allowedRoles={['hr', 'admin']}>
+            <ProtectedRoute allowedRoles={['HR', 'CEO']}>
               <Expenses />
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== PAYROLL ==================== */}
+
         <Route
           path="/payroll"
           element={
@@ -241,6 +311,10 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== TIMESHEET ==================== */}
+
         <Route
           path="/timesheet"
           element={
@@ -249,6 +323,10 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== ASSETS ==================== */}
+
         <Route
           path="/assets"
           element={
@@ -257,6 +335,10 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== PROJECTS ==================== */}
+
         <Route
           path="/projects"
           element={
@@ -265,6 +347,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/projects/:projectId"
           element={
@@ -274,7 +357,9 @@ function AppRoutes() {
           }
         />
 
-        {/* Learning & Training (jlearn) — shared across roles */}
+
+        {/* ==================== LEARNING ==================== */}
+
         <Route
           path="/learning"
           element={
@@ -283,6 +368,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/learning/my-learning"
           element={
@@ -291,6 +377,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/learning/library"
           element={
@@ -299,6 +386,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/learning/ai-interviews"
           element={
@@ -307,6 +395,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/learning/ai-interviews/report"
           element={
@@ -315,6 +404,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/learning/ai-interviews/session"
           element={
@@ -323,6 +413,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/learning/calendar"
           element={
@@ -331,6 +422,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/learning/report"
           element={
@@ -339,28 +431,66 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== REPORTS ==================== */}
+
         <Route
           path="/reports"
           element={
-            <ProtectedRoute allowedRoles={['hr', 'admin']}>
+            <ProtectedRoute allowedRoles={['HR', 'CEO']}>
               <Reports />
             </ProtectedRoute>
           }
         />
+
+
+        {/* ==================== INVOICE ==================== */}
+
         <Route
           path="/invoice"
           element={
-            <ProtectedRoute allowedRoles={['hr', 'admin']}>
+            <ProtectedRoute allowedRoles={['HR', 'CEO']}>
               <Invoice />
             </ProtectedRoute>
           }
         />
 
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Catch-all — unmatched paths */}
-        <Route path="*" element={<NotFound />} />
+        {/* ==================== SETTINGS ==================== */}
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+  path="/helpdesk"
+  element={
+    <ProtectedRoute>
+      <Helpdesk />
+    </ProtectedRoute>
+  }
+/>
+
+
+        {/* ==================== DEFAULT ROUTES ==================== */}
+
+        <Route
+          path="/"
+          element={<Navigate to="/login" replace />}
+        />
+
+        <Route
+          path="*"
+          element={<NotFound />}
+        />
+
       </Routes>
     </Router>
   )

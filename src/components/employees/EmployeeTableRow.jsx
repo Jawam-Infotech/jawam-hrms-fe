@@ -9,6 +9,7 @@ function EmployeeTableRow({
   onView,
   onEdit,
   showActions,
+  showEmploymentStatus,
 }) {
   return (
     <tr
@@ -24,19 +25,47 @@ function EmployeeTableRow({
       }
       role={clickable ? 'button' : undefined}
       tabIndex={clickable ? 0 : undefined}
-      className={`border-t border-[#e5e5e5] ${clickable ? 'cursor-pointer hover:bg-[#f9fafb]' : ''}`}
+      className={`border-t border-[#e5e5e5] ${
+        clickable ? 'cursor-pointer hover:bg-[#f9fafb]' : ''
+      }`}
     >
-      <td className="px-6 py-5 font-semibold text-[#111827]">{employee.id}</td>
-      <td className="px-6 py-5 text-[#111827]">{employee.name}</td>
-      <td className="px-6 py-5 text-[#5f6679]">{employee.email}</td>
+      <td className="px-6 py-5 font-semibold text-[#111827]">
+        {employee.employeeId || 'N/A'}
+      </td>
+
+      <td className="px-6 py-5 text-[#111827]">
+        {employee.name}
+      </td>
+
+      <td className="px-6 py-5 text-[#5f6679]">
+        {employee.email}
+      </td>
+
       <td className="px-6 py-5 font-medium text-[#111827]">
         {formatEmployeeRoleLabel(employee.role)}
       </td>
-      <td className="px-6 py-5 text-[#111827]">{employee.department}</td>
-      <td className="px-6 py-5 text-[#111827]">{employee.designation}</td>
+
+      <td className="px-6 py-5 text-[#111827]">
+        {employee.department}
+      </td>
+
+      <td className="px-6 py-5 text-[#111827]">
+        {employee.designation}
+      </td>
+
+      {showEmploymentStatus && (
+        <td className="px-6 py-5 text-[#111827]">
+          {employee.employmentStatus || 'N/A'}
+        </td>
+      )}
+
       {showActions && (
         <td className="px-6 py-5">
-          <EmployeeActions permissions={permissions} onView={onView} onEdit={onEdit} />
+          <EmployeeActions
+            permissions={permissions}
+            onView={onView}
+            onEdit={onEdit}
+          />
         </td>
       )}
     </tr>

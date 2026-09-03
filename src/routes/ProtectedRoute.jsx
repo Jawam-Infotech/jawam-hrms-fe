@@ -2,14 +2,7 @@ import { useContext } from 'react'
 import { Navigate } from 'react-router-dom'
 import { UserContext } from '../context/UserContext.jsx'
 import getPermissions from '../utils/getPermissions.js'
-
-const roleToDashboard = {
-  employee: '/dashboard',
-  manager: '/dashboard/team-leader',
-  hr: '/dashboard/hr',
-  admin: '/dashboard/ceo',
-  CEO: '/dashboard/ceo',
-}
+import { roleToDashboard } from '../utils/roles.js'
 
 function hasPermission(permissionSet, permissionPath) {
   return permissionPath

@@ -3,11 +3,10 @@ import { AUTH_ENDPOINTS } from './endpoints.js'
 import { getRefreshToken } from '../../utils/tokenStorage.js'
 
 const ROLE_MAP = {
-  CEO: 'admin',
-  HR: 'hr',
-  TL: 'manager',
-  TEAM_LEAD: 'manager',
-  EMPLOYEE: 'employee',
+  CEO: 'CEO',
+  HR: 'HR',
+  TL: 'TL',
+  EMPLOYEE: 'EMPLOYEE',
 }
 
 function mapUser(data) {

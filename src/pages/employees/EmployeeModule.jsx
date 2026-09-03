@@ -9,17 +9,19 @@ import EmployeeToolbar from '../../components/employees/EmployeeToolbar.jsx'
 import EmployeeTable from '../../components/employees/EmployeeTable.jsx'
 import useEmployees from '../../hooks/useEmployees.js'
 import getPermissions from '../../utils/getPermissions.js'
-import EmployeeModuleSkeleton from '../../components/employees/EmployeeModuleSkeleton'
-
+import EmployeeTableSkeleton from '../../components/employees/EmployeeTableSkeleton.jsx'
 function EmployeeModule() {
   const { user } = useContext(UserContext)
   const location = useLocation()
   const navigate = useNavigate()
   const permissions = getPermissions(user.role)
+  console.log('Employee Module Role:', user?.role)
+console.log('Employee Module Permissions:', permissions?.employee)
 const {
   filteredEmployees,
   loading,
   error,
+  departmentOptions,
 
   searchQuery,
   setSearchQuery,
@@ -46,13 +48,6 @@ const {
   goToPreviousPage,
 } = useEmployees()
 const successMessage = location.state?.successMessage || ''
-if (loading) {
-  return (
-    <DashboardLayout>
-      <EmployeeModuleSkeleton />
-    </DashboardLayout>
-  )
-}
 if (error) {
   return (
     <DashboardLayout>
@@ -79,20 +74,28 @@ if (error) {
 
         <div className="grid gap-4 md:grid-cols-[1fr_auto]">
           <EmployeeSearch value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
-          <EmployeeToolbar sortOrder={sortOrder} onSortToggle={toggleSort} roleFilter={roleFilter} onRoleChange={setRoleFilter} departmentFilter={departmentFilter} onDepartmentChange={setDepartmentFilter}   onResetFilters={resetFilters}/> 
+          <EmployeeToolbar sortOrder={sortOrder} onSortToggle={toggleSort} roleFilter={roleFilter} onRoleChange={setRoleFilter} departmentFilter={departmentFilter} onDepartmentChange={setDepartmentFilter}   departmentOptions={departmentOptions} onResetFilters={resetFilters} /> 
         </div>
 
-        <EmployeeTable
-          employees={filteredEmployees}
-          user={user}
-          onEmployeeClick={(employeeId) => navigate(`/employees/${employeeId}`)}
-          permissions={permissions}
-          onViewEmployee={(employee) => navigate(`/employees/${employee.id}`)}
-          onEditEmployee={(employee) => {
-            navigate(`/employees/${employee.id}/edit`)
-}}
-  canViewProfile={permissions.employee.canViewProfile}
-/>
+         {loading ? (
+  <EmployeeTableSkeleton />
+) : (
+  <EmployeeTable
+    employees={filteredEmployees}
+    user={user}
+    onEmployeeClick={(employeeId) =>
+      navigate(`/employees/${employeeId}`)
+    }
+    permissions={permissions}
+    onViewEmployee={(employee) =>
+      navigate(`/employees/${employee.id}`)
+    }
+    onEditEmployee={(employee) => {
+      navigate(`/employees/${employee.id}/edit`)
+    }}
+    canViewProfile={permissions.employee.canViewProfile}
+  />
+)}
 <EmployeePagination
   currentPage={currentPage}
   totalPages={totalPages}

@@ -3,7 +3,7 @@ function normalizeEmployeeQuery(query) {
 }
 
 function getEmployeeDisplayId(employee = {}) {
-  return String(employee.employee_id ?? employee.employeeId ?? employee.id ?? '').trim()
+  return String(employee.employee_id ?? employee.employeeId ?? '').trim()
 }
 
 function getEmployeeDisplayName(employee = {}) {
@@ -65,18 +65,8 @@ function formatEmployeeFieldValue(fieldName, value) {
   return rawValue
 }
 
-function generateEmployeeId(employees = []) {
-  const numericIds = employees
-    .map((employee) => Number.parseInt(employee.id, 10))
-    .filter((value) => Number.isFinite(value))
-
-  const nextId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 101
-  return String(nextId)
-}
-
 export {
   formatEmployeeFieldValue,
-  generateEmployeeId,
   normalizeEmployeeQuery,
   matchesEmployeeQuery,
   sortEmployeesById,

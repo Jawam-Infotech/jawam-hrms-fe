@@ -1,10 +1,13 @@
 import { Plus, Trash2, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
+import { CORRECTION_REQUEST_WINDOW_DAYS } from '../../constants/attendance.js'
 import {
   createCorrectionRequest,
   getAttendanceById,
   getMyAttendance,
 } from '../../services/attendanceService.js'
+import { getEmployees } from '../../services/employeeService.js'
+import { UserContext } from '../../context/UserContext.jsx'
 
 const createInitialForm = (date = '') => ({
   date,
@@ -52,6 +55,27 @@ const formatDateTimeForApi = (date, time) =>
   date && time ? `${date}T${time}:00+05:30` : null
 
 const getDateValue = (value) => String(value || '').slice(0, 10)
+const formatDateForInput = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+export const getCorrectionDateLimits = () => {
+    const today = new Date()
+
+  const earliestDate = new Date(today)
+  earliestDate.setDate(
+    today.getDate() - CORRECTION_REQUEST_WINDOW_DAYS
+  )
+
+  return {
+    min: formatDateForInput(earliestDate),
+    max: formatDateForInput(today),
+  }
+}
 
 function getAttendanceValues(attendance, fallbackDate) {
   const breakSessions = attendance?.break_sessions || attendance?.breakSessions || []
@@ -76,14 +100,47 @@ function CorrectionRequestModal({
   onClose,
   attendanceId,
   initialDate = '',
+  joiningDate = '',
+  exitDate = '',
   onSubmitSuccess,
 }) {
+  const { user } = useContext(UserContext)
+  const [hrOptions, setHrOptions] = useState([])
+  const [selectedHrId, setSelectedHrId] = useState('')
+  const [hrError, setHrError] = useState('')
   const [formState, setFormState] = useState(() => createInitialForm(initialDate))
   const [originalAttendance, setOriginalAttendance] = useState(null)
   const [loadingAttendance, setLoadingAttendance] = useState(false)
   const [attendanceMessage, setAttendanceMessage] = useState('')
   const [reasonError, setReasonError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const requiresHrAssignment = ['EMPLOYEE', 'TL'].includes(String(user?.role || '').toUpperCase())
+
+  useEffect(() => {
+    if (!isOpen || !requiresHrAssignment) return
+    let cancelled = false
+    getEmployees({ role: 'HR' }).then(({ employees = [] }) => {
+      if (!cancelled) setHrOptions(employees.filter((employee) => employee.employmentStatus !== 'EXITED'))
+    }).catch(() => { if (!cancelled) setHrOptions([]) })
+    return () => { cancelled = true }
+  }, [isOpen, requiresHrAssignment])
+  const correctionDateLimits = getCorrectionDateLimits()
+  const effectiveMinDate = joiningDate
+    ? [correctionDateLimits.min, getDateValue(joiningDate)].sort().at(-1)
+    : correctionDateLimits.min
+  const effectiveMaxDate = exitDate
+    ? [correctionDateLimits.max, getDateValue(exitDate)].sort()[0]
+    : correctionDateLimits.max
+
+  useEffect(() => {
+    if (!isOpen || attendanceId) return
+    setFormState((current) => {
+      if (!current.date) return { ...current, date: effectiveMaxDate }
+      if (current.date < effectiveMinDate) return { ...current, date: effectiveMinDate }
+      if (current.date > effectiveMaxDate) return { ...current, date: effectiveMaxDate }
+      return current
+    })
+  }, [attendanceId, effectiveMaxDate, effectiveMinDate, isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -210,9 +267,15 @@ function CorrectionRequestModal({
       return
     }
 
+    if (requiresHrAssignment && !selectedHrId) {
+      setHrError('Please select an HR reviewer.')
+      return
+    }
+
     try {
       setSubmitting(true)
       setReasonError('')
+      setHrError('')
       await createCorrectionRequest({
         date: formState.date,
         proposed_check_in: formatDateTimeForApi(formState.date, formState.checkIn),
@@ -225,15 +288,17 @@ function CorrectionRequestModal({
               break_end: formatDateTimeForApi(formState.date, item.end),
             }),
         reason: formState.reason.trim(),
+        ...(requiresHrAssignment ? { assigned_to: Number(selectedHrId) } : {}),
       })
       onSubmitSuccess?.(formState.date)
     } catch (error) {
-      setReasonError(
-        error.response?.data?.detail ||
-          error.response?.data?.message ||
-          'Failed to submit correction request.',
-      )
-    } finally {
+  const data = error.response?.data
+
+  const errorValues = [data?.date, data?.check_in, data?.check_out, data?.reason, data?.detail, data?.message, data?.non_field_errors]
+  const message = errorValues.filter(Boolean).map((value) => Array.isArray(value) ? value.join(' ') : value).join(' ') || 'Failed to submit correction request.'
+
+  setReasonError(message)
+} finally {
       setSubmitting(false)
     }
   }
@@ -250,9 +315,22 @@ function CorrectionRequestModal({
         </div>
 
         <div className="space-y-6 p-6">
+          {requiresHrAssignment && <div>
+            <label htmlFor="correction-assigned-hr" className="mb-2 block text-[13px] font-bold uppercase tracking-wider text-[#6b7280]">Assign HR Reviewer <span className="text-red-500">*</span></label>
+            <select id="correction-assigned-hr" value={selectedHrId} onChange={(event) => { setSelectedHrId(event.target.value); setHrError('') }} disabled={submitting} className="min-h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-3 py-2 text-[15px] font-semibold text-[#111827] outline-none focus:border-[#2563eb]">
+              <option value="">Select an HR reviewer</option>
+              {hrOptions.map((employee) => <option key={employee.id} value={employee.id}>{employee.name || `${employee.firstName} ${employee.lastName}`}</option>)}
+            </select>
+            {hrError && <p className="mt-2 text-[13px] font-medium text-[#dc2626]">{hrError}</p>}
+          </div>}
+
           <div>
             <label className="mb-2 block text-[13px] font-bold uppercase tracking-wider text-[#6b7280]">Date</label>
-            {attendanceId ? <div className="rounded-xl border border-[#d1d5db] bg-[#f9fafb] px-4 py-3 text-[15px] font-bold text-[#111827]">{formState.date || 'Loading date...'}</div> : <input type="date" value={formState.date} onChange={(event) => handleDateChange(event.target.value)} disabled={submitting} className="min-h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-3 py-2 text-[15px] font-semibold text-[#111827] outline-none focus:border-[#2563eb]" />}
+            {attendanceId ? <div className="rounded-xl border border-[#d1d5db] bg-[#f9fafb] px-4 py-3 text-[15px] font-bold text-[#111827]">{formState.date || 'Loading date...'}</div> : <input type="date" value={formState.date} min={effectiveMinDate} max={effectiveMaxDate} onChange={(event) => handleDateChange(event.target.value)} disabled={submitting} className="min-h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-3 py-2 text-[15px] font-semibold text-[#111827] outline-none focus:border-[#2563eb]" />}
+            <p className="mt-2 text-[12px] font-medium text-[#6b7280]">
+  Correction requests can be submitted only for dates within the
+  last {CORRECTION_REQUEST_WINDOW_DAYS} days, not future dates, and within your employment dates.
+</p>
           </div>
 
           {loadingAttendance && <p className="text-[14px] font-semibold text-[#6b7280]">Loading attendance record...</p>}
