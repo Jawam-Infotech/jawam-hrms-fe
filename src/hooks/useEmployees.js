@@ -112,15 +112,15 @@ function useEmployees() {
    * Reset pagination when the actual backend
    * search/filter/sort value changes.
    */
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [
-    debouncedSearchQuery,
-    roleFilter,
-    departmentFilter,
-    sortOrder,
-  ])
-
+useEffect(() => {
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  setCurrentPage(1)
+}, [
+  debouncedSearchQuery,
+  roleFilter,
+  departmentFilter,
+  sortOrder,
+])
   /*
    * Fetch employees whenever page/search/filter/sort changes.
    */

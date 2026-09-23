@@ -214,15 +214,17 @@ const visibleMissedCheckouts = missedCheckouts.filter((attendance) => {
         onConfirm={handleCheckOut}
       />
 
-      <CorrectionRequestModal
-        isOpen={showCorrectionModal}
-        attendanceId={selectedAttendanceId}
-        onSubmitSuccess={handleCorrectionSubmitSuccess}
-        onClose={() => {
-          setShowCorrectionModal(false)
-          setSelectedAttendanceId(null)
-        }}
-      />
+      {showCorrectionModal && (
+  <CorrectionRequestModal
+    isOpen
+    attendanceId={selectedAttendanceId}
+    onSubmitSuccess={handleCorrectionSubmitSuccess}
+    onClose={() => {
+      setShowCorrectionModal(false)
+      setSelectedAttendanceId(null)
+    }}
+  />
+)}
     </div>
   )
 }

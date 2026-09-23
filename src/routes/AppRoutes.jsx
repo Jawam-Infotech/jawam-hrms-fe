@@ -35,6 +35,8 @@ import Performance from '../pages/performance/Performance.jsx'
 import Payroll from '../pages/payroll/Payroll.jsx'
 import Expenses from '../pages/expenses/Expenses.jsx'
 import Assets from '../pages/assets/Assets.jsx'
+import AssetManagement from '../pages/assets/AssetManagement.jsx'
+import AssetTypeDetails from '../pages/assets/AssetTypeDetails.jsx'
 import Timesheet from '../pages/timesheet/Timesheet.jsx'
 
 import LearningDashboard from '../pages/jlearn/dashboard/LearningDashboard.jsx'
@@ -335,6 +337,25 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+  path="/assets/manage"
+  element={
+    <ProtectedRoute allowedRoles={['HR', 'CEO']}>
+      <AssetManagement />
+    </ProtectedRoute>
+  }
+/>
+
+
+<Route
+  path="/assets/manage/type/:assetTypeId"
+  element={
+    <ProtectedRoute allowedRoles={['HR', 'CEO']}>
+      <AssetTypeDetails />
+    </ProtectedRoute>
+  }
+/>
 
 
         {/* ==================== PROJECTS ==================== */}

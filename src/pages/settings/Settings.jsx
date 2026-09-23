@@ -1,16 +1,13 @@
 import { useContext } from 'react'
-import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../layouts/DashboardLayout.jsx'
 import { UserContext } from '../../context/UserContext.jsx'
 import getPermissions from '../../utils/getPermissions.js'
-import AccessRestricted from '../../components/employees/AccessRestricted.jsx'
 import MasterData from '../../components/settings/MasterDataModal.jsx'
 import ChangePasswordAccordion from '../../components/profile/ChangePasswordAccordion.jsx'
 import useProfile from '../../hooks/useProfile.js'
 
 function Settings() {
   const { user } = useContext(UserContext)
-  const navigate = useNavigate()
   const permissions = getPermissions(user?.role)
 
   const {

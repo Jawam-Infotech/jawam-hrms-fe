@@ -8,7 +8,6 @@ import {
   approveCorrectionRequest,
   rejectCorrectionRequest,
 } from '../services/attendanceService.js'
-import { getMyProfile } from '../services/profileService.js'
 
 async function getAllPaginatedCorrectionRequests(
   requestFn,

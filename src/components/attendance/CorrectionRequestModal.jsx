@@ -63,8 +63,8 @@ const formatDateForInput = (date) => {
   return `${year}-${month}-${day}`
 }
 
-export const getCorrectionDateLimits = () => {
-    const today = new Date()
+const getCorrectionDateLimits = () => {
+      const today = new Date()
 
   const earliestDate = new Date(today)
   earliestDate.setDate(
@@ -132,15 +132,7 @@ function CorrectionRequestModal({
     ? [correctionDateLimits.max, getDateValue(exitDate)].sort()[0]
     : correctionDateLimits.max
 
-  useEffect(() => {
-    if (!isOpen || attendanceId) return
-    setFormState((current) => {
-      if (!current.date) return { ...current, date: effectiveMaxDate }
-      if (current.date < effectiveMinDate) return { ...current, date: effectiveMinDate }
-      if (current.date > effectiveMaxDate) return { ...current, date: effectiveMaxDate }
-      return current
-    })
-  }, [attendanceId, effectiveMaxDate, effectiveMinDate, isOpen])
+  
 
   useEffect(() => {
     if (!isOpen) return

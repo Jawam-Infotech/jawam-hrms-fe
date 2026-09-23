@@ -102,6 +102,80 @@ async function getEmployeeById(employeeId) {
   return cacheEmployee(employee)
 }
 
+async function getEmployeesByIds(employeeIds = []) {
+  const ids = [
+    ...new Set(
+      employeeIds
+        .filter(
+          (employeeId) =>
+            employeeId !== null &&
+            employeeId !== undefined,
+        )
+        .map((employeeId) => String(employeeId)),
+    ),
+  ]
+
+  if (ids.length === 0) {
+    return {}
+  }
+
+  const employeeMap = {}
+
+  ids.forEach((employeeId) => {
+    const cachedEmployee = employeeCache.get(employeeId)
+
+    if (cachedEmployee) {
+      employeeMap[employeeId] = cachedEmployee.name
+    }
+  })
+
+  const missingIds = ids.filter(
+    (employeeId) => !employeeMap[employeeId],
+  )
+
+  if (missingIds.length === 0) {
+    return employeeMap
+  }
+
+  let page = 1
+  let nextPage = true
+
+  while (nextPage && missingIds.some(
+    (employeeId) => !employeeMap[employeeId],
+  )) {
+    const response = await getEmployeesRequest({
+      page,
+      ordering: 'id',
+    })
+
+    const results = Array.isArray(response?.results)
+      ? response.results
+      : []
+
+    results.forEach((employee) => {
+      const normalizedEmployee = cacheEmployee(employee)
+
+      if (
+        normalizedEmployee.id &&
+        missingIds.includes(normalizedEmployee.id)
+      ) {
+        employeeMap[normalizedEmployee.id] =
+          normalizedEmployee.name
+      }
+    })
+
+    nextPage = Boolean(response?.next)
+
+    if (!nextPage) {
+      break
+    }
+
+    page += 1
+  }
+
+  return employeeMap
+}
+
 async function createEmployee(payload) {
   const data = await createEmployeeRequest(payload)
   const normalizedEmployee = cacheEmployee({
@@ -168,6 +242,7 @@ async function updateDesignation(designationId, payload) {
 
 export {
   getEmployees,
+  getEmployeesByIds,
   createEmployee,
   updateEmployee,
   getManagers,

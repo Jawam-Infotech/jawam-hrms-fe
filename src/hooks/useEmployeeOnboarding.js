@@ -16,10 +16,16 @@ import {
   normalizeEmployeeRoleValue,
 } from '../utils/employeeFormHelpers.js'
 import { validateEmployeeForm } from '../utils/employeeValidators.js'
-
+import {
+  fetchAssetTypes,
+  fetchAssets,
+  fetchAssetAssignments,
+  createAssetAssignmentById,
+} from '../services/assetService.js'
 
 const DRAFT_STORAGE_KEY =
   'jawamhr-employee-onboarding-draft'
+
 
 
 const BACKEND_FIELD_MAP = {
@@ -238,6 +244,8 @@ function useEmployeeOnboarding({
     setTouchedFields,
   ] = useState({})
 
+  const [assetTypes, setAssetTypes] = useState([])
+
   const [
     isSubmitting,
     setIsSubmitting,
@@ -311,12 +319,17 @@ const [designationOptions, setDesignationOptions] = useState([])
 useEffect(() => {
   async function loadMasterData() {
     try {
-      const [managers, departments, designations] =
-        await Promise.all([
-          getManagers(),
-          getDepartments(),
-          getDesignations(),
-        ])
+      const [
+        managers,
+        departments,
+        designations,
+        assetTypesResponse,
+      ] = await Promise.all([
+        getManagers(),
+        getDepartments(),
+        getDesignations(),
+        fetchAssetTypes(),
+      ])
 
       setManagerOptions(
         managers.map((manager) => ({
@@ -338,6 +351,19 @@ useEffect(() => {
           label: designation.name,
         })),
       )
+
+      const assetTypeResults = Array.isArray(
+        assetTypesResponse,
+      )
+        ? assetTypesResponse
+        : assetTypesResponse?.results || []
+
+      setAssetTypes(
+        assetTypeResults.filter(
+          (assetType) =>
+            assetType?.is_active !== false,
+        ),
+      )
     } catch (error) {
       console.error(
         'Failed to load employee master data:',
@@ -347,6 +373,7 @@ useEffect(() => {
       setManagerOptions([])
       setDepartmentOptions([])
       setDesignationOptions([])
+      setAssetTypes([])
     }
   }
 
@@ -783,6 +810,90 @@ const handleDocumentChange = async (
     )
   }
 
+const assignSelectedAssets = async (employeeId) => {
+  const selectedAssetTypeIds = Object.entries(
+    formData.assets || {},
+  )
+    .filter(([, selected]) => Boolean(selected))
+    .map(([assetTypeId]) => Number(assetTypeId))
+    .filter(Number.isFinite)
+
+  if (selectedAssetTypeIds.length === 0) {
+    return
+  }
+
+  const [assetsResponse, assignments] =
+    await Promise.all([
+      fetchAssets(),
+      fetchAssetAssignments(),
+    ])
+
+  const assets = Array.isArray(assetsResponse)
+    ? assetsResponse
+    : assetsResponse?.results || []
+
+  const activeAssignments = assignments.filter(
+    (assignment) =>
+      String(assignment?.status || '').toUpperCase() ===
+      'ACTIVE',
+  )
+
+  for (const assetTypeId of selectedAssetTypeIds) {
+    const selectedAssetType = assetTypes.find(
+      (assetType) =>
+        String(assetType?.id) ===
+        String(assetTypeId),
+    )
+
+    if (!selectedAssetType) {
+      continue
+    }
+
+    const availableAsset = assets.find((asset) => {
+      const assetType =
+        asset?.asset_type?.id ??
+        asset?.asset_type
+
+      const isCorrectType =
+        String(assetType) ===
+        String(assetTypeId)
+
+      const isActive =
+        String(asset?.status || '').toUpperCase() ===
+        'ACTIVE'
+
+      const hasActiveAssignment =
+        activeAssignments.some((assignment) => {
+          const assignmentAssetId =
+            assignment?.asset?.id ??
+            assignment?.asset
+
+          return (
+            String(assignmentAssetId) ===
+            String(asset?.id)
+          )
+        })
+
+      return (
+        isCorrectType &&
+        isActive &&
+        !hasActiveAssignment
+      )
+    })
+
+    if (!availableAsset) {
+      throw new Error(
+        `No available ${selectedAssetType.name} is currently in stock.`,
+      )
+    }
+
+    await createAssetAssignmentById({
+      asset: availableAsset.id,
+      employee: employeeId,
+    })
+  }
+}
+
 
   /*
    * =========================
@@ -865,6 +976,7 @@ const handleDocumentChange = async (
             await createEmployee(
               payload,
             )
+            await assignSelectedAssets(employee.id)
         }
 
         window.localStorage.removeItem(
@@ -979,6 +1091,7 @@ const handleDocumentChange = async (
     draftSavedAt,
     departmentOptions,
 designationOptions,
+assetTypes,
   }
 }
 
