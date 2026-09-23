@@ -95,8 +95,89 @@ const NOTIFICATION_ENDPOINTS = {
   clearAll: 'notifications/clear-all/',
 }
 
+const ASSETS_ENDPOINTS = {
+  // My Assets
+  me: 'assets/me/',
+  history: 'assets/me/history/',
+  summary: 'assets/me/summary/',
+
+  // Asset Types
+  types: 'assets/types/',
+  typeById: (typeId) => `assets/types/${typeId}/`,
+
+  // Asset Requests
+  requests: 'assets/requests/',
+  allRequests: 'assets/requests/all/',
+  requestById: (requestId) => `assets/requests/${requestId}/`,
+  processRequest: (requestId) =>
+    `assets/requests/${requestId}/process/`,
+  approveRequest: (requestId) =>
+    `assets/requests/${requestId}/approve/`,
+  rejectRequest: (requestId) =>
+    `assets/requests/${requestId}/reject/`,
+  cancelRequest: (requestId) =>
+    `assets/requests/${requestId}/cancel/`,
+
+  // Asset Request Attachments
+  requestAttachments: (requestId) =>
+    `assets/requests/${requestId}/attachments/`,
+  requestAttachmentById: (
+    requestId,
+    attachmentId,
+  ) =>
+    `assets/requests/${requestId}/attachments/${attachmentId}/`,
+
+  // Physical Assets
+  assets: 'assets/',
+  assetById: (assetId) => `assets/${assetId}/`,
+
+  // Assignments
+  assignments: 'assets/assignments/',
+  assignmentById: (assignmentId) =>
+    `assets/assignments/${assignmentId}/`,
+  returnAssignment: (assignmentId) =>
+    `assets/assignments/${assignmentId}/return/`,
+  transferAssignment: (assignmentId) =>
+    `assets/assignments/${assignmentId}/transfer/`,
+
+  // Maintenance
+  maintenance: 'assets/maintenance/',
+  maintenanceById: (maintenanceId) =>
+    `assets/maintenance/${maintenanceId}/`,
+  completeMaintenance: (maintenanceId) =>
+    `assets/maintenance/${maintenanceId}/complete/`,
+
+  // Disposal
+  disposalRequests: 'assets/disposal-requests/',
+  disposalRequestById: (requestId) =>
+    `assets/disposal-requests/${requestId}/`,
+  approveDisposal: (requestId) =>
+    `assets/disposal-requests/${requestId}/approve/`,
+  rejectDisposal: (requestId) =>
+    `assets/disposal-requests/${requestId}/reject/`,
+
+  // Inventory / Procurement
+  inventoryRequests: 'assets/inventory-requests/',
+  inventoryRequestById: (requestId) =>
+    `assets/inventory-requests/${requestId}/`,
+  approveInventoryRequest: (requestId) =>
+  `assets/inventory-requests/${requestId}/approve/`,
+rejectInventoryRequest: (requestId) =>
+  `assets/inventory-requests/${requestId}/reject/`,
+  cancelInventory: (requestId) =>
+    `assets/inventory-requests/${requestId}/cancel/`,
+  receiveInventory: (requestId) =>
+    `assets/inventory-requests/${requestId}/receive/`,
+
+  // Inventory Summary
+  inventorySummary: 'assets/inventory-summary/',
+
+  // Audit
+  auditLogs: 'assets/audit-logs/',
+}
+
 
 export const HOLIDAY_ENDPOINTS = {
   holidays: 'holidays/',
 }
-export { AUTH_ENDPOINTS, EMPLOYEE_ENDPOINTS, ATTENDANCE_ENDPOINTS, LEAVE_ENDPOINTS, NOTIFICATION_ENDPOINTS,}
+export { AUTH_ENDPOINTS, EMPLOYEE_ENDPOINTS, ATTENDANCE_ENDPOINTS, LEAVE_ENDPOINTS, NOTIFICATION_ENDPOINTS, ASSETS_ENDPOINTS,}

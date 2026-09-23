@@ -67,7 +67,7 @@ if (!employee) {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <button onClick={() => navigate(-1)} className="text-[#6b7280] hover:underline">← Back to Employee</button>
+        <button onClick={() => navigate(-1)} className="text-[#6b7280] hover:underline">← Back</button>
 
         <div className="flex items-center gap-6">
           <EmployeeProfileHeader employee={employee} hideMissingSensitiveFields />

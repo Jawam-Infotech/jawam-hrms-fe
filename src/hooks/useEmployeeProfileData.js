@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { fetchAssetAssignments } from '../services/assetService.js'
 import {
   getEmployeeById,
   getManagers,
@@ -13,7 +14,7 @@ function useEmployeeProfileData(userId) {
   const loadProfile = useCallback(async () => {
     if (!userId) {
       setLoading(false)
-      setError('Unable to identify the logged-in user.')
+      setError('Unable to identify the employee.')
       return
     }
 
@@ -21,21 +22,47 @@ function useEmployeeProfileData(userId) {
     setError('')
 
     try {
-      const [employeeData, managers] =
-        await Promise.all([
-          getEmployeeById(userId),
-          getManagers(),
-        ])
+      const [
+        employeeData,
+        managers,
+        assignments,
+      ] = await Promise.all([
+        getEmployeeById(userId),
+        getManagers(),
+        fetchAssetAssignments(),
+      ])
 
       const reportingManager =
         managers.find(
           (manager) =>
             manager.id ===
-            employeeData.reporting_manager
+            employeeData.reporting_manager,
         )
+
+      const employeeAssets =
+        assignments
+          .filter(
+            (assignment) =>
+              String(assignment?.employee) ===
+                String(userId) &&
+              String(
+                assignment?.status || '',
+              ).toUpperCase() === 'ACTIVE',
+          )
+          .map((assignment) => ({
+            id: assignment.id,
+            asset: assignment.asset,
+            asset_tag: assignment.asset_tag,
+            asset_type_name:
+              assignment.asset_type_name,
+            serial_number:
+              assignment.serial_number || null,
+            status: assignment.status,
+          }))
 
       setEmployee({
         ...employeeData,
+        assets: employeeAssets,
         reportingManager:
           reportingManager?.label || 'N/A',
       })
@@ -43,8 +70,8 @@ function useEmployeeProfileData(userId) {
       setError(
         getApiErrorMessage(
           loadError,
-          'Failed to load profile.'
-        )
+          'Failed to load profile.',
+        ),
       )
     } finally {
       setLoading(false)

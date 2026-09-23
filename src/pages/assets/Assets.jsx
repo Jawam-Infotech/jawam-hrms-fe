@@ -1,301 +1,221 @@
-import { useState } from 'react'
+import {useContext, useState } from 'react'
+import { UserContext } from '../../context/UserContext'
 import DashboardLayout from '../../layouts/DashboardLayout'
 
-const assignedAssets = [
-  { id: 1, name: 'Laptop', dateFrom: '12/03/2026', status: 'Active' },
-  { id: 2, name: 'Keyboard', dateFrom: '12/03/2026', status: 'Active' },
-  { id: 3, name: 'Mouse', dateFrom: '12/03/2026', status: 'Active' },
-  { id: 4, name: 'Laptop Charger', dateFrom: '12/03/2026', status: 'Active' },
-]
+import AssetsHeader from '../../components/assets/AssetsHeader'
+import AssetsSummary from '../../components/assets/AssetsSummary'
+import AssignedAssetsTable from '../../components/assets/AssignedAssetsTable'
+import AssetRequestModal from '../../components/assets/AssetRequestModal'
+import AssetRequestStatusTable from '../../components/assets/AssetRequestStatusTable'
+import MyAssetRequestDetailsModal from '../../components/assets/MyAssetRequestDetailsModal'
+import useAssets from '../../hooks/useAssets'
+import {
+  uploadAssetRequestAttachmentById,
+} from '../../services/assetService'
+import { useNavigate } from 'react-router-dom'
 
-const pastAssets = [
-  { id: 1, name: 'Laptop', dateFrom: '12/03/2026', dateTo: '12/03/2026', type: 'Replaced' },
-  { id: 2, name: 'Keyboard', dateFrom: '12/03/2026', dateTo: '12/03/2026', type: 'Return' },
-  { id: 3, name: 'Mouse', dateFrom: '12/03/2026', dateTo: '12/03/2026', type: 'Replaced' },
-  { id: 4, name: 'Laptop Charger', dateFrom: '12/03/2026', dateTo: '12/03/2026', type: 'Replaced' },
-]
 
-function RaiseAssetRequestModal({ isOpen, onClose, initialType = null }) {
-  const [requestType, setRequestType] = useState(initialType || '')
-  const [assetName, setAssetName] = useState('')
-  const [reason, setReason] = useState('')
-  const [attachment, setAttachment] = useState(null)
 
-  const requestTypeOptions = ['Request Asset', 'Report Lost Asset', 'Return Asset', 'Replace Asset']
-
-  const handleFileChange = (e) => {
-    setAttachment(e.target.files[0])
-  }
-
-  const handleSubmit = () => {
-  
-    onClose()
-  }
-
-  const handleCancel = () => {
-    setRequestType('')
-    setAssetName('')
-    setReason('')
-    setAttachment(null)
-    onClose()
-  }
-
-  const getModalTitle = () => {
-    if (requestType === 'Request Asset') return 'Raise New Asset Request'
-    if (requestType === 'Report Lost Asset') return 'Raise Asset Request'
-    if (requestType === 'Return Asset') return 'Raise Asset Return Request'
-    if (requestType === 'Replace Asset') return 'Raise Asset Request'
-    return 'Raise Asset Request'
-  }
-
-  const getActionButtonLabel = () => {
-    if (requestType === 'Request Asset') return 'Request asset'
-    if (requestType === 'Report Lost Asset') return 'Report asset'
-    if (requestType === 'Return Asset') return 'Return asset'
-    if (requestType === 'Replace Asset') return 'Replace asset'
-    return 'Submit'
-  }
-
-  if (!isOpen) return null
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[24px] bg-white p-8 shadow-lg">
-        <h2 className="mb-6 border-b border-[#e5e7eb] pb-4 text-[24px] font-black text-[#111827]">
-          {getModalTitle()}
-        </h2>
-
-        <div className="space-y-6">
-          {/* Request Type - only show if not pre-selected */}
-          {!initialType && (
-            <div>
-              <label className="mb-3 block text-[14px] font-bold text-[#111827]">Request Type</label>
-              <select
-                value={requestType}
-                onChange={(e) => setRequestType(e.target.value)}
-                className="w-full rounded-[12px] border border-[#e5e7eb] bg-white px-4 py-3 text-[14px] font-semibold text-[#111827] outline-none transition-all focus:border-[#3b82f6] focus:ring-2 focus:ring-[#bfdbfe]/50"
-              >
-                <option value="">Select Request type</option>
-                {requestTypeOptions.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Asset Name (shown for all types) */}
-          {requestType && (
-            <div>
-              <label className="mb-3 block text-[14px] font-bold text-[#111827]">Asset name</label>
-              <select
-                value={assetName}
-                onChange={(e) => setAssetName(e.target.value)}
-                className="w-full rounded-[12px] border border-[#e5e7eb] bg-white px-4 py-3 text-[14px] font-semibold text-[#111827] outline-none transition-all focus:border-[#3b82f6] focus:ring-2 focus:ring-[#bfdbfe]/50"
-              >
-                <option value="">Select asset from the list</option>
-                {assignedAssets.map((asset) => (
-                  <option key={asset.id} value={asset.name}>
-                    {asset.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Reason (shown for all types) */}
-          {requestType && (
-            <div>
-              <label className="mb-3 block text-[14px] font-bold text-[#111827]">Reason</label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Write reason ..."
-                className="w-full rounded-[12px] border border-[#e5e7eb] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none transition-all focus:border-[#3b82f6] focus:ring-2 focus:ring-[#bfdbfe]/50"
-                rows={4}
-              />
-            </div>
-          )}
-
-          {/* Attachment (shown only for Report Lost Asset) */}
-          {requestType === 'Report Lost Asset' && (
-            <div>
-              <label className="mb-3 block text-[14px] font-bold text-[#111827]">Attachment</label>
-              <label className="flex items-center gap-3 rounded-[12px] border border-[#e5e7eb] bg-white px-4 py-3 cursor-pointer transition-all hover:border-[#3b82f6]">
-                <span className="text-[20px]">📎</span>
-                <span className="text-[14px] font-semibold text-[#111827]">
-                  {attachment ? attachment.name : 'Attach FIR Copy'}
-                </span>
-                <input type="file" onChange={handleFileChange} className="hidden" />
-              </label>
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="mt-8 flex gap-4">
-          <button
-            onClick={handleCancel}
-            className="flex-1 rounded-full bg-[#fee2e2] px-6 py-3 text-[14px] font-bold text-[#dc2626] transition-all hover:bg-[#fecaca]"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!requestType || !assetName || !reason}
-            className="flex-1 rounded-full bg-[#ccfbf1] px-6 py-3 text-[14px] font-bold text-[#0d9488] transition-all hover:bg-[#99f6e4] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {getActionButtonLabel()}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function Assets() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalInitialType, setModalInitialType] = useState(null)
+  const [selectedAsset, setSelectedAsset] = useState(null)
+  const [selectedRequest, setSelectedRequest] = useState(null)
+  const { user } = useContext(UserContext)
+  const navigate = useNavigate()
 
-  const openModal = (type = null) => {
+const canManageAssets =
+  user?.role === 'HR' || user?.role === 'CEO'
+  const {
+  assignedAssets,
+  summary,
+  assetTypes,
+  assetRequests,
+  assetRequestsPagination,
+  requestFilters,
+  loadAssetRequests,
+  handleRequestFiltersChange,
+  resetRequestFilters,
+  loading,
+  error,
+  requestSubmitting,
+  requestError,
+  clearRequestError,
+  raiseAssetRequest,
+  refreshAssets,
+} = useAssets()
+
+  const openModal = (type = null, asset = null) => {
+    clearRequestError()
     setModalInitialType(type)
+    setSelectedAsset(asset)
     setIsModalOpen(true)
   }
 
   const closeModal = () => {
     setIsModalOpen(false)
     setModalInitialType(null)
+    setSelectedAsset(null)
   }
+
+  const handleRaiseRequest = () => {
+    openModal()
+  }
+
+  const handleReturnAsset = (asset) => {
+    openModal('Return Asset', asset)
+  }
+
+  const handleReplaceAsset = (asset) => {
+    openModal('Replace Asset', asset)
+  }
+
+  const handleManageAssets = () => {
+  navigate('/assets/manage')
+}
+
+  const handleSubmitRequest = async (payload) => {
+  const requestPayload = {
+    request_type: payload.requestType,
+    reason: payload.reason,
+  }
+
+  if (payload.requestType === 'REQUEST_ASSET') {
+    requestPayload.asset_type = payload.assetId
+  }
+
+  if (payload.requestType === 'REPLACE_ASSET') {
+    requestPayload.asset = payload.assetNumericId
+  } else if (
+    payload.requestType === 'RETURN_ASSET' ||
+    payload.requestType === 'REPORT_LOST'
+  ) {
+    requestPayload.asset = payload.assetNumericId
+  }
+
+  if (
+  payload.requestType === 'REPORT_LOST' &&
+  payload.attachments?.length
+) {
+  requestPayload.attachment_reference =
+    payload.attachments
+      .map((file) => file.name)
+      .join(', ')
+}
+
+const createdRequest =
+  await raiseAssetRequest(requestPayload)
+
+if (
+  payload.requestType === 'REPORT_LOST' &&
+  payload.attachments?.length &&
+  createdRequest?.id
+) {
+  for (const file of payload.attachments) {
+    const formData = new FormData()
+
+    formData.append(
+      'file',
+      file,
+    )
+
+    await uploadAssetRequestAttachmentById(
+      createdRequest.id,
+      formData,
+    )
+  }
+}
+
+closeModal()
+}
+
+if (loading) {
+  return (
+    <DashboardLayout>
+      <div className="flex min-h-[400px] items-center justify-center">
+        <p className="text-[16px] font-semibold text-[#6b7280]">
+          Loading assets...
+        </p>
+      </div>
+    </DashboardLayout>
+  )
+}
+
+if (error) {
+  return (
+    <DashboardLayout>
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <p className="text-[16px] font-semibold text-[#dc2626]">
+            {error}
+          </p>
+
+          <button
+            type="button"
+            onClick={refreshAssets}
+            className="mt-4 rounded-full bg-[#3b82f6] px-5 py-2 text-[14px] font-bold text-white transition-all hover:bg-[#2563eb]"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    </DashboardLayout>
+  )
+}
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-[32px] font-black text-[#111827]">Assets</h1>
-            <p className="text-[16px] text-[#5f6679] mt-2">View and manage your assigned assets.</p>
-          </div>
-          <button
-            onClick={() => openModal()}
-            className="rounded-full bg-[#3b82f6] px-6 py-3 text-[14px] font-bold text-white transition-all hover:bg-[#2563eb]"
-          >
-            Raise Asset Request
-          </button>
-        </div>
+        <AssetsHeader
+          onRaiseRequest={handleRaiseRequest}
+          onManageAssets={handleManageAssets}
+          showManageAssets={canManageAssets}
+        />
 
-        {/* Summary Cards */}
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-[18px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-[14px] font-semibold text-[#6b7280]">Assigned Assets</p>
-                <p className="mt-4 text-[28px] font-black text-[#2563eb]">
-                  {assignedAssets.length}
-                </p>
-              </div>
-              <div className="text-[28px]">📊</div>
-            </div>
-          </div>
+        <AssetsSummary summary={summary} />
 
-          <div className="rounded-[18px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-[14px] font-semibold text-[#6b7280]">Active Asset</p>
-                <p className="mt-4 text-[28px] font-black text-[#10b981]">3</p>
-              </div>
-              <div className="text-[28px]">⭐</div>
-            </div>
-          </div>
+        <AssignedAssetsTable
+          assets={assignedAssets}
+          onReturnAsset={handleReturnAsset}
+          onReplaceAsset={handleReplaceAsset}
+        />
 
-          <div className="rounded-[18px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-[14px] font-semibold text-[#6b7280]">Pending Return</p>
-                <p className="mt-4 text-[28px] font-black text-[#0ea5e9]">1</p>
-              </div>
-              <div className="text-[28px]">💻</div>
-            </div>
-          </div>
-        </div>
 
-        {/* Assigned Assets Table */}
-        <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
-          <h2 className="mb-6 text-[20px] font-black text-[#111827]">Assigned Assets</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[14px] text-[#374151]">
-              <thead className="border-b border-[#e5e7eb] text-[#6b7280]">
-                <tr>
-                  <th className="py-4 font-semibold">Asset Name</th>
-                  <th className="py-4 font-semibold">Date from</th>
-                  <th className="py-4 font-semibold">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {assignedAssets.map((asset) => (
-                  <tr key={asset.id} className="border-b border-[#f3f4f6] hover:bg-[#f8fafc] transition-all">
-                    <td className="py-4 font-semibold text-[#111827]">{asset.name}</td>
-                    <td className="py-4 text-[#6b7280]">{asset.dateFrom}</td>
-                    <td className="py-4">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <button
-                          onClick={() => openModal('Replace Asset')}
-                          className="rounded-full bg-[#fee2e2] px-3 py-2 text-[11px] font-semibold text-[#dc2626] transition-all hover:bg-[#fecaca] whitespace-nowrap"
-                        >
-                          Report Replacement
-                        </button>
-                        <button
-                          onClick={() => openModal('Return Asset')}
-                          className="rounded-full bg-[#ccfbf1] px-3 py-2 text-[11px] font-semibold text-[#0d9488] transition-all hover:bg-[#99f6e4] whitespace-nowrap"
-                        >
-                          Return Asset
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Past Assets Table */}
-        <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
-          <h2 className="mb-6 text-[20px] font-black text-[#111827]">Past Assets</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[14px] text-[#374151]">
-              <thead className="border-b border-[#e5e7eb] text-[#6b7280]">
-                <tr>
-                  <th className="py-4 font-semibold">Asset Name</th>
-                  <th className="py-4 font-semibold">Date from</th>
-                  <th className="py-4 font-semibold">Date to</th>
-                  <th className="py-4 font-semibold">Request type</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pastAssets.map((asset) => (
-                  <tr key={asset.id} className="border-b border-[#f3f4f6] hover:bg-[#f8fafc] transition-all">
-                    <td className="py-4 font-semibold text-[#111827]">{asset.name}</td>
-                    <td className="py-4 text-[#6b7280]">{asset.dateFrom}</td>
-                    <td className="py-4 text-[#6b7280]">{asset.dateTo}</td>
-                    <td className="py-4">
-                      <span className="inline-flex items-center rounded-full bg-[#f3f4f6] px-3 py-1 text-[12px] font-semibold text-[#111827]">
-                        {asset.type}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        
+        <AssetRequestStatusTable
+  requests={assetRequests}
+  loading={loading}
+  pagination={assetRequestsPagination}
+  assetTypes={assetTypes}
+  filters={requestFilters}
+  onFiltersChange={handleRequestFiltersChange}
+  onResetFilters={resetRequestFilters}
+  onPageChange={(page) =>
+    loadAssetRequests(page, requestFilters)
+  }
+  onViewRequest={(request) => setSelectedRequest(request)}
+/>
+{isModalOpen && (
+  <AssetRequestModal
+    isOpen
+    onClose={closeModal}
+    onSubmit={handleSubmitRequest}
+    assignedAssets={assignedAssets}
+    assetTypes={assetTypes}
+    initialType={modalInitialType}
+    initialAsset={selectedAsset}
+    submitting={requestSubmitting}
+    requestError={requestError}
+  />
+)}
       </div>
 
-      <RaiseAssetRequestModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        initialType={modalInitialType}
-      />
+      <MyAssetRequestDetailsModal
+  isOpen={Boolean(selectedRequest)}
+  request={selectedRequest}
+  onClose={() => setSelectedRequest(null)}
+/>
     </DashboardLayout>
   )
 }

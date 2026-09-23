@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import {useState } from 'react'
 import {
   Check,
   Clock3,
@@ -133,32 +133,6 @@ function CorrectionRequestReviewModal({
 
   const originalBreaks =
     createOriginalBreaks(correctionRequest)
-
-  useEffect(() => {
-    if (!isOpen || !correctionRequest) return
-
-    setReviewComment(
-      correctionRequest.review_comment || '',
-    )
-
-    setEditedCheckIn(
-      formatTimeForInput(
-        correctionRequest.proposed_check_in,
-      ),
-    )
-
-    setEditedCheckOut(
-      formatTimeForInput(
-        correctionRequest.proposed_check_out,
-      ),
-    )
-
-    setEditedBreaks(
-      createInitialBreaks(correctionRequest),
-    )
-
-    setReviewCommentError('')
-  }, [isOpen, correctionRequest])
 
   if (!isOpen || !correctionRequest) {
     return null

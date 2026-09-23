@@ -52,7 +52,9 @@ function MasterData() {
     }
   }
 
-  const loadMasterData = async () => {
+
+useEffect(() => {
+  const loadData = async () => {
     try {
       setLoading(true)
       setError('')
@@ -66,9 +68,8 @@ function MasterData() {
     }
   }
 
-  useEffect(() => {
-    loadMasterData()
-  }, [])
+  loadData()
+}, [])
 
   const resetDepartmentForm = () => {
     setDepartmentName('')

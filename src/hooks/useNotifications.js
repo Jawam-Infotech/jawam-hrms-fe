@@ -143,9 +143,13 @@ function useNotifications() {
     }
   }, [isClearingAll])
 
-  useEffect(() => {
-    loadNotifications()
-  }, [loadNotifications])
+useEffect(() => {
+  const loadInitialNotifications = async () => {
+    await loadNotifications()
+  }
+
+  void loadInitialNotifications()
+}, [loadNotifications])
 
   return {
     notifications,

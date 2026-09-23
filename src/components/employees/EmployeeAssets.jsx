@@ -20,12 +20,12 @@ function EmployeeAssets({ assets = [] }) {
             >
               <div>
                 <p className="font-medium text-[#111827]">
-                  {asset.name}
-                </p>
+  {asset.asset_type_name}
+</p>
 
-                <p className="text-sm text-[#6b7280]">
-                  {asset.serialNumber}
-                </p>
+<p className="text-sm text-[#6b7280]">
+  {asset.serial_number || asset.asset_tag}
+</p>
               </div>
 
               <span className="rounded-full bg-[#ecfdf5] px-3 py-1 text-xs font-semibold text-[#16a34a]">

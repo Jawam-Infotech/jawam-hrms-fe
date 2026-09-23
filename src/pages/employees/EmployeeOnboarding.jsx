@@ -26,7 +26,7 @@ function EmployeeOnboarding() {
   const {
     formData,
     fieldError,
-    managerOptions, 
+    managerOptions,
     roleOptions,
     submissionError,
     isLoadingEmployee,
@@ -42,20 +42,25 @@ function EmployeeOnboarding() {
     isSubmitting,
     isDraftSaving,
     departmentOptions,
-designationOptions,
+    designationOptions,
+    assetTypes,
   } = useEmployeeOnboarding({
-  creatorRole: user.role,
-  isEditMode,
-  employeeId: id,
-})
+    creatorRole: user.role,
+    isEditMode,
+    employeeId: id,
+  })
 
   if (!permissions.employee.canCreateEmployee) {
     return (
       <DashboardLayout>
         <div className="space-y-6">
-          <button onClick={() => navigate(-1)} className="text-[#6b7280] hover:underline">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-[#6b7280] hover:underline"
+          >
             ← Back
           </button>
+
           <AccessRestricted
             title="Access Restricted"
             message="You cannot access employee onboarding."
@@ -69,15 +74,18 @@ designationOptions,
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+
     const result = await submitEmployee()
 
     if (result.ok) {
       navigate('/employees', {
-        state: { successMessage:
-  result.message ||
-  (isEditMode
-    ? 'Employee updated successfully.'
-    : 'Employee created successfully.') },
+        state: {
+          successMessage:
+            result.message ||
+            (isEditMode
+              ? 'Employee updated successfully.'
+              : 'Employee created successfully.'),
+        },
       })
       return
     }
@@ -86,22 +94,27 @@ designationOptions,
       navigate('/login')
     }
   }
-if (isEditMode && isLoadingEmployee) {
-  return (
-    <DashboardLayout>
-      <EmployeeFormSkeleton />
-    </DashboardLayout>
-  )
-}
+
+  if (isEditMode && isLoadingEmployee) {
+    return (
+      <DashboardLayout>
+        <EmployeeFormSkeleton />
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout>
-      <form className="space-y-6" onSubmit={handleSubmit}>
+      <form
+        className="space-y-6"
+        onSubmit={handleSubmit}
+      >
         {submissionError && (
           <div className="rounded-[12px] border border-[#f8d7da] bg-[#fdf2f2] px-4 py-3 text-[#842029]">
             {submissionError}
           </div>
         )}
+
         <EmployeeFormHeader
           isEditMode={isEditMode}
           formData={formData}
@@ -120,14 +133,14 @@ if (isEditMode && isLoadingEmployee) {
         />
 
         <EmploymentInformationSection
-  formData={formData}
-  fieldError={fieldError}
-  onChange={handleFieldChange}
-  onBlur={handleFieldBlur}
-  managerOptions={managerOptions}
-  departmentOptions={departmentOptions}
-  designationOptions={designationOptions}
-/>
+          formData={formData}
+          fieldError={fieldError}
+          onChange={handleFieldChange}
+          onBlur={handleFieldBlur}
+          managerOptions={managerOptions}
+          departmentOptions={departmentOptions}
+          designationOptions={designationOptions}
+        />
 
         <DocumentUploadSection
           documents={formData.documents}
@@ -152,7 +165,13 @@ if (isEditMode && isLoadingEmployee) {
           roleOptions={roleOptions}
         />
 
-        <AssetAssignmentSection assets={formData.assets} onAssetToggle={handleAssetToggle} />
+        {!isEditMode && (
+  <AssetAssignmentSection
+    assetTypes={assetTypes}
+    assets={formData.assets}
+    onAssetToggle={handleAssetToggle}
+  />
+)}
 
         <EmployeeFormActions
           isEditMode={isEditMode}
