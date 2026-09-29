@@ -44,72 +44,80 @@ function useAssetRequests() {
 
 
   const setInitialAssetRequests = useCallback(
-    (response, page = 1) => {
-      updateAssetRequestsState(response, page)
-    },
-    [updateAssetRequestsState],
-  )
+  (response, page = 1) => {
+    updateAssetRequestsState(response, page)
+  },
+  [updateAssetRequestsState],
+)
 
-  const loadAssetRequests = useCallback(
-  async (page = 1, filters = requestFilters) => {
+const loadAssetRequests = useCallback(
+  async (page = 1, filters) => {
+    const activeFilters = filters ?? requestFilters
+
     setRequestsLoading(true)
+
     try {
       const response = await fetchAllAssetRequests({
-        ...filters,
+        ...activeFilters,
         requested_by_role: 'EMPLOYEE,TL,CEO',
         page,
       })
+
       updateAssetRequestsState(response, page)
     } finally {
       setRequestsLoading(false)
     }
   },
-  [updateAssetRequestsState],
+  [requestFilters, updateAssetRequestsState],
 )
 
-  const refreshAssetRequests = useCallback(
-    async (
-      page = assetRequestsPagination.page,
-      filters = requestFilters,
-    ) => {
-      setRequestsLoading(true)
+const refreshAssetRequests = useCallback(
+  async (
+    page = assetRequestsPagination.page,
+    filters,
+  ) => {
+    const activeFilters = filters ?? requestFilters
 
-      try {
-        const response = await fetchAllAssetRequests({
-          ...filters,
-          page,
-        })
+    setRequestsLoading(true)
 
-        updateAssetRequestsState(response, page)
-      } finally {
-        setRequestsLoading(false)
-      }
-    },
-    [
-      assetRequestsPagination.page,
-      requestFilters,
-      updateAssetRequestsState,
-    ],
-  )
+    try {
+      const response = await fetchAllAssetRequests({
+        ...activeFilters,
+        page,
+      })
 
-  const loadCEOHRAssetRequests = useCallback(
-    async (page = 1, filters = requestFilters) => {
-      setRequestsLoading(true)
+      updateAssetRequestsState(response, page)
+    } finally {
+      setRequestsLoading(false)
+    }
+  },
+  [
+    assetRequestsPagination.page,
+    requestFilters,
+    updateAssetRequestsState,
+  ],
+)
 
-      try {
-        const response = await fetchAllAssetRequests({
-          ...filters,
-          requested_by_role: 'HR',
-          page,
-        })
+const loadCEOHRAssetRequests = useCallback(
+  async (page = 1, filters) => {
+    const activeFilters = filters ?? requestFilters
 
-        updateAssetRequestsState(response, page)
-      } finally {
-        setRequestsLoading(false)
-      }
-    },
-    [requestFilters, updateAssetRequestsState],
-  )
+    setRequestsLoading(true)
+
+    try {
+      const response = await fetchAllAssetRequests({
+        ...activeFilters,
+        requested_by_role: 'HR',
+        page,
+      })
+
+      updateAssetRequestsState(response, page)
+    } finally {
+      setRequestsLoading(false)
+    }
+  },
+  [requestFilters, updateAssetRequestsState],
+)
 
   const handleRequestFiltersChange = useCallback(
     (filters) => {

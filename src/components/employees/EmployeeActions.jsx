@@ -1,6 +1,9 @@
 import { Eye, Pencil } from 'lucide-react'
 
-function EmployeeActions({ permissions, onView, onEdit }) {
+function EmployeeActions({ permissions, employee, onView, onEdit }) {
+  const isExited =
+    String(employee?.employmentStatus || '').trim().toUpperCase() === 'EXITED'
+
   return (
     <div className="flex items-center gap-2">
       {permissions.employee.canViewProfile && (
@@ -17,7 +20,7 @@ function EmployeeActions({ permissions, onView, onEdit }) {
         </button>
       )}
 
-      {permissions.employee.canEditProfile && (
+      {permissions.employee.canEditProfile && !isExited && (
         <button
           type="button"
           onClick={(event) => {

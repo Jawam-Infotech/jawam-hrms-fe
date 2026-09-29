@@ -13,7 +13,7 @@ function PayrollInformationSection({ formData, fieldError, onChange, onBlur }) {
         <FormField label="Bank Name" id="bankName" type="text" value={formData.bankName} onChange={onChange} onBlur={onBlur} placeholder="Enter bank name" className={inputClass} />
         <FormField label="Account Number" id="accountNumber" type="text" value={formData.accountNumber} onChange={onChange} onBlur={onBlur} placeholder="Enter account number" className={inputClass} />
         <FormField label="IFSC Code" id="ifscCode" type="text" value={formData.ifscCode} onChange={onChange} onBlur={onBlur} placeholder="Enter IFSC code" className={inputClass} />
-        <FormField label="Branch" id="branch" type="text" value={formData.branch} onChange={onChange} onBlur={onBlur} placeholder="Enter branch" className={inputClass} />
+        <FormField label="Account Holder Name" id="bankAccountHolderName" type="text" value={formData.bankAccountHolderName} onChange={onChange} onBlur={onBlur} placeholder="Enter account holder name" className={inputClass}/>
         <FormField label="Annual CTC" id="annualCtc" type="text" value={formData.annualCtc} onChange={onChange} onBlur={onBlur} placeholder="Enter annual CTC" className={inputClass} />
         <FormField label="Monthly Salary" id="monthlySalary" type="text" value={formData.monthlySalary} onChange={onChange} onBlur={onBlur} placeholder="Enter monthly salary" className={inputClass} />
       </div>
@@ -22,7 +22,7 @@ function PayrollInformationSection({ formData, fieldError, onChange, onBlur }) {
         <FieldError>{fieldError('bankName')}</FieldError>
         <FieldError>{fieldError('accountNumber')}</FieldError>
         <FieldError>{fieldError('ifscCode')}</FieldError>
-        <FieldError>{fieldError('branch')}</FieldError>
+        <FieldError>{fieldError('bankAccountHolderName')}</FieldError>
         <FieldError>{fieldError('annualCtc')}</FieldError>
         <FieldError>{fieldError('monthlySalary')}</FieldError>
       </div>

@@ -137,6 +137,67 @@ function EditProfilePersonalForm({
           </div>
         </div>
       </div>
+            <div className="rounded-[24px] border border-[#e5e5e5] bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-[18px] font-extrabold text-[#111827]">Bank Details</h2>
+
+        <div className="grid gap-5 md:grid-cols-2">
+          <div>
+            <FormField
+              label="Account Holder Name"
+              id="bankAccountHolderName"
+              type="text"
+              value={formData.bankAccountHolderName}
+              onChange={onChange}
+              onBlur={onBlur}
+              placeholder="Enter account holder name"
+              className={inputClass}
+            />
+            <FieldError>{fieldError('bankAccountHolderName')}</FieldError>
+          </div>
+
+          <div>
+            <FormField
+              label="Bank Name"
+              id="bankName"
+              type="text"
+              value={formData.bankName}
+              onChange={onChange}
+              onBlur={onBlur}
+              placeholder="Enter bank name"
+              className={inputClass}
+            />
+            <FieldError>{fieldError('bankName')}</FieldError>
+          </div>
+
+          <div>
+            <FormField
+              label="Account Number"
+              id="accountNumber"
+              type="text"
+              value={formData.accountNumber}
+              onChange={onChange}
+              onBlur={onBlur}
+              placeholder="Enter account number"
+              className={inputClass}
+            />
+            <FieldError>{fieldError('accountNumber')}</FieldError>
+          </div>
+
+          <div>
+            <FormField
+              label="IFSC Code"
+              id="ifscCode"
+              type="text"
+              value={formData.ifscCode}
+              onChange={onChange}
+              onBlur={onBlur}
+              placeholder="Enter IFSC code"
+              className={inputClass}
+            />
+            <FieldError>{fieldError('ifscCode')}</FieldError>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

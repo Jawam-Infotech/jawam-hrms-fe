@@ -62,10 +62,11 @@ function EmployeeTableRow({
       {showActions && (
         <td className="px-6 py-5">
           <EmployeeActions
-            permissions={permissions}
-            onView={onView}
-            onEdit={onEdit}
-          />
+  employee={employee}
+  permissions={permissions}
+  onView={onView}
+  onEdit={onEdit}
+/>
         </td>
       )}
     </tr>

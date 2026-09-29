@@ -13,7 +13,7 @@ import useMaintenanceAssets from './useMaintenanceAssets'
 import useAssetPool from './useAssetPool'
 import useAssetRequests from './useAssetRequests'
 
-function useAssetInventory(userRole) {
+function useAssetInventory() {
     const {
     assetTypes,
     loadAssetTypes,
@@ -65,7 +65,6 @@ function useAssetInventory(userRole) {
     loadCEOHRAssetRequests,
     handleRequestFiltersChange,
     resetRequestFilters,
-    setInitialAssetRequests,
   } = useAssetRequests()
 
   const [allAssets, setAllAssets] = useState([])
@@ -114,7 +113,6 @@ function useAssetInventory(userRole) {
 
   const loadInventory = useCallback(
   async ({
-    assetRequestsPage = 1,
     inventoryRequestsPage = 1,
     disposalRequestsPage = 1,
   } = {}) => {

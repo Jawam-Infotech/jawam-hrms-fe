@@ -44,6 +44,19 @@ function validateEmployeeForm(formData, allowedRoleValues = [], isEditMode = fal
   if (allowedRoleValues.length > 0 && formData.role && !allowedRoleValues.includes(formData.role)) {
     errors.role = 'Select a valid role.'
   }
+    if (
+    formData.employmentStatus === 'ON_NOTICE' &&
+    !String(formData.lastWorkingDate ?? '').trim()
+  ) {
+    errors.lastWorkingDate = 'Last working date is required.'
+  }
+
+  if (
+    formData.employmentStatus === 'EXITED' &&
+    !String(formData.exitDate ?? '').trim()
+  ) {
+    errors.exitDate = 'Exit date is required.'
+  }
 
   return errors
 }

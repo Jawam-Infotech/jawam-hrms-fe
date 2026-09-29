@@ -51,6 +51,35 @@ function EditProfile() {
     )
   }
 
+  const isExited =
+  String(formData?.employmentStatus || '').trim().toUpperCase() === 'EXITED'
+
+if (isExited) {
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <Button
+          type="button"
+          onClick={() => cancelEdit()}
+          className="rounded-full bg-[#3b82f6] px-5 py-2 text-sm font-extrabold text-white"
+        >
+          Go Back
+        </Button>
+
+        <div className="rounded-[18px] border border-[#e5e7eb] bg-white p-6">
+          <p className="text-lg font-extrabold text-[#111827]">
+            Edit Profile Restricted
+          </p>
+
+          <p className="mt-1 text-sm text-[#6b7280]">
+            Your profile cannot be edited because your employment status is EXITED.
+          </p>
+        </div>
+      </div>
+    </DashboardLayout>
+  )
+}
+
   return (
     <DashboardLayout>
       <form className="space-y-6" onSubmit={submitProfile}>

@@ -25,6 +25,7 @@ function EmployeeOnboarding() {
 
   const {
     formData,
+    originalEmploymentStatus,
     fieldError,
     managerOptions,
     roleOptions,
@@ -72,6 +73,40 @@ function EmployeeOnboarding() {
     )
   }
 
+  const isExitedEmployee =
+  isEditMode &&
+  String(originalEmploymentStatus || '').trim().toUpperCase() === 'EXITED'
+
+  if (isEditMode && isLoadingEmployee) {
+    return (
+      <DashboardLayout>
+        <EmployeeFormSkeleton />
+      </DashboardLayout>
+    )
+  }
+
+  if (isExitedEmployee) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-[#6b7280] hover:underline"
+          >
+            ← Back
+          </button>
+
+          <AccessRestricted
+            title="Edit Restricted"
+            message="Exited employees cannot be edited."
+            buttonText="Go Back"
+            onBack={() => navigate(-1)}
+          />
+        </div>
+      </DashboardLayout>
+    )
+  }
+
   const handleSubmit = async (event) => {
     event.preventDefault()
 
@@ -93,14 +128,6 @@ function EmployeeOnboarding() {
     if (result.status === 401) {
       navigate('/login')
     }
-  }
-
-  if (isEditMode && isLoadingEmployee) {
-    return (
-      <DashboardLayout>
-        <EmployeeFormSkeleton />
-      </DashboardLayout>
-    )
   }
 
   return (
@@ -166,12 +193,12 @@ function EmployeeOnboarding() {
         />
 
         {!isEditMode && (
-  <AssetAssignmentSection
-    assetTypes={assetTypes}
-    assets={formData.assets}
-    onAssetToggle={handleAssetToggle}
-  />
-)}
+          <AssetAssignmentSection
+            assetTypes={assetTypes}
+            assets={formData.assets}
+            onAssetToggle={handleAssetToggle}
+          />
+        )}
 
         <EmployeeFormActions
           isEditMode={isEditMode}

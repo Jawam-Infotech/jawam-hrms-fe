@@ -13,9 +13,12 @@ const editableFields = [
   'gender',
   'maritalStatus',
   'address',
+  'bankAccountHolderName',
+  'bankName',
+  'accountNumber',
+  'ifscCode',
   'photoFile',
 ]
-
 const initialFormData = {
   firstName: '',
   lastName: '',
@@ -24,9 +27,14 @@ const initialFormData = {
   gender: '',
   maritalStatus: '',
   address: '',
+  bankAccountHolderName: '',
+  bankName: '',
+  accountNumber: '',
+  ifscCode: '',
   photoFile: null,
   photoPreviewUrl: '',
   photoName: '',
+  employmentStatus: '',
 }
 
 const BACKEND_FIELD_MAP = {
@@ -37,6 +45,10 @@ const BACKEND_FIELD_MAP = {
   gender: 'gender',
   marital_status: 'maritalStatus',
   address: 'address',
+  bank_account_holder_name: 'bankAccountHolderName',
+  bank_name: 'bankName',
+  bank_account_number: 'accountNumber',
+  bank_ifsc_code: 'ifscCode',
   profile_photo: 'photoFile',
   photo: 'photoFile',
 }
@@ -51,7 +63,13 @@ function buildFormData(profile) {
     gender: profile.gender || '',
     maritalStatus: profile.maritalStatus || '',
     address: profile.address || '',
+    bankAccountHolderName:
+    profile.bankAccountHolderName || '',
+    bankName: profile.bankName || '',
+    accountNumber: profile.accountNumber || '',
+    ifscCode: profile.ifscCode || '',
     photoPreviewUrl: profile.photoPreviewUrl || '',
+    employmentStatus: profile.employmentStatus || '',
   }
 }
 

@@ -28,6 +28,26 @@ function EmployeeOtherInformation({ employee, title = 'Other Information' }) {
       value: employee.exitDate || 'N/A',
     },
     {
+  label: 'Last Working Date',
+  value: employee.lastWorkingDate || 'N/A',
+},
+{
+  label: 'Account Holder Name',
+  value: employee.bankAccountHolderName || 'Not Provided',
+},
+{
+  label: 'Bank Name',
+  value: employee.bankName || 'Not Provided',
+},
+{
+  label: 'Account Number',
+  value: employee.accountNumber || 'Not Provided',
+},
+{
+  label: 'IFSC Code',
+  value: employee.ifscCode || 'Not Provided',
+},
+    {
       label: 'Work Location',
       value: employee.workLocation || 'Indore',
     },
