@@ -27,7 +27,12 @@ function normalizeProfile(profile = {}) {
     address: profile.address || '',
     dateOfJoining: normalizeDateInputValue(profile.date_of_joining || profile.dateOfJoining),
     exitDate: normalizeDateInputValue(profile.exit_date || profile.exitDate),
+    bankAccountHolderName: profile.bank_account_holder_name || profile.bankAccountHolderName || '',
+    bankName: profile.bank_name || profile.bankName || '',
+    accountNumber: profile.bank_account_number || profile.accountNumber || '',
+    ifscCode: profile.bank_ifsc_code || profile.ifscCode || '',
     photoPreviewUrl: profile.profile_photo || profile.photo || profile.avatar || '',
+    employmentStatus: profile.employment_status || profile.employmentStatus || '',
   }
 }
 
@@ -40,6 +45,11 @@ function buildEditProfilePayload(formData) {
     gender: formData.gender || '',
     marital_status: formData.maritalStatus || '',
     address: formData.address || '',
+    bank_account_holder_name:
+    formData.bankAccountHolderName || '',
+    bank_name: formData.bankName || '',
+    bank_account_number: formData.accountNumber || '',
+    bank_ifsc_code: formData.ifscCode || '',
   }
 
   if (!formData.photoFile) {

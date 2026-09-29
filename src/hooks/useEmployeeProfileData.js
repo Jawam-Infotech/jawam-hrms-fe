@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchAssetAssignments } from '../services/assetService.js'
+import {
+  fetchAssetAssignments,
+  fetchMyAssets,
+} from '../services/assetService.js'
 import {
   getEmployeeById,
   getManagers,
 } from '../services/employeeService.js'
 import { getApiErrorMessage } from '../utils/apiErrorMessage.js'
 
-function useEmployeeProfileData(userId) {
+function useEmployeeProfileData(userId, { useMyAssets = false } = {}) {
   const [employee, setEmployee] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -22,15 +25,15 @@ function useEmployeeProfileData(userId) {
     setError('')
 
     try {
-      const [
-        employeeData,
-        managers,
-        assignments,
-      ] = await Promise.all([
+      const [employeeData, managers, assetResponse] = await Promise.all([
         getEmployeeById(userId),
         getManagers(),
-        fetchAssetAssignments(),
+        useMyAssets ? fetchMyAssets() : fetchAssetAssignments(),
       ])
+
+      const assets = Array.isArray(assetResponse)
+        ? assetResponse
+        : assetResponse?.results || []
 
       const reportingManager =
         managers.find(
@@ -39,8 +42,9 @@ function useEmployeeProfileData(userId) {
             employeeData.reporting_manager,
         )
 
-      const employeeAssets =
-        assignments
+      const employeeAssets = useMyAssets
+        ? assets
+        : assets
           .filter(
             (assignment) =>
               String(assignment?.employee) ===
@@ -76,7 +80,7 @@ function useEmployeeProfileData(userId) {
     } finally {
       setLoading(false)
     }
-  }, [userId])
+  }, [userId, useMyAssets])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

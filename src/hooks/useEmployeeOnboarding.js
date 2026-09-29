@@ -45,8 +45,13 @@ const BACKEND_FIELD_MAP = {
   employment_status: 'employmentStatus',
   joining_date: 'joiningDate',
   exit_date: 'exitDate',
+  last_working_date: 'lastWorkingDate',
   work_location: 'workLocation',
   shift: 'shift',
+  bank_account_holder_name: 'bankAccountHolderName',
+  bank_name: 'bankName',
+  bank_account_number: 'accountNumber',
+  bank_ifsc_code: 'ifscCode',
 }
 
 
@@ -288,6 +293,10 @@ const [designationOptions, setDesignationOptions] = useState([])
     originalRole,
     setOriginalRole,
   ] = useState('')
+  const [
+  originalEmploymentStatus,
+  setOriginalEmploymentStatus,
+] = useState('')
 
   const roleOptions = useMemo(
   () =>
@@ -404,9 +413,13 @@ useEffect(() => {
             employeeId,
           )
 
-        setOriginalRole(
-          employee.role || '',
-        )
+       setOriginalRole(
+  employee.role || '',
+)
+
+setOriginalEmploymentStatus(
+  employee.employment_status || '',
+)
 
         setFormData(
           (current) => ({
@@ -475,6 +488,10 @@ useEffect(() => {
             exitDate:
               employee.exit_date ||
               '',
+              
+            lastWorkingDate:
+              employee.last_working_date ||
+              '',
 
             workLocation:
               employee.work_location ||
@@ -483,6 +500,18 @@ useEffect(() => {
             shift:
               employee.shift ||
               '',
+
+            bankAccountHolderName:
+              employee.bank_account_holder_name || '',
+
+            bankName:
+              employee.bank_name || '',
+
+            accountNumber:
+              employee.bank_account_number || '',
+
+            ifscCode:
+              employee.bank_ifsc_code || '',
           }),
         )
       } catch (error) {
@@ -530,41 +559,63 @@ useEffect(() => {
    * =========================
    */
 
-  const setFieldValue = (
-    fieldName,
-    value,
-  ) => {
-    setFormData(
-      (current) => ({
+const setFieldValue = (
+  fieldName,
+  value,
+) => {
+  setFormData((current) => {
+    const formattedValue = formatEmployeeFieldValue(
+      fieldName,
+      value,
+    )
+
+    const next = {
+      ...current,
+      [fieldName]: formattedValue,
+    }
+
+    if (fieldName === 'employmentStatus') {
+      if (formattedValue === 'ACTIVE') {
+        next.lastWorkingDate = ''
+        next.exitDate = ''
+      }
+
+      if (formattedValue === 'ON_NOTICE') {
+        next.exitDate = ''
+      }
+
+      if (formattedValue === 'EXITED') {
+        next.lastWorkingDate = next.exitDate
+      }
+      if (
+  fieldName === 'exitDate' &&
+  next.employmentStatus === 'EXITED'
+) {
+  next.lastWorkingDate = formattedValue
+}
+    }
+
+    return next
+  })
+
+  setApiFieldErrors(
+    (current) => {
+      if (!current[fieldName]) {
+        return current
+      }
+
+      const next = {
         ...current,
-        [fieldName]:
-          formatEmployeeFieldValue(
-            fieldName,
-            value,
-          ),
-      }),
-    )
+      }
 
-    setApiFieldErrors(
-      (current) => {
-        if (
-          !current[fieldName]
-        ) {
-          return current
-        }
+      delete next[fieldName]
 
-        const next = {
-          ...current,
-        }
+      return next
+    },
+  )
 
-        delete next[fieldName]
-
-        return next
-      },
-    )
-
-    setSubmissionError('')
-  }
+  setSubmissionError('')
+}
 
 
   const handleFieldChange = (
@@ -1068,6 +1119,7 @@ const assignSelectedAssets = async (employeeId) => {
     formData,
     managerOptions,
     isLoadingEmployee,
+    originalEmploymentStatus,
     errors,
     fieldError,
     roleOptions,

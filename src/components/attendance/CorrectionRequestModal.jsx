@@ -8,6 +8,7 @@ import {
 } from '../../services/attendanceService.js'
 import { getEmployees } from '../../services/employeeService.js'
 import { UserContext } from '../../context/UserContext.jsx'
+import { getApiErrorMessage } from '../../utils/apiErrorMessage.js'
 
 const createInitialForm = (date = '') => ({
   date,
@@ -114,6 +115,7 @@ function CorrectionRequestModal({
   const [attendanceMessage, setAttendanceMessage] = useState('')
   const [reasonError, setReasonError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [submissionError, setSubmissionError] = useState('')
   const requiresHrAssignment = ['EMPLOYEE', 'TL'].includes(String(user?.role || '').toUpperCase())
 
   useEffect(() => {
@@ -241,10 +243,11 @@ function CorrectionRequestModal({
   }
 
   const handleDateChange = (date) => {
-    setOriginalAttendance(null)
-    setAttendanceMessage('')
-    setFormState(createInitialForm(date))
-  }
+  setOriginalAttendance(null)
+  setAttendanceMessage('')
+  setSubmissionError('')
+  setFormState(createInitialForm(date))
+}
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -266,6 +269,7 @@ function CorrectionRequestModal({
 
     try {
       setSubmitting(true)
+      setSubmissionError('')
       setReasonError('')
       setHrError('')
       await createCorrectionRequest({
@@ -286,10 +290,20 @@ function CorrectionRequestModal({
     } catch (error) {
   const data = error.response?.data
 
-  const errorValues = [data?.date, data?.check_in, data?.check_out, data?.reason, data?.detail, data?.message, data?.non_field_errors]
-  const message = errorValues.filter(Boolean).map((value) => Array.isArray(value) ? value.join(' ') : value).join(' ') || 'Failed to submit correction request.'
+  if (data?.date) {
+    const dateMessage = Array.isArray(data.date)
+      ? data.date.join(' ')
+      : data.date
 
-  setReasonError(message)
+    setSubmissionError(dateMessage)
+  } else {
+    setSubmissionError(
+      getApiErrorMessage(
+        error,
+        'Failed to submit correction request.'
+      )
+    )
+  }
 } finally {
       setSubmitting(false)
     }
@@ -327,6 +341,10 @@ function CorrectionRequestModal({
 
           {loadingAttendance && <p className="text-[14px] font-semibold text-[#6b7280]">Loading attendance record...</p>}
           {attendanceMessage && <p className="rounded-xl border border-[#fde68a] bg-[#fffbeb] px-4 py-3 text-[14px] font-semibold text-[#92400e]">{attendanceMessage}</p>}
+          {submissionError && ( <p className="rounded-xl border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-[14px] font-semibold text-[#b91c1c]">
+    {submissionError}
+  </p>
+)}
 
           {originalAttendance && <>
             <section className="overflow-hidden rounded-[20px] border border-[#e5e7eb]">

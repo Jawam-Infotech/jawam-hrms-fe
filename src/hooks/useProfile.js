@@ -145,7 +145,7 @@ function useProfile(userId) {
     loading,
     error,
     refreshProfile,
-  } = useEmployeeProfileData(userId)
+  } = useEmployeeProfileData(userId, { useMyAssets: true })
 
   /*
    * =========================
