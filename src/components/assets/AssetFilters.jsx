@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import DatePicker from '../ui/DatePicker.jsx'
 
 function AssetFilters({
   filters = {},
@@ -157,35 +158,23 @@ function AssetFilters({
 
                 {field.type === 'date-range' && (
                   <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="date"
+                    <DatePicker
                       value={
                         draftFilters[
                           field.fromKey
                         ] || ''
                       }
-                      onChange={(event) =>
-                        handleChange(
-                          field.fromKey,
-                          event.target.value,
-                        )
-                      }
+                      onChange={(value) => handleChange(field.fromKey, value)}
                       className="w-full rounded-xl border border-[#e5e7eb] px-3 py-2.5 text-[12px] font-medium text-[#374151] outline-none focus:border-[#2563eb]"
                     />
 
-                    <input
-                      type="date"
+                    <DatePicker
                       value={
                         draftFilters[
                           field.toKey
                         ] || ''
                       }
-                      onChange={(event) =>
-                        handleChange(
-                          field.toKey,
-                          event.target.value,
-                        )
-                      }
+                      onChange={(value) => handleChange(field.toKey, value)}
                       className="w-full rounded-xl border border-[#e5e7eb] px-3 py-2.5 text-[12px] font-medium text-[#374151] outline-none focus:border-[#2563eb]"
                     />
                   </div>

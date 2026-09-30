@@ -37,6 +37,7 @@ function normalizeEmployeeRecord(employee = {}) {
     designation: String(employee.designation || '').trim(),
     role: employee.role || '',
     phone: employee.phone || employee.contact_number || employee.contactNumber || '',
+    countryCode: employee.country_code || employee.countryCode || '',
     joiningDate: employee.joiningDate || employee.date_of_joining || employee.dateOfJoining || '',
     employmentType: employee.employmentType || employee.employment_type || '',
     employmentStatus: employee.employmentStatus || employee.employment_status || '',

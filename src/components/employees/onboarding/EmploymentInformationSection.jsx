@@ -1,7 +1,7 @@
 import Card from '../../ui/Card.jsx'
-import FormField from '../../auth/FormField.jsx'
 import SelectField from '../../ui/SelectField.jsx'
 import FieldError from '../../ui/FieldError.jsx'
+import DatePicker from '../../ui/DatePicker.jsx'
 import {
   EMPLOYEE_EMPLOYMENT_STATUS_OPTIONS,
   EMPLOYEE_EMPLOYMENT_TYPE_OPTIONS,
@@ -81,38 +81,23 @@ function EmploymentInformationSection({
           className={inputClass}
         />
 
-        <FormField
-          label="Joining Date"
-          id="joiningDate"
-          type="date"
-          value={formData.joiningDate}
-          onChange={onChange}
-          onBlur={onBlur}
-          className={inputClass}
-        />
+        <div>
+          <label className="mb-[4px] block text-[18px] font-extrabold" htmlFor="joiningDate">Joining Date</label>
+          <DatePicker value={formData.joiningDate} onChange={(value) => onChange({ target: { name: 'joiningDate', value } })} onBlur={() => onBlur({ target: { name: 'joiningDate' } })} ariaLabel="Joining Date" className={inputClass} />
+        </div>
 
         {showLastWorkingDate && (
-          <FormField
-            label="Last Working Date"
-            id="lastWorkingDate"
-            type="date"
-            value={formData.lastWorkingDate}
-            onChange={onChange}
-            onBlur={onBlur}
-            className={inputClass}
-          />
+          <div>
+            <label className="mb-[4px] block text-[18px] font-extrabold" htmlFor="lastWorkingDate">Last Working Date</label>
+            <DatePicker value={formData.lastWorkingDate} onChange={(value) => onChange({ target: { name: 'lastWorkingDate', value } })} onBlur={() => onBlur({ target: { name: 'lastWorkingDate' } })} ariaLabel="Last Working Date" className={inputClass} />
+          </div>
         )}
 
         {showExitDate && (
-          <FormField
-            label="Exit Date"
-            id="exitDate"
-            type="date"
-            value={formData.exitDate}
-            onChange={onChange}
-            onBlur={onBlur}
-            className={inputClass}
-          />
+          <div>
+            <label className="mb-[4px] block text-[18px] font-extrabold" htmlFor="exitDate">Exit Date</label>
+            <DatePicker value={formData.exitDate} onChange={(value) => onChange({ target: { name: 'exitDate', value } })} onBlur={() => onBlur({ target: { name: 'exitDate' } })} ariaLabel="Exit Date" className={inputClass} />
+          </div>
         )}
 
         <SelectField

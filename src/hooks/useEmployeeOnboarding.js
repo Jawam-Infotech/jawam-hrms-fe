@@ -33,6 +33,7 @@ const BACKEND_FIELD_MAP = {
   first_name: 'firstName',
   last_name: 'lastName',
   phone: 'phone',
+  country_code: 'countryCode',
   password: 'password',
   role: 'role',
   date_of_birth: 'dateOfBirth',
@@ -110,6 +111,11 @@ function loadDraft() {
         safeDraft.phone ||
         safeDraft.phoneNumber ||
         '',
+
+      countryCode:
+        safeDraft.countryCode ||
+        safeDraft.country_code ||
+        '+91',
 
       /*
        * Password must always start
@@ -440,6 +446,11 @@ setOriginalEmploymentStatus(
             phone:
               employee.phone ||
               '',
+
+            countryCode:
+              employee.country_code ||
+              employee.countryCode ||
+              '+91',
 
             role:
               employee.role ||

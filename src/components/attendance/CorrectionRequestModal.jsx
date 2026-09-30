@@ -9,6 +9,7 @@ import {
 import { getEmployees } from '../../services/employeeService.js'
 import { UserContext } from '../../context/UserContext.jsx'
 import { getApiErrorMessage } from '../../utils/apiErrorMessage.js'
+import DatePicker from '../ui/DatePicker.jsx'
 
 const createInitialForm = (date = '') => ({
   date,
@@ -332,7 +333,7 @@ function CorrectionRequestModal({
 
           <div>
             <label className="mb-2 block text-[13px] font-bold uppercase tracking-wider text-[#6b7280]">Date</label>
-            {attendanceId ? <div className="rounded-xl border border-[#d1d5db] bg-[#f9fafb] px-4 py-3 text-[15px] font-bold text-[#111827]">{formState.date || 'Loading date...'}</div> : <input type="date" value={formState.date} min={effectiveMinDate} max={effectiveMaxDate} onChange={(event) => handleDateChange(event.target.value)} disabled={submitting} className="min-h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-3 py-2 text-[15px] font-semibold text-[#111827] outline-none focus:border-[#2563eb]" />}
+            {attendanceId ? <div className="rounded-xl border border-[#d1d5db] bg-[#f9fafb] px-4 py-3 text-[15px] font-bold text-[#111827]">{formState.date || 'Loading date...'}</div> : <DatePicker value={formState.date} minDate={effectiveMinDate} maxDate={effectiveMaxDate} onChange={handleDateChange} disabled={submitting} ariaLabel="Correction date" />}
             <p className="mt-2 text-[12px] font-medium text-[#6b7280]">
   Correction requests can be submitted only for dates within the
   last {CORRECTION_REQUEST_WINDOW_DAYS} days, not future dates, and within your employment dates.

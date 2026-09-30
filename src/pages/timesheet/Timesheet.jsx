@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
+import DatePicker from '../../components/ui/DatePicker.jsx'
 
 function formatDateISO(date) {
   return date.toISOString().slice(0, 10)
@@ -158,7 +159,7 @@ export default function Timesheet() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
             <div>
               <label className="block text-[13px] font-semibold text-[#6b7280] mb-2">Date</label>
-              <input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2" />
+              <DatePicker value={formDate} onChange={setFormDate} className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2" />
             </div>
             <div>
               <label className="block text-[13px] font-semibold text-[#6b7280] mb-2">Project</label>
@@ -232,7 +233,7 @@ export default function Timesheet() {
                 ))}
               </div>
               {view === 'day' && (
-                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] px-3 py-2 text-sm text-[#374151]" />
+                <DatePicker value={selectedDate} onChange={setSelectedDate} className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] px-3 py-2 text-sm text-[#374151]" />
               )}
             </div>
           </div>

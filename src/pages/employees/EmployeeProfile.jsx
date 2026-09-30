@@ -72,12 +72,13 @@ if (!employee) {
         <div className="flex items-center gap-6">
           <EmployeeProfileHeader employee={employee} hideMissingSensitiveFields />
           <EmployeeProfileActions
-            employee={employee}
-            permissions={permissions}
-            onEdit={() => navigate(`/employees/${employee.id}/edit`)}
-            onAssignTask={() => {}}
-            onViewWorkUpdates={() => {}}
-          />
+  employee={employee}
+  permissions={permissions}
+  currentUserRole={user.role}
+  onEdit={() => navigate(`/employees/${employee.id}/edit`)}
+  onAssignTask={() => {}}
+  onViewWorkUpdates={() => {}}
+/>
         </div>
         {permissions.employee.canViewEmploymentDetails && (
           <EmployeeOtherInformation employee={employee} />
