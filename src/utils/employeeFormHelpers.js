@@ -97,6 +97,7 @@ function createInitialEmployeeFormValues(creatorRole = '') {
     lastName: '',
     email: '',
     phone: '',
+    countryCode: '+91',
     dateOfBirth: '',
     gender: '',
     bloodGroup: '',
@@ -162,6 +163,7 @@ function buildCreateUserPayload(formData, isEditMode = false) {
     first_name: formData.firstName,
     last_name: formData.lastName,
     phone: formData.phone,
+    country_code: formData.countryCode,
     role: normalizeEmployeeRoleValue(formData.role),
   }
 

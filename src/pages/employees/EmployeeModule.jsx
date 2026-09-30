@@ -15,8 +15,6 @@ function EmployeeModule() {
   const location = useLocation()
   const navigate = useNavigate()
   const permissions = getPermissions(user.role)
-  console.log('Employee Module Role:', user?.role)
-console.log('Employee Module Permissions:', permissions?.employee)
 const {
   filteredEmployees,
   loading,

@@ -6,6 +6,7 @@ function EmployeeTableRow({
   clickable,
   onClick,
   permissions,
+  currentUserRole,
   onView,
   onEdit,
   showActions,
@@ -62,11 +63,12 @@ function EmployeeTableRow({
       {showActions && (
         <td className="px-6 py-5">
           <EmployeeActions
-  employee={employee}
-  permissions={permissions}
-  onView={onView}
-  onEdit={onEdit}
-/>
+            employee={employee}
+            permissions={permissions}
+            currentUserRole={currentUserRole}
+            onView={onView}
+            onEdit={onEdit}
+          />
         </td>
       )}
     </tr>

@@ -85,6 +85,33 @@ function EmployeeOnboarding() {
     )
   }
 
+  const isHrEditingCeo =
+  isEditMode &&
+  String(user.role || '').trim().toUpperCase() === 'HR' &&
+  String(formData?.role || '').trim().toUpperCase() === 'CEO'
+
+if (isHrEditingCeo) {
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="text-[#6b7280] hover:underline"
+        >
+          ← Back
+        </button>
+
+        <AccessRestricted
+          title="Access Restricted"
+          message="HR users cannot edit CEO profiles."
+          buttonText="Go Back"
+          onBack={() => navigate(-1)}
+        />
+      </div>
+    </DashboardLayout>
+  )
+}
+
   if (isExitedEmployee) {
     return (
       <DashboardLayout>

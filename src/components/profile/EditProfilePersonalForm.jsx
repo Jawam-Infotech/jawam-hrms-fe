@@ -2,7 +2,9 @@ import FormField from '../auth/FormField.jsx'
 import EmployeePhotoUpload from '../employees/onboarding/EmployeePhotoUpload.jsx'
 import FieldError from '../ui/FieldError.jsx'
 import SelectField from '../ui/SelectField.jsx'
+import CountryCodeSelect from '../ui/CountryCodeSelect.jsx'
 import TextareaField from '../ui/TextareaField.jsx'
+import DatePicker from '../ui/DatePicker.jsx'
 import {
   EMPLOYEE_GENDER_OPTIONS,
   EMPLOYEE_MARITAL_STATUS_OPTIONS,
@@ -66,7 +68,8 @@ function EditProfilePersonalForm({
             <FieldError>{fieldError('lastName')}</FieldError>
           </div>
 
-          <div>
+          <div className="grid gap-5 md:grid-cols-[150px_1fr]">
+            <CountryCodeSelect value={formData.countryCode} onChange={onChange} onBlur={onBlur} />
             <FormField
               label="Phone Number"
               id="phone"
@@ -75,6 +78,9 @@ function EditProfilePersonalForm({
               onChange={onChange}
               onBlur={onBlur}
               required
+              maxLength={10}
+              inputMode="numeric"
+              pattern="[0-9]*"
               placeholder="Enter phone number"
               className={inputClass}
             />
@@ -82,15 +88,8 @@ function EditProfilePersonalForm({
           </div>
 
           <div>
-            <FormField
-              label="Date of Birth"
-              id="dateOfBirth"
-              type="date"
-              value={formData.dateOfBirth}
-              onChange={onChange}
-              onBlur={onBlur}
-              className={inputClass}
-            />
+            <label className="mb-[4px] block text-[18px] font-extrabold" htmlFor="dateOfBirth">Date of Birth</label>
+            <DatePicker value={formData.dateOfBirth} onChange={(value) => onChange({ target: { name: 'dateOfBirth', value } })} ariaLabel="Date of Birth" className={inputClass} />
             <FieldError>{fieldError('dateOfBirth')}</FieldError>
           </div>
 

@@ -317,7 +317,7 @@ function HRDashboardContent() {
             onClick={() => navigate('/employees/new')}
             className="px-6 py-2 rounded-full bg-white border-2 border-[#111827] text-[#111827] font-extrabold text-[14px] hover:bg-[#f9fafb] transition-all"
           >
-            Add Emloyee
+            Add Employee
           </button>
           <button
             type="button"

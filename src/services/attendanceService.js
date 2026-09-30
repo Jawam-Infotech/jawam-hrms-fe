@@ -160,6 +160,7 @@ async function getTodayAttendance() {
       ? normalizeAttendanceRecord(payload.attendance)
       : {}),
     todayStatus: payload.today_status,
+    uiStatus: payload.ui_status,
   }
 }
 

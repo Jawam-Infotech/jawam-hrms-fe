@@ -33,9 +33,16 @@ function EmployeeDashboardContent() {
   const [showReminder, setShowReminder] = useState(true)
   const [submittedCorrectionDates, setSubmittedCorrectionDates] = useState([])
 
-  const todayStatus = attendance?.todayStatus || 'NOT_CHECKED_IN'
-  const isCheckedIn = ['PRESENT', 'LATE', 'HALF_DAY'].includes(todayStatus)
-  const hasCheckedOut = Boolean(attendance?.checkOut && attendance.checkOut !== '-')
+const todayStatus = attendance?.todayStatus || 'NOT_CHECKED_IN'
+const uiStatus = attendance?.uiStatus || 'NOT_CHECKED_IN'
+
+const isCheckedIn =
+  uiStatus === 'CHECKED_IN' ||
+  uiStatus === 'ON_BREAK'
+
+const hasCheckedOut =
+  uiStatus === 'CHECKED_OUT' ||
+  Boolean(attendance?.checkOut && attendance.checkOut !== '-')
 
   const lastBreak = attendance?.breakSessions?.[attendance.breakSessions.length - 1]
   const isOnBreak =
