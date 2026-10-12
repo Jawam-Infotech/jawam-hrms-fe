@@ -78,19 +78,38 @@ function WorkUpdate() {
           <p className="text-[16px] text-[#5f6679] mt-2">Submit your daily progress</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+
+
+
+
+
+
+
+ <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <div className="rounded-2xl bg-[#eef2ff] p-3 text-[20px]">{stat.icon}</div>
                 <div className="text-right">
-                  <p className="text-[14px] font-semibold text-[#6b7280]">{stat.label}</p>
-                  <p className={`mt-3 text-[20px] font-black ${stat.color}`}>{stat.value}</p>
+                  <p className="text-[19px] font-semibold pr-4">{stat.label}</p>
+                  <p className={`mt-3 text-[20px] pr-[65px] text-left font-black ${stat.color}`}>{stat.value}</p>
                 </div>
               </div>
             </div>
           ))}
         </div>
+
+
+
+
+
+
+
+
+
+
+
 
         <div className="overflow-x-auto rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
           <h2 className="mb-6 text-[18px] font-black text-[#111827]">Assigned Tasks</h2>

@@ -64,7 +64,7 @@ function useAssetRequests() {
       setRequestsLoading(false)
     }
   },
-  [updateAssetRequestsState],
+  [updateAssetRequestsState, requestFilters],
 )
 
   const refreshAssetRequests = useCallback(

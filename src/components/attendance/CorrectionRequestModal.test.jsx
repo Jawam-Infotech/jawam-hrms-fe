@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getCorrectionDateLimits } from './CorrectionRequestModal.jsx'
+import { getCorrectionDateLimits } from '../../utils/attendanceUtils.js'
 
 describe('getCorrectionDateLimits', () => {
   it('returns today as the maximum allowed date', () => {

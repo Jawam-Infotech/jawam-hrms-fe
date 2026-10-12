@@ -89,12 +89,15 @@ export default function LeaveBalanceCard() {
   }, [])
 
   return (
-    <div className="rounded-[16px] border border-[#e5e5e5] bg-white p-6 shadow-sm">
-
+    <div className="rounded-[20px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center gap-4">
-
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ccfbf1] text-[24px]">
-          📅
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e0f2fe] text-[#0284c7]">
+          <svg className="h-6 w-6 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
         </div>
 
         <div>
@@ -102,7 +105,7 @@ export default function LeaveBalanceCard() {
             Leave Balance
           </h3>
 
-          <p className="text-[14px] font-extrabold text-[#3b82f6]">
+          <p className="mt-1 text-[16px] font-extrabold text-[#0284c7]">
             {loading
               ? 'Loading...'
               : `${remainingLeaves} ${
@@ -112,17 +115,17 @@ export default function LeaveBalanceCard() {
                 }`}
           </p>
         </div>
-
       </div>
 
-      <button
-        type="button"
-        onClick={() => navigate('/leave')}
-        className="text-[14px] font-extrabold text-[#3b82f6] hover:underline"
-      >
-        Check Leave History
-      </button>
-
+      <div className="pt-1">
+        <button
+          type="button"
+          onClick={() => navigate('/leave')}
+          className="inline-flex items-center justify-center rounded-full bg-[#e0f2fe] px-4 py-1.5 text-[13px] font-bold text-[#0284c7] transition-all hover:bg-[#bae6fd]"
+        >
+          Check Leave History
+        </button>
+      </div>
     </div>
   )
 }
