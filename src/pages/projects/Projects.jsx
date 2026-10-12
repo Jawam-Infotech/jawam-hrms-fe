@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../layouts/DashboardLayout'
+import StatusBadge from '../../components/ui/StatusBadge.jsx'
 
 const projectCards = [
   {
@@ -38,12 +39,6 @@ const assignedTasks = [
   { id: '3', name: 'Wire framing', project: 'IMS Product', progress: 100, status: 'Completed', priority: 'Low', endDate: '01/06/2025', description: 'Complete wireframes for the IMS product screens.', file: 'ims-wireframes.pdf' },
   { id: '4', name: 'Wire framing', project: 'HRMS', progress: 40, status: 'Blocked', priority: 'High', endDate: '20/06/2025', description: 'Finalize wireframes for HRMS task assignment and reports.', file: 'hrms-wireframes.pdf' },
 ]
-
-const statusClasses = {
-  'In Progress': 'bg-[#dbeafe] text-[#0284c7]',
-  Completed: 'bg-[#d1fae5] text-[#059669]',
-  Blocked: 'bg-[#fee2e2] text-[#dc2626]',
-}
 
 function Projects() {
   const navigate = useNavigate()
@@ -226,9 +221,7 @@ function Projects() {
                     <td className="px-6 py-4 text-[#111827]">{task.project}</td>
                     <td className="px-6 py-4 text-[#111827]">{task.progress}%</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-[12px] font-bold ${statusClasses[task.status]}`}>
-                        {task.status}
-                      </span>
+                      <StatusBadge status={task.status} />
                     </td>
                     <td className="px-6 py-4">
                       <button

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 
 import DashboardLayout from '../../layouts/DashboardLayout.jsx'
 
@@ -11,9 +11,16 @@ import LeavePagination from '../../components/leave/LeavePagination.jsx'
 
 import useLeaveReview from '../../hooks/useLeaveReview.js'
 import useUpcomingLeave from '../../hooks/useUpcomingLeave.js'
+import { UserContext } from '../../context/UserContext.jsx'
+import getPermissions from '../../utils/getPermissions.js'
 
 
 function LeaveReview() {
+  const { user } = useContext(UserContext)
+  const permissions = getPermissions(user?.role)
+  const canReviewCancellation = Boolean(
+    permissions?.leave?.canReviewCancellation,
+  )
   /*
    * =========================
    * ACTIVE SECTION
@@ -273,25 +280,27 @@ useEffect(() => {
               CANCELLATION REQUESTS
               ========================= */}
 
-          <button
-            type="button"
-            role="tab"
-            aria-selected={
-              activeSection ===
-              'CANCELLATIONS'
-            }
-            onClick={
-              handleCancellationsSection
-            }
-            className={`rounded-lg px-5 py-2.5 text-[14px] font-bold transition ${
-              activeSection ===
-              'CANCELLATIONS'
-                ? 'bg-white text-[#111827] shadow-sm'
-                : 'text-[#6b7280] hover:text-[#111827]'
-            }`}
-          >
-            Cancellation Requests
-          </button>
+          {canReviewCancellation && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={
+                activeSection ===
+                'CANCELLATIONS'
+              }
+              onClick={
+                handleCancellationsSection
+              }
+              className={`rounded-lg px-5 py-2.5 text-[14px] font-bold transition ${
+                activeSection ===
+                'CANCELLATIONS'
+                  ? 'bg-white text-[#111827] shadow-sm'
+                  : 'text-[#6b7280] hover:text-[#111827]'
+              }`}
+            >
+              Cancellation Requests
+            </button>
+          )}
 
 
           {/* =========================
@@ -480,7 +489,9 @@ useEffect(() => {
             onClose={
               clearSelectedRequest
             }
-
+            canReviewCancellation={
+              canReviewCancellation
+            }
             actionLoading={
               actionLoading
             }

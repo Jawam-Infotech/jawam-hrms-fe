@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
+import StatusBadge from '../../components/ui/StatusBadge.jsx'
 
 const initialTasks = [
   { id: '1', name: 'Dashboard UI', project: 'HRMS', progress: 80, status: 'In Progress', updated: false },
@@ -7,12 +8,6 @@ const initialTasks = [
   { id: '3', name: 'Wire framing', project: 'IMS Product', progress: 100, status: 'Completed', updated: false },
   { id: '4', name: 'Wire framing', project: 'HRMS', progress: 40, status: 'Blocked', updated: false },
 ]
-
-const statusBadges = {
-  'In Progress': 'bg-[#dbeafe] text-[#0284c7]',
-  Completed: 'bg-[#d1fae5] text-[#059669]',
-  Blocked: 'bg-[#fee2e2] text-[#dc2626]',
-}
 
 const stats = [
   { label: 'Assigned Task', value: '8 Active', color: 'text-[#3b82f6]', icon: '📌' },
@@ -130,9 +125,7 @@ function WorkUpdate() {
                   <td className="px-6 py-4 text-[#111827]">{task.project}</td>
                   <td className="px-6 py-4 text-[#111827]">{task.progress}%</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex rounded-full px-3 py-1 text-[12px] font-bold ${statusBadges[task.status]}`}>
-                      {task.status}
-                    </span>
+                    <StatusBadge status={task.status} />
                   </td>
                   <td className="px-6 py-4">
                     <button

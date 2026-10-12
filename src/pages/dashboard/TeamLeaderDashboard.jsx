@@ -5,7 +5,7 @@ import EmployeeDashboardContent from '../../components/dashboard/employee/Employ
 import TeamLeaderDashboardContent from '../../components/dashboard/teamleader/TeamLeaderDashboardContent.jsx'
 
 function TeamLeaderDashboard() {
-  const [dashboardMode, setDashboardMode] = useState('employee')
+  const [dashboardMode, setDashboardMode] = useState('teamleader')
 
   return (
     <DashboardLayout>
