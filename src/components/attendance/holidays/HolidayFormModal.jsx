@@ -1,4 +1,5 @@
 import Button from '../../ui/Button.jsx'
+import DatePicker from '../../ui/DatePicker.jsx'
 
 function HolidayFormModal({
   isOpen,
@@ -55,12 +56,9 @@ function HolidayFormModal({
             <label className="mb-3 block text-[14px] font-bold text-[#111827]" htmlFor="holidayDate">
               Holiday Date <span className="text-[#3b82f6]">*</span>
             </label>
-            <input
-              id="holidayDate"
-              name="holidayDate"
-              type="date"
+            <DatePicker
               value={values.holidayDate}
-              onChange={(event) => onChange('holidayDate', event.target.value)}
+              onChange={(value) => onChange('holidayDate', value)}
               className="w-full rounded-[12px] border border-[#e5e7eb] bg-white px-4 py-3 text-[14px] font-semibold text-[#111827] outline-none transition-all focus:border-[#3b82f6] focus:ring-2 focus:ring-[#bfdbfe]/50"
             />
           </div>

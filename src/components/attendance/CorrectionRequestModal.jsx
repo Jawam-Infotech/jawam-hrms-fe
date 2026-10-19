@@ -9,6 +9,8 @@ import {
 import { getEmployees } from '../../services/employeeService.js'
 import { UserContext } from '../../context/UserContext.jsx'
 import { getCorrectionDateLimits } from '../../utils/attendanceUtils.js'
+import { getApiErrorMessage } from '../../utils/apiErrorMessage.js'
+import DatePicker from '../ui/DatePicker.jsx'
 
 const createInitialForm = (date = '') => ({
   date,
@@ -95,6 +97,7 @@ function CorrectionRequestModal({
   const [attendanceMessage, setAttendanceMessage] = useState('')
   const [reasonError, setReasonError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [submissionError, setSubmissionError] = useState('')
   const requiresHrAssignment = ['EMPLOYEE', 'TL'].includes(String(user?.role || '').toUpperCase())
 
   useEffect(() => {
@@ -222,10 +225,11 @@ function CorrectionRequestModal({
   }
 
   const handleDateChange = (date) => {
-    setOriginalAttendance(null)
-    setAttendanceMessage('')
-    setFormState(createInitialForm(date))
-  }
+  setOriginalAttendance(null)
+  setAttendanceMessage('')
+  setSubmissionError('')
+  setFormState(createInitialForm(date))
+}
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -247,6 +251,7 @@ function CorrectionRequestModal({
 
     try {
       setSubmitting(true)
+      setSubmissionError('')
       setReasonError('')
       setHrError('')
       await createCorrectionRequest({
@@ -267,10 +272,20 @@ function CorrectionRequestModal({
     } catch (error) {
   const data = error.response?.data
 
-  const errorValues = [data?.date, data?.check_in, data?.check_out, data?.reason, data?.detail, data?.message, data?.non_field_errors]
-  const message = errorValues.filter(Boolean).map((value) => Array.isArray(value) ? value.join(' ') : value).join(' ') || 'Failed to submit correction request.'
+  if (data?.date) {
+    const dateMessage = Array.isArray(data.date)
+      ? data.date.join(' ')
+      : data.date
 
-  setReasonError(message)
+    setSubmissionError(dateMessage)
+  } else {
+    setSubmissionError(
+      getApiErrorMessage(
+        error,
+        'Failed to submit correction request.'
+      )
+    )
+  }
 } finally {
       setSubmitting(false)
     }
@@ -299,7 +314,7 @@ function CorrectionRequestModal({
 
           <div>
             <label className="mb-2 block text-[13px] font-bold uppercase tracking-wider text-[#6b7280]">Date</label>
-            {attendanceId ? <div className="rounded-xl border border-[#d1d5db] bg-[#f9fafb] px-4 py-3 text-[15px] font-bold text-[#111827]">{formState.date || 'Loading date...'}</div> : <input type="date" value={formState.date} min={effectiveMinDate} max={effectiveMaxDate} onChange={(event) => handleDateChange(event.target.value)} disabled={submitting} className="min-h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-3 py-2 text-[15px] font-semibold text-[#111827] outline-none focus:border-[#2563eb]" />}
+            {attendanceId ? <div className="rounded-xl border border-[#d1d5db] bg-[#f9fafb] px-4 py-3 text-[15px] font-bold text-[#111827]">{formState.date || 'Loading date...'}</div> : <DatePicker value={formState.date} minDate={effectiveMinDate} maxDate={effectiveMaxDate} onChange={handleDateChange} disabled={submitting} ariaLabel="Correction date" />}
             <p className="mt-2 text-[12px] font-medium text-[#6b7280]">
   Correction requests can be submitted only for dates within the
   last {CORRECTION_REQUEST_WINDOW_DAYS} days, not future dates, and within your employment dates.
@@ -308,6 +323,10 @@ function CorrectionRequestModal({
 
           {loadingAttendance && <p className="text-[14px] font-semibold text-[#6b7280]">Loading attendance record...</p>}
           {attendanceMessage && <p className="rounded-xl border border-[#fde68a] bg-[#fffbeb] px-4 py-3 text-[14px] font-semibold text-[#92400e]">{attendanceMessage}</p>}
+          {submissionError && ( <p className="rounded-xl border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-[14px] font-semibold text-[#b91c1c]">
+    {submissionError}
+  </p>
+)}
 
           {originalAttendance && <>
             <section className="overflow-hidden rounded-[20px] border border-[#e5e7eb]">

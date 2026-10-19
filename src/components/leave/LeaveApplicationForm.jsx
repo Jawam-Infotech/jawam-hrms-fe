@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react'
+import DatePicker from '../ui/DatePicker.jsx'
 
 const durationOptions = [
   'Full Day',
@@ -178,17 +179,10 @@ function LeaveApplicationForm({
             Start Date
           </label>
 
-          <input
-  id="leave-start-date"
-  type="date"
+          <DatePicker
   value={formState.startDate}
-  min={today}
-  onChange={(event) =>
-    onFieldChange(
-      'startDate',
-      event.target.value,
-    )
-  }
+  minDate={today}
+  onChange={(value) => onFieldChange('startDate', value)}
   disabled={loading}
             aria-invalid={
               hasFieldError('startDate')
@@ -228,20 +222,10 @@ function LeaveApplicationForm({
             End Date
           </label>
 
-          <input
-  id="leave-end-date"
-  type="date"
+          <DatePicker
   value={formState.endDate}
-  min={
-    formState.startDate ||
-    undefined
-  }
-  onChange={(event) =>
-    onFieldChange(
-      'endDate',
-      event.target.value,
-    )
-  }
+  minDate={formState.startDate || undefined}
+  onChange={(value) => onFieldChange('endDate', value)}
   disabled={
     loading ||
     !formState.startDate

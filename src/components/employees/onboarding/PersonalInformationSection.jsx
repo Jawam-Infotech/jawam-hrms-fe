@@ -1,8 +1,10 @@
 import Card from '../../ui/Card.jsx'
 import FormField from '../../auth/FormField.jsx'
 import SelectField from '../../ui/SelectField.jsx'
+import CountryCodeSelect from '../../ui/CountryCodeSelect.jsx'
 import TextareaField from '../../ui/TextareaField.jsx'
 import FieldError from '../../ui/FieldError.jsx'
+import DatePicker from '../../ui/DatePicker.jsx'
 import {
   EMPLOYEE_GENDER_OPTIONS,
   EMPLOYEE_MARITAL_STATUS_OPTIONS,
@@ -10,6 +12,8 @@ import {
 
 const inputClass =
   'h-[48px] w-full rounded-[9px] border-2 border-[#dedede] bg-white px-[16px] text-[#111827] outline-none transition-[border-color,box-shadow] duration-[250ms] focus:border-[#3a7be0] focus:shadow-[0_0_0_4px_rgba(58,123,224,0.16)] max-[380px]:h-14'
+
+  
 
 function PersonalInformationSection({ formData, fieldError, onChange, onBlur }) {
   return (
@@ -49,26 +53,27 @@ function PersonalInformationSection({ formData, fieldError, onChange, onBlur }) 
           placeholder="Enter official email"
           className={inputClass}
         />
-        <FormField
-          label="Phone Number"
-          id="phone"
-          type="tel"
-          value={formData.phone}
-          onChange={onChange}
-          onBlur={onBlur}
-          required
-          placeholder="Enter phone number"
-          className={inputClass}
-        />
-        <FormField
-          label="Date of Birth"
-          id="dateOfBirth"
-          type="date"
-          value={formData.dateOfBirth}
-          onChange={onChange}
-          onBlur={onBlur}
-          className={inputClass}
-        />
+        <div className="grid gap-5 md:grid-cols-[150px_1fr]">
+          <CountryCodeSelect value={formData.countryCode} onChange={onChange} onBlur={onBlur} />
+          <FormField
+            label="Phone Number"
+            id="phone"
+            type="tel"
+            value={formData.phone}
+            onChange={onChange}
+            onBlur={onBlur}
+            required
+            maxLength={10}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Enter phone number"
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label className="mb-[4px] block text-[18px] font-extrabold" htmlFor="dateOfBirth">Date of Birth</label>
+          <DatePicker value={formData.dateOfBirth} onChange={(value) => onChange({ target: { name: 'dateOfBirth', value } })} onBlur={() => onBlur({ target: { name: 'dateOfBirth' } })} ariaLabel="Date of Birth" className={inputClass} />
+        </div>
         <SelectField
           label="Gender"
           id="gender"

@@ -97,6 +97,7 @@ function createInitialEmployeeFormValues(creatorRole = '') {
     lastName: '',
     email: '',
     phone: '',
+    countryCode: '+91',
     dateOfBirth: '',
     gender: '',
     bloodGroup: '',
@@ -112,6 +113,7 @@ function createInitialEmployeeFormValues(creatorRole = '') {
     employmentStatus: '',
     joiningDate: '',
     exitDate: '',
+    lastWorkingDate: '',
     workLocation: '',
     shift: '',
     role: getDefaultEmployeeRole(creatorRole),
@@ -121,7 +123,7 @@ function createInitialEmployeeFormValues(creatorRole = '') {
     bankName: '',
     accountNumber: '',
     ifscCode: '',
-    branch: '',
+    bankAccountHolderName: '',
     annualCtc: '',
     monthlySalary: '',
     documents: createInitialDocumentState(),
@@ -161,6 +163,7 @@ function buildCreateUserPayload(formData, isEditMode = false) {
     first_name: formData.firstName,
     last_name: formData.lastName,
     phone: formData.phone,
+    country_code: formData.countryCode,
     role: normalizeEmployeeRoleValue(formData.role),
   }
 
@@ -182,6 +185,10 @@ function buildCreateUserPayload(formData, isEditMode = false) {
     ['exit_date', formData.exitDate],
     ['work_location', formData.workLocation],
     ['shift', formData.shift],
+    ['bank_account_holder_name', formData.bankAccountHolderName],
+    ['bank_name', formData.bankName],
+    ['bank_account_number', formData.accountNumber],
+    ['bank_ifsc_code', formData.ifscCode],
   ]
 
   optionalFields.forEach(([key, value]) => {
@@ -189,6 +196,19 @@ function buildCreateUserPayload(formData, isEditMode = false) {
       payload[key] = value
     }
   })
+
+  // Last Working Date applies only to ON_NOTICE employees.
+  if (formData.employmentStatus === 'ON_NOTICE') {
+  if (String(formData.lastWorkingDate ?? '').trim()) {
+    payload.last_working_date = formData.lastWorkingDate
+  }
+}
+
+if (formData.employmentStatus === 'EXITED') {
+  if (String(formData.exitDate ?? '').trim()) {
+    payload.last_working_date = formData.exitDate
+  }
+}
 
   // Employee photo upload
   if (formData.photoFile) {

@@ -1,3 +1,5 @@
+import DatePicker from '../ui/DatePicker.jsx'
+
 function AttendanceOverviewFilters({
   scope = 'company',
   startDate,
@@ -26,20 +28,18 @@ function AttendanceOverviewFilters({
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-2 text-[12px] font-semibold uppercase tracking-wider text-[#6b7280]">
             Start Date
-            <input
-              type="date"
+            <DatePicker
               value={startDate}
-              onChange={(event) => onStartDateChange(event.target.value)}
+              onChange={onStartDateChange}
               className="h-11 rounded-full border border-[#d1d5db] bg-white px-4 text-[14px] font-semibold text-[#111827] outline-none transition focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20"
             />
           </label>
 
           <label className="flex flex-col gap-2 text-[12px] font-semibold uppercase tracking-wider text-[#6b7280]">
             End Date
-            <input
-              type="date"
+            <DatePicker
               value={endDate}
-              onChange={(event) => onEndDateChange(event.target.value)}
+              onChange={onEndDateChange}
               className="h-11 rounded-full border border-[#d1d5db] bg-white px-4 text-[14px] font-semibold text-[#111827] outline-none transition focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20"
             />
           </label>

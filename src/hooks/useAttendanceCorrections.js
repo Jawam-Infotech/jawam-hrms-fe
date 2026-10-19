@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { CORRECTION_REQUEST_WINDOW_DAYS } from '../constants/attendance.js'
 import {
   getMissedCheckouts,
   getMyCorrectionRequests,
@@ -12,6 +13,34 @@ const normalizeAttendanceDate = (value) => {
   const dateMatch = String(value).match(/^\d{4}-\d{2}-\d{2}/)
 
   return dateMatch ? dateMatch[0] : ''
+}
+const formatDateForComparison = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+const isWithinCorrectionWindow = (value) => {
+  const attendanceDate = normalizeAttendanceDate(value)
+
+  if (!attendanceDate) return false
+
+  const today = new Date()
+  const earliestDate = new Date(today)
+
+  earliestDate.setDate(
+    today.getDate() - CORRECTION_REQUEST_WINDOW_DAYS
+  )
+
+  const earliestDateValue = formatDateForComparison(earliestDate)
+  const todayValue = formatDateForComparison(today)
+
+  return (
+    attendanceDate >= earliestDateValue &&
+    attendanceDate <= todayValue
+  )
 }
 
 async function getAllMyCorrectionRequests() {
@@ -64,7 +93,11 @@ function useAttendanceCorrections() {
             'Failed to load correction requests.'
         )
         // Keep the normal reminder behavior if correction requests are unavailable.
-        setMissedCheckouts(missedCheckoutRecords)
+        setMissedCheckouts(
+  missedCheckoutRecords.filter((attendance) =>
+    isWithinCorrectionWindow(attendance?.date)
+  )
+)
         return
       }
 
@@ -76,13 +109,14 @@ function useAttendanceCorrections() {
       )
 
       setMissedCheckouts(
-        missedCheckoutRecords.filter(
-          (attendance) =>
-            !pendingRequestDates.has(
-              normalizeAttendanceDate(attendance?.date)
-            )
-        )
+  missedCheckoutRecords.filter(
+    (attendance) =>
+      isWithinCorrectionWindow(attendance?.date) &&
+      !pendingRequestDates.has(
+        normalizeAttendanceDate(attendance?.date)
       )
+  )
+)
     } catch (err) {
       setError(
         err.response?.data?.detail ||

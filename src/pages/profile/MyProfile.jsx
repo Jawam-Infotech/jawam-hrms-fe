@@ -67,24 +67,32 @@ function MyProfile() {
     )
   }
 
+  const isExited =
+    String(employee?.employmentStatus || '').trim().toUpperCase() === 'EXITED'
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h1 className="text-[32px] font-black text-[#111827]">My Profile</h1>
+              <h1 className="text-[32px] font-black text-[#111827]">
+                My Profile
+              </h1>
               <p className="mt-2 text-[16px] text-[#5f6679]">
                 View your employment details, documents, assigned assets, and account security.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate('/profile/edit')}
-              className="rounded-full bg-[#3b82f6] px-6 py-3 text-[14px] font-extrabold text-white transition-all hover:bg-[#2563eb]"
-            >
-              Edit Profile
-            </button>
+
+            {!isExited && (
+              <button
+                type="button"
+                onClick={() => navigate('/profile/edit')}
+                className="rounded-full bg-[#3b82f6] px-6 py-3 text-[14px] font-extrabold text-white transition-all hover:bg-[#2563eb]"
+              >
+                Edit Profile
+              </button>
+            )}
           </div>
         </div>
 
@@ -95,13 +103,18 @@ function MyProfile() {
         )}
 
         <EmployeeProfileHeader employee={employee} />
-        <EmployeeOtherInformation employee={employee} title="Personal Information" />
+        <EmployeeOtherInformation
+          employee={employee}
+          title="Personal Information"
+        />
         <EmployeeDocuments documents={employee.documents || []} />
         <EmployeeAssets assets={employee.assets || []} />
 
         <ChangePasswordAccordion
           isOpen={isPasswordAccordionOpen}
-          onToggle={() => setIsPasswordAccordionOpen((currentValue) => !currentValue)}
+          onToggle={() =>
+            setIsPasswordAccordionOpen((currentValue) => !currentValue)
+          }
           form={passwordForm}
           errors={passwordErrors}
           successMessage={passwordMessage}

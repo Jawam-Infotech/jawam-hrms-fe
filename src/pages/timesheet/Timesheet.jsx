@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
+import DatePicker from '../../components/ui/DatePicker.jsx'
 
 function formatDateISO(date) {
   return date.toISOString().slice(0, 10)
@@ -152,306 +153,200 @@ export default function Timesheet() {
           <p className="text-[16px] text-[#5f6679] mt-2">Log and manage project hours worked during a selected period.</p>
         </div>
 
+        {/* Add Entry Card */}
+        <div className="rounded-[18px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-[18px] font-bold text-[#111827]">Add Entry</h2>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+            <div>
+              <label className="block text-[13px] font-semibold text-[#6b7280] mb-2">Date</label>
+              <DatePicker value={formDate} onChange={setFormDate} className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2" />
+            </div>
+            <div>
+              <label className="block text-[13px] font-semibold text-[#6b7280] mb-2">Project</label>
+              <select value={formProject} onChange={(e) => setFormProject(e.target.value)} className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2">
+                <option value="">Select Project</option>
+                <option value="Website Redesign">Website Redesign</option>
+                <option value="Mobile App">Mobile App</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[13px] font-semibold text-[#6b7280] mb-2">Task</label>
+              <select value={formTask} onChange={(e) => setFormTask(e.target.value)} className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2">
+                <option value="">Select Task</option>
+                {availableTasks.length > 0 ? (
+                  availableTasks.map((task) => (
+                    <option key={task} value={task}>{task}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Design">Design</option>
+                    <option value="Development">Development</option>
+                    <option value="Meeting">Meeting</option>
+                    <option value="Review">Review</option>
+                  </>
+                )}
+              </select>
+            </div>
+            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[13px] font-semibold text-[#6b7280] mb-2">Hours</label>
+                <input type="number" min="0" value={formHours} onChange={(e) => setFormHours(e.target.value)} placeholder="0" className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-semibold text-[#6b7280] mb-2">Minutes</label>
+                <input type="number" min="0" max="59" value={formMinutes} onChange={(e) => setFormMinutes(e.target.value)} placeholder="0" className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2" />
+              </div>
+            </div>
+          </div>
 
+          <div className="mt-4">
+            <label className="block text-[13px] font-semibold text-[#6b7280] mb-2">Description</label>
+            <input value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Enter Description" className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2" />
+          </div>
 
-
-
-
-
-
-
-{/* Add Entry Card */}
-<div className="rounded-[18px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
-  <h2 className="mb-4 text-[18px] font-bold text-[#111827]">Add Entry</h2>
-  <div className="border-t border-[#e5e7eb] mb-6" />
-
-  <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
-    <div>
-      <label className="block text-[14px] font-bold text-[#111827] mb-2">Date</label>
-      <div className="relative">
-        <input
-          type="date"
-          value={formDate}
-          onChange={(e) => setFormDate(e.target.value)}
-          className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2.5"
-        />
-      </div>
-    </div>
-
-    <div>
-      <label className="block text-[14px] font-bold text-[#111827] mb-2">Project</label>
-      <select
-        value={formProject}
-        onChange={(e) => setFormProject(e.target.value)}
-        className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2.5"
-      >
-        <option value="">Select Project</option>
-        <option value="Website Redesign">Website Redesign</option>
-        <option value="Mobile App">Mobile App</option>
-      </select>
-    </div>
-
-    <div>
-      <label className="block text-[14px] font-bold text-[#111827] mb-2">Task</label>
-      <select
-        value={formTask}
-        onChange={(e) => setFormTask(e.target.value)}
-        className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2.5"
-      >
-        <option value="">Select Task</option>
-        {availableTasks.length > 0 ? (
-          availableTasks.map((task) => (
-            <option key={task} value={task}>{task}</option>
-          ))
-        ) : (
-          <>
-            <option value="Design">Design</option>
-            <option value="Development">Development</option>
-            <option value="Meeting">Meeting</option>
-            <option value="Review">Review</option>
-          </>
-        )}
-      </select>
-    </div>
-
-    <div>
-      <label className="block text-[14px] font-bold text-[#111827] mb-2">Hours</label>
-      <select
-        value={formHours}
-        onChange={(e) => setFormHours(e.target.value)}
-        className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2.5"
-      >
-        <option value="">Select Hours</option>
-        {Array.from({ length: 24 }, (_, i) => i).map((h) => (
-          <option key={h} value={h}>{h}</option>
-        ))}
-      </select>
-    </div>
-  </div>
-
-  <div className="mt-6">
-    <label className="block text-[14px] font-bold text-[#111827] mb-2">Description</label>
-    <input
-      value={formDescription}
-      onChange={(e) => setFormDescription(e.target.value)}
-      placeholder="Enter Description"
-      className="w-full rounded-[10px] border border-[#e5e7eb] px-3 py-2.5"
-    />
-  </div>
-
-  <div className="mt-6 flex justify-end gap-3">
-    <button onClick={handleReset} className="rounded-full bg-[#fee2e2] px-5 py-2 text-[#dc2626] font-semibold">
-      Reset
-    </button>
-    <button onClick={handleSave} className="rounded-full bg-[#d1fae5] px-5 py-2 text-[#059669] font-semibold">
-      Save Entry
-    </button>
-  </div>
-</div>
-
-
-
-
-
-
-
-
-<div className="rounded-[24px] border border-[#eef2f7] bg-white p-4 shadow-[0_20px_80px_rgba(15,23,42,0.08)] sm:p-6">
-  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-    <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={() => moveDate(-1)}
-        className="grid h-9 w-9 place-items-center rounded-full border border-[#d1d5db] bg-white text-lg font-bold text-[#374151] hover:bg-[#f8fafc]"
-      >
-        ‹
-      </button>
-      <span className="text-base font-bold text-[#111827]">{title}</span>
-      <button
-        type="button"
-        onClick={() => moveDate(1)}
-        className="grid h-9 w-9 place-items-center rounded-full border border-[#d1d5db] bg-white text-lg font-bold text-[#374151] hover:bg-[#f8fafc]"
-      >
-        ›
-      </button>
-      <button
-        type="button"
-        onClick={goToToday}
-        className="rounded-full border border-[#d1d5db] bg-white px-3 py-1 text-xs font-semibold text-[#374151] hover:bg-[#f8fafc]"
-      >
-        Today
-      </button>
-    </div>
-
-    <div className="flex rounded-full bg-[#e2e8f0] p-1">
-      {['day', 'week'].map((option) => (
-        <button
-          type="button"
-          key={option}
-          onClick={() => setView(option)}
-          className={`rounded-full px-8 py-1.5 text-sm font-semibold capitalize transition ${
-            view === option
-              ? 'bg-white text-[#111827] shadow-sm'
-              : 'text-[#475569] hover:text-[#111827]'
-          }`}
-        >
-          {option}
-        </button>
-      ))}
-    </div>
-  </div>
-
-  {view === 'day' && selectedDate && (() => {
-    const [year, month, day] = selectedDate.split('-').map(Number);
-    const localDate = new Date(year, month - 1, day);
-    return (
-      <div className="mt-6 flex items-center gap-2">
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#9ca3af]">
-            {localDate.toLocaleDateString('en-US', { weekday: 'short' })}
-          </span>
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-[#ef4444] text-[15px] font-bold text-white">
-            {localDate.getDate()}
-          </span>
+          <div className="mt-4 flex justify-end gap-3">
+            <button onClick={handleReset} className="rounded-full bg-[#fee2e2] px-4 py-2 text-[#dc2626] font-semibold">Reset</button>
+            <button onClick={handleSave} className="rounded-full bg-[#10b981] px-4 py-2 text-white font-semibold">Save Entry</button>
+          </div>
         </div>
-      </div>
-    );
-  })()}
 
-  <div className="mt-6">
-    {view === 'day' ? (
-      <DayCalendar entries={scheduledDayEntries} />
-    ) : (
-      <WeekCalendar weekDates={weekDates} entriesByDate={entriesByDate} selectedDate={selectedDate} />
-    )}
-  </div>
-</div>
+        {/* Calendar Area */}
+        <div className="rounded-[24px] border border-[#eef2f7] bg-white p-4 shadow-[0_20px_80px_rgba(15,23,42,0.08)] sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => moveDate(-1)} className="grid h-9 w-9 place-items-center rounded-lg bg-[#f8fafc] text-lg font-semibold text-[#374151] hover:bg-[#eef2f7]" aria-label="Previous period">‹</button>
+              <button type="button" onClick={goToToday} className="rounded-lg bg-[#f8fafc] px-4 py-2 text-sm font-semibold text-[#374151] hover:bg-[#eef2f7]">Today</button>
+              <button type="button" onClick={() => moveDate(1)} className="grid h-9 w-9 place-items-center rounded-lg bg-[#f8fafc] text-lg font-semibold text-[#374151] hover:bg-[#eef2f7]" aria-label="Next period">›</button>
+              <span className="ml-2 text-sm font-semibold text-[#111827]">{title}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex rounded-xl bg-[#f8fafc] p-1">
+                {['day', 'week'].map((option) => (
+                  <button
+                    type="button"
+                    key={option}
+                    onClick={() => setView(option)}
+                    className={`rounded-lg px-4 py-2 text-sm font-semibold capitalize transition ${view === option ? 'bg-[#10b981] text-white shadow-sm' : 'text-[#6b7280] hover:text-[#111827]'}`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+              {view === 'day' && (
+                <DatePicker value={selectedDate} onChange={setSelectedDate} className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] px-3 py-2 text-sm text-[#374151]" />
+              )}
+            </div>
+          </div>
 
-
-
-
-
-
+          <div className="mt-6">
+            {view === 'day' ? (
+              <DayCalendar entries={scheduledDayEntries} />
+            ) : (
+              <WeekCalendar weekDates={weekDates} entriesByDate={entriesByDate} selectedDate={selectedDate} />
+            )}
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   )
 }
+
 function DayCalendar({ entries }) {
   const hourHeight = 64
   const rows = Array.from({ length: TIMELINE_HOURS }, (_, i) => TIMELINE_START + i)
 
   return (
-    <div className="grid grid-cols-[64px_minmax(0,1fr)]">
-      <div>
-        {rows.map((hour, i) => (
-          <div key={hour} className="pr-3 text-right" style={{ height: hourHeight }}>
-            <p className="text-xs text-[#9ca3af]">{formatTimeLabel(hour)}</p>
-            {i === 0 && <p className="text-[10px] text-[#c1c8d3]">GMT+1</p>}
-          </div>
-        ))}
+    <div className="overflow-hidden rounded-xl border border-[#e5e7eb]">
+      <div className="grid grid-cols-[76px_minmax(0,1fr)]">
+        <div className="border-r border-[#eef2f7] bg-[#f8fafc]" />
+        <div className="border-b border-[#e5e7eb] bg-[#f8fafc] px-5 py-3 text-sm font-semibold text-[#111827]">Schedule</div>
       </div>
       <div className="relative">
-        {rows.map((hour) => (
-          <div key={hour} className="border-t border-[#eef2f7]" style={{ height: hourHeight }} />
-        ))}
-        <div className="absolute inset-0">
-          {entries.map((entry) => {
-            const top = (entry.computedStart - TIMELINE_START) * hourHeight
-            const height = Math.max(28, entry.duration * hourHeight)
-            return (
-              <div
-                key={entry.id}
-                style={{ top: `${top}px`, height: `${height}px`, left: '4px', right: '4px' }}
-                className={`absolute rounded-xl border-2 bg-white p-3 ${getColorForProject(entry.project)}`}
-              >
-                <p className="truncate text-[15px] font-semibold text-[#111827]">{entry.project}</p>
-                <p className="mt-0.5 truncate text-sm text-[#6b7280]">{entry.task}</p>
-                <p className="mt-0.5 text-xs font-medium text-[#059669]">
-                  {formatTimeFromHours(entry.computedStart)} - {formatTimeFromHours(entry.computedStart + entry.duration)}
-                </p>
+        <div className="grid grid-cols-[76px_minmax(0,1fr)]">
+          <div>
+            {rows.map((hour) => (
+              <div key={hour} className="border-r border-t border-[#eef2f7] px-3 pt-2 text-xs text-[#6b7280]" style={{ height: hourHeight }}>
+                {formatTimeLabel(hour)}
               </div>
-            )
-          })}
-          {entries.length === 0 && (
-            <div className="grid h-full place-items-center text-sm text-[#9ca3af]">No entries logged for this day.</div>
-          )}
+            ))}
+          </div>
+          <div className="relative">
+            {rows.map((hour) => (
+              <div key={hour} className="border-t border-[#eef2f7]" style={{ height: hourHeight }} />
+            ))}
+            <div className="absolute inset-0 p-1">
+              {entries.map((entry) => {
+                const top = (entry.computedStart - TIMELINE_START) * hourHeight
+                const height = Math.max(28, entry.duration * hourHeight)
+                return (
+                  <div
+                    key={entry.id}
+                    style={{ top: `${top}px`, height: `${height}px`, left: '8px', right: '8px' }}
+                    className={`absolute rounded-lg border p-2 text-xs ${getColorForProject(entry.project)}`}
+                  >
+                    <p className="truncate font-semibold">{entry.project}</p>
+                    <p className="mt-0.5 opacity-80">{entry.task} · {entry.duration.toFixed(2)} hrs</p>
+                    <p className="mt-0.5 opacity-70">{formatTimeFromHours(entry.computedStart)}</p>
+                  </div>
+                )
+              })}
+              {entries.length === 0 && (
+                <div className="grid h-full place-items-center text-sm text-[#9ca3af]">No entries logged for this day.</div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-function WeekCalendar({ weekDates, entriesByDate }) {
-  const weekDayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-  const hourHeight = 64
-  const rows = Array.from({ length: TIMELINE_HOURS }, (_, i) => TIMELINE_START + i)
-  const todayStr = new Date().toISOString().slice(0, 10)
+function WeekCalendar({ weekDates, entriesByDate, selectedDate }) {
+  const weekDayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const hourHeight = 32
+  const maxHeight = Math.max(200, ...weekDates.map((d) => {
+    const dayEntries = entriesByDate[d] || []
+    if (dayEntries.length === 0) return 200
+    const maxEnd = Math.max(...dayEntries.map((e) => e.computedStart + e.duration))
+    return Math.max(200, (maxEnd - TIMELINE_START) * hourHeight + 32)
+  }))
 
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[900px] grid grid-cols-[64px_repeat(7,minmax(0,1fr))]">
-        {/* Header row */}
-        <div />
-        {weekDates.map((d, i) => {
-          const isToday = d === todayStr
-          return (
-            <div key={d} className="pb-3 text-center">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-[#9ca3af]">
-                {weekDayLabels[i]}
-              </p>
-              {isToday ? (
-                <span className="mt-1 inline-grid h-7 w-7 place-items-center rounded-full bg-[#ef4444] text-sm font-semibold text-white">
-                  {new Date(`${d}T00:00:00`).getDate()}
-                </span>
-              ) : (
-                <p className="mt-1 text-[15px] font-medium text-[#374151]">
-                  {new Date(`${d}T00:00:00`).getDate()}
-                </p>
-              )}
-            </div>
-          )
-        })}
-
-        {/* Hour rows + grid lines */}
-        <div>
-          {rows.map((hour, i) => (
-            <div key={hour} className="pr-3 text-right" style={{ height: hourHeight }}>
-              <p className="text-xs text-[#9ca3af]">{formatTimeLabel(hour)}</p>
-              {i === 0 && <p className="text-[10px] text-[#c1c8d3]">GMT+1</p>}
+      <div className="min-w-[900px] overflow-hidden rounded-xl border border-[#e5e7eb]">
+        <div className="grid grid-cols-7 border-b border-[#e5e7eb]">
+          {weekDates.map((d, i) => (
+            <div key={d} className={`border-l border-[#e5e7eb] px-3 py-2 first:border-l-0 ${d === selectedDate ? 'bg-[#eff6ff]' : 'bg-[#f8fafc]'}`}>
+              <p className="text-[11px] font-semibold uppercase text-[#6b7280]">{weekDayLabels[i]}</p>
+              <p className="text-xl font-semibold text-[#111827]">{new Date(`${d}T00:00:00`).getDate()}</p>
             </div>
           ))}
         </div>
-
-        {weekDates.map((d) => {
-          const dayEntries = entriesByDate[d] || []
-          return (
-            <div key={d} className="relative border-l border-[#eef2f7] first:border-l-0">
-              {rows.map((hour) => (
-                <div key={hour} className="border-t border-[#eef2f7]" style={{ height: hourHeight }} />
-              ))}
-              <div className="absolute inset-0">
+        <div className="grid grid-cols-7" style={{ minHeight: maxHeight }}>
+          {weekDates.map((d) => {
+            const dayEntries = entriesByDate[d] || []
+            return (
+              <div key={d} className={`relative border-l border-[#e5e7eb] p-1 first:border-l-0 ${d === selectedDate ? 'bg-[#eff6ff]/40' : ''}`}>
                 {dayEntries.map((entry) => {
                   const top = (entry.computedStart - TIMELINE_START) * hourHeight
-                  const height = Math.max(24, entry.duration * hourHeight)
+                  const height = Math.max(20, entry.duration * hourHeight)
                   return (
                     <div
                       key={entry.id}
-                      style={{ top: `${top}px`, height: `${height}px`, left: '3px', right: '3px' }}
-                      className={`absolute rounded-lg border-2 bg-white p-2 text-[11px] ${getColorForProject(entry.project)}`}
+                      style={{ top: `${top}px`, height: `${height}px`, left: '4px', right: '4px' }}
+                      className={`absolute rounded-lg border p-1.5 text-[11px] ${getColorForProject(entry.project)}`}
                     >
-                      <p className="truncate font-semibold text-[#111827]">{entry.project}</p>
-                      <p className="truncate text-[#6b7280]">{entry.task}</p>
-                      <p className="text-[#059669]">{formatTimeFromHours(entry.computedStart)}</p>
+                      <p className="truncate font-semibold">{entry.project}</p>
+                      <p className="truncate opacity-80">{entry.task} · {entry.duration.toFixed(2)}h</p>
+                      <p className="opacity-70">{formatTimeFromHours(entry.computedStart)}</p>
                     </div>
                   )
                 })}
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
     </div>
   )
 }
-  
-

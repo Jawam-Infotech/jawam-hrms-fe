@@ -1,1 +1,1 @@
-export const EMPLOYEE_PAGE_SIZE = 20
+export const EMPLOYEE_PAGE_SIZE = 10

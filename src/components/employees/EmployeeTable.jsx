@@ -73,16 +73,17 @@ function EmployeeTable({
           {employees.length > 0 ? (
             employees.map((employee) => (
               <EmployeeTableRow
-                key={employee.id}
-                employee={employee}
-                clickable={canViewProfile}
-                onClick={() => onEmployeeClick(employee.id)}
-                permissions={permissions}
-                onView={() => onViewEmployee(employee)}
-                onEdit={() => onEditEmployee(employee)}
-                showActions={showActions}
-                showEmploymentStatus={showEmploymentStatus}
-              />
+  key={employee.id}
+  employee={employee}
+  clickable={canViewProfile}
+  onClick={() => onEmployeeClick(employee.id)}
+  permissions={permissions}
+  currentUserRole={user?.role}
+  onView={() => onViewEmployee(employee)}
+  onEdit={() => onEditEmployee(employee)}
+  showActions={showActions}
+  showEmploymentStatus={showEmploymentStatus}
+/>
             ))
           ) : (
             <EmptyEmployeeState colSpan={columnCount} />

@@ -2,7 +2,9 @@ import FormField from '../auth/FormField.jsx'
 import EmployeePhotoUpload from '../employees/onboarding/EmployeePhotoUpload.jsx'
 import FieldError from '../ui/FieldError.jsx'
 import SelectField from '../ui/SelectField.jsx'
+import CountryCodeSelect from '../ui/CountryCodeSelect.jsx'
 import TextareaField from '../ui/TextareaField.jsx'
+import DatePicker from '../ui/DatePicker.jsx'
 import {
   EMPLOYEE_GENDER_OPTIONS,
   EMPLOYEE_MARITAL_STATUS_OPTIONS,
@@ -66,7 +68,8 @@ function EditProfilePersonalForm({
             <FieldError>{fieldError('lastName')}</FieldError>
           </div>
 
-          <div>
+          <div className="grid gap-5 md:grid-cols-[150px_1fr]">
+            <CountryCodeSelect value={formData.countryCode} onChange={onChange} onBlur={onBlur} />
             <FormField
               label="Phone Number"
               id="phone"
@@ -75,6 +78,9 @@ function EditProfilePersonalForm({
               onChange={onChange}
               onBlur={onBlur}
               required
+              maxLength={10}
+              inputMode="numeric"
+              pattern="[0-9]*"
               placeholder="Enter phone number"
               className={inputClass}
             />
@@ -82,15 +88,8 @@ function EditProfilePersonalForm({
           </div>
 
           <div>
-            <FormField
-              label="Date of Birth"
-              id="dateOfBirth"
-              type="date"
-              value={formData.dateOfBirth}
-              onChange={onChange}
-              onBlur={onBlur}
-              className={inputClass}
-            />
+            <label className="mb-[4px] block text-[18px] font-extrabold" htmlFor="dateOfBirth">Date of Birth</label>
+            <DatePicker value={formData.dateOfBirth} onChange={(value) => onChange({ target: { name: 'dateOfBirth', value } })} ariaLabel="Date of Birth" className={inputClass} />
             <FieldError>{fieldError('dateOfBirth')}</FieldError>
           </div>
 
@@ -134,6 +133,67 @@ function EditProfilePersonalForm({
               className="min-h-[120px] w-full rounded-[9px] border-2 border-[#dedede] bg-white px-[16px] py-3 text-[#111827] outline-none transition-[border-color,box-shadow] duration-[250ms] focus:border-[#3a7be0] focus:shadow-[0_0_0_4px_rgba(58,123,224,0.16)]"
             />
             <FieldError>{fieldError('address')}</FieldError>
+          </div>
+        </div>
+      </div>
+            <div className="rounded-[24px] border border-[#e5e5e5] bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-[18px] font-extrabold text-[#111827]">Bank Details</h2>
+
+        <div className="grid gap-5 md:grid-cols-2">
+          <div>
+            <FormField
+              label="Account Holder Name"
+              id="bankAccountHolderName"
+              type="text"
+              value={formData.bankAccountHolderName}
+              onChange={onChange}
+              onBlur={onBlur}
+              placeholder="Enter account holder name"
+              className={inputClass}
+            />
+            <FieldError>{fieldError('bankAccountHolderName')}</FieldError>
+          </div>
+
+          <div>
+            <FormField
+              label="Bank Name"
+              id="bankName"
+              type="text"
+              value={formData.bankName}
+              onChange={onChange}
+              onBlur={onBlur}
+              placeholder="Enter bank name"
+              className={inputClass}
+            />
+            <FieldError>{fieldError('bankName')}</FieldError>
+          </div>
+
+          <div>
+            <FormField
+              label="Account Number"
+              id="accountNumber"
+              type="text"
+              value={formData.accountNumber}
+              onChange={onChange}
+              onBlur={onBlur}
+              placeholder="Enter account number"
+              className={inputClass}
+            />
+            <FieldError>{fieldError('accountNumber')}</FieldError>
+          </div>
+
+          <div>
+            <FormField
+              label="IFSC Code"
+              id="ifscCode"
+              type="text"
+              value={formData.ifscCode}
+              onChange={onChange}
+              onBlur={onBlur}
+              placeholder="Enter IFSC code"
+              className={inputClass}
+            />
+            <FieldError>{fieldError('ifscCode')}</FieldError>
           </div>
         </div>
       </div>

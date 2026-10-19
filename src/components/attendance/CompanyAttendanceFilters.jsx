@@ -1,3 +1,5 @@
+import DatePicker from '../ui/DatePicker.jsx'
+
 function CompanyAttendanceFilters({
   attendanceDate,
   department,
@@ -17,10 +19,9 @@ function CompanyAttendanceFilters({
       <div className="grid gap-4 xl:grid-cols-5">
         <label className="flex flex-col gap-2 xl:col-span-1">
           <span className="text-[13px] font-extrabold text-[#111827]">Attendance Date</span>
-          <input
-            type="date"
+          <DatePicker
             value={attendanceDate}
-            onChange={(event) => onAttendanceDateChange(event.target.value)}
+            onChange={onAttendanceDateChange}
             className="h-11 rounded-[12px] border border-[#d1d5db] px-4 text-[14px] text-[#111827] outline-none transition focus:border-[#3b82f6] focus:shadow-[0_0_0_4px_rgba(59,130,246,0.12)]"
           />
         </label>

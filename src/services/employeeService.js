@@ -37,11 +37,17 @@ function normalizeEmployeeRecord(employee = {}) {
     designation: String(employee.designation || '').trim(),
     role: employee.role || '',
     phone: employee.phone || employee.contact_number || employee.contactNumber || '',
+    countryCode: employee.country_code || employee.countryCode || '',
     joiningDate: employee.joiningDate || employee.date_of_joining || employee.dateOfJoining || '',
     employmentType: employee.employmentType || employee.employment_type || '',
     employmentStatus: employee.employmentStatus || employee.employment_status || '',
     exitDate: employee.exitDate || employee.exit_date || '',
+    lastWorkingDate: employee.lastWorkingDate || employee.last_working_date || '',
     workLocation: employee.workLocation || employee.work_location || '',
+    bankAccountHolderName: employee.bankAccountHolderName || employee.bank_account_holder_name || '',
+    bankName: employee.bankName || employee.bank_name || '',
+    accountNumber: employee.accountNumber || employee.bank_account_number || '',
+    ifscCode: employee.ifscCode || employee.bank_ifsc_code || '',
   }
 }
 

@@ -1,7 +1,7 @@
 import Card from '../../ui/Card.jsx'
-import FormField from '../../auth/FormField.jsx'
 import SelectField from '../../ui/SelectField.jsx'
 import FieldError from '../../ui/FieldError.jsx'
+import DatePicker from '../../ui/DatePicker.jsx'
 import {
   EMPLOYEE_EMPLOYMENT_STATUS_OPTIONS,
   EMPLOYEE_EMPLOYMENT_TYPE_OPTIONS,
@@ -21,9 +21,15 @@ function EmploymentInformationSection({
   onChange,
   onBlur,
 }) {
-    return (
+  const showLastWorkingDate = formData.employmentStatus === 'ON_NOTICE'
+  const showExitDate = formData.employmentStatus === 'EXITED'
+
+  return (
     <Card className="rounded-[24px] border border-[#e5e5e5] bg-white p-6 shadow-sm">
-      <h3 className="mb-4 text-[18px] font-extrabold text-[#111827]">Employment Information</h3>
+      <h3 className="mb-4 text-[18px] font-extrabold text-[#111827]">
+        Employment Information
+      </h3>
+
       <div className="grid gap-5 md:grid-cols-2">
         <SelectField
           label="Department"
@@ -34,6 +40,7 @@ function EmploymentInformationSection({
           options={departmentOptions}
           className={inputClass}
         />
+
         <SelectField
           label="Designation"
           id="designation"
@@ -43,6 +50,7 @@ function EmploymentInformationSection({
           options={designationOptions}
           className={inputClass}
         />
+
         <SelectField
           label="Reporting Manager"
           id="reportingManager"
@@ -52,6 +60,7 @@ function EmploymentInformationSection({
           options={managerOptions}
           className={inputClass}
         />
+
         <SelectField
           label="Employment Type"
           id="employmentType"
@@ -61,6 +70,7 @@ function EmploymentInformationSection({
           options={EMPLOYEE_EMPLOYMENT_TYPE_OPTIONS}
           className={inputClass}
         />
+
         <SelectField
           label="Employment Status"
           id="employmentStatus"
@@ -70,24 +80,26 @@ function EmploymentInformationSection({
           options={EMPLOYEE_EMPLOYMENT_STATUS_OPTIONS}
           className={inputClass}
         />
-        <FormField
-          label="Joining Date"
-          id="joiningDate"
-          type="date"
-          value={formData.joiningDate}
-          onChange={onChange}
-          onBlur={onBlur}
-          className={inputClass}
-        />
-        <FormField
-          label="Exit Date"
-          id="exitDate"
-          type="date"
-          value={formData.exitDate}
-          onChange={onChange}
-          onBlur={onBlur}
-          className={inputClass}
-          />
+
+        <div>
+          <label className="mb-[4px] block text-[18px] font-extrabold" htmlFor="joiningDate">Joining Date</label>
+          <DatePicker value={formData.joiningDate} onChange={(value) => onChange({ target: { name: 'joiningDate', value } })} onBlur={() => onBlur({ target: { name: 'joiningDate' } })} ariaLabel="Joining Date" className={inputClass} />
+        </div>
+
+        {showLastWorkingDate && (
+          <div>
+            <label className="mb-[4px] block text-[18px] font-extrabold" htmlFor="lastWorkingDate">Last Working Date</label>
+            <DatePicker value={formData.lastWorkingDate} onChange={(value) => onChange({ target: { name: 'lastWorkingDate', value } })} onBlur={() => onBlur({ target: { name: 'lastWorkingDate' } })} ariaLabel="Last Working Date" className={inputClass} />
+          </div>
+        )}
+
+        {showExitDate && (
+          <div>
+            <label className="mb-[4px] block text-[18px] font-extrabold" htmlFor="exitDate">Exit Date</label>
+            <DatePicker value={formData.exitDate} onChange={(value) => onChange({ target: { name: 'exitDate', value } })} onBlur={() => onBlur({ target: { name: 'exitDate' } })} ariaLabel="Exit Date" className={inputClass} />
+          </div>
+        )}
+
         <SelectField
           label="Work Location"
           id="workLocation"
@@ -97,6 +109,7 @@ function EmploymentInformationSection({
           options={EMPLOYEE_WORK_LOCATION_OPTIONS}
           className={inputClass}
         />
+
         <SelectField
           label="Shift"
           id="shift"
@@ -115,7 +128,15 @@ function EmploymentInformationSection({
         <FieldError>{fieldError('employmentType')}</FieldError>
         <FieldError>{fieldError('employmentStatus')}</FieldError>
         <FieldError>{fieldError('joiningDate')}</FieldError>
-        <FieldError>{fieldError('exitDate')}</FieldError>
+
+        {showLastWorkingDate && (
+          <FieldError>{fieldError('lastWorkingDate')}</FieldError>
+        )}
+
+        {showExitDate && (
+          <FieldError>{fieldError('exitDate')}</FieldError>
+        )}
+
         <FieldError>{fieldError('workLocation')}</FieldError>
         <FieldError>{fieldError('shift')}</FieldError>
       </div>
