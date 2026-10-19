@@ -1,3 +1,5 @@
+import { CORRECTION_REQUEST_WINDOW_DAYS } from '../constants/attendance.js'
+
 const STATUS_BUCKETS = {
   PRESENT: 'present',
   LATE: 'late',
@@ -21,6 +23,17 @@ function toDateInputValue(date) {
 
 function getTodayDateInput(referenceDate = new Date()) {
   return toDateInputValue(referenceDate)
+}
+
+function getCorrectionDateLimits(referenceDate = new Date()) {
+  const today = new Date(referenceDate)
+  const earliestDate = new Date(today)
+  earliestDate.setDate(today.getDate() - CORRECTION_REQUEST_WINDOW_DAYS)
+
+  return {
+    min: toDateInputValue(earliestDate),
+    max: toDateInputValue(today),
+  }
 }
 
 function getDefaultAttendanceDateRange(referenceDate = new Date()) {
@@ -539,4 +552,5 @@ export {
   normalizeAttendanceStatus,
   formatAttendanceDateLabel,
   formatAttendanceTrendLabel,
+  getCorrectionDateLimits,
 }

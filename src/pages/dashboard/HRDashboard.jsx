@@ -5,7 +5,7 @@ import EmployeeDashboardContent from '../../components/dashboard/employee/Employ
 import HRDashboardContent from '../../components/dashboard/hr/HRDashboardContent.jsx'
 
 function HRDashboard() {
-  const [dashboardMode, setDashboardMode] = useState('employee')
+  const [dashboardMode, setDashboardMode] = useState('hr')
 
   return (
     <DashboardLayout>

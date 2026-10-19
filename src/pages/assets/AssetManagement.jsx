@@ -26,8 +26,9 @@ function AssetManagement() {
   const { user } = useContext(UserContext)
   const navigate = useNavigate()
 
-  const canCreateMaintenance = user?.role === 'HR'
-  const canCompleteMaintenance = user?.role === 'HR'
+  const normalizedRole = String(user?.role || '').trim().toUpperCase()
+  const canCreateMaintenance = normalizedRole === 'HR' || normalizedRole === 'CEO'
+  const canCompleteMaintenance = normalizedRole === 'HR' || normalizedRole === 'CEO'
 
   const {
     inventorySummary,

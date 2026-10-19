@@ -8,6 +8,7 @@ import {
 } from '../../services/attendanceService.js'
 import { getEmployees } from '../../services/employeeService.js'
 import { UserContext } from '../../context/UserContext.jsx'
+import { getCorrectionDateLimits } from '../../utils/attendanceUtils.js'
 import { getApiErrorMessage } from '../../utils/apiErrorMessage.js'
 import DatePicker from '../ui/DatePicker.jsx'
 
@@ -57,27 +58,7 @@ const formatDateTimeForApi = (date, time) =>
   date && time ? `${date}T${time}:00+05:30` : null
 
 const getDateValue = (value) => String(value || '').slice(0, 10)
-const formatDateForInput = (date) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
 
-  return `${year}-${month}-${day}`
-}
-
-const getCorrectionDateLimits = () => {
-      const today = new Date()
-
-  const earliestDate = new Date(today)
-  earliestDate.setDate(
-    today.getDate() - CORRECTION_REQUEST_WINDOW_DAYS
-  )
-
-  return {
-    min: formatDateForInput(earliestDate),
-    max: formatDateForInput(today),
-  }
-}
 
 function getAttendanceValues(attendance, fallbackDate) {
   const breakSessions = attendance?.break_sessions || attendance?.breakSessions || []

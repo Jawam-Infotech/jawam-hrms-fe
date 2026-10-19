@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import EmployeeActions from './EmployeeActions'
 import { formatEmployeeRoleLabel } from '../../utils/employeeFormHelpers'
 
@@ -75,4 +76,4 @@ function EmployeeTableRow({
   )
 }
 
-export default EmployeeTableRow
+export default memo(EmployeeTableRow)
