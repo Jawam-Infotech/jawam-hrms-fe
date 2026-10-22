@@ -18,8 +18,16 @@ api.interceptors.request.use((config) => {
 let isRefreshing = false
 let pendingQueue = []
 
-function resolvePending(token) {
-  pendingQueue.forEach((callback) => callback(token))
+function processPendingQueue(error, token = null) {
+  pendingQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error)
+      return
+    }
+
+    resolve(token)
+  })
+
   pendingQueue = []
 }
 
@@ -27,6 +35,10 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
+
+if (!originalRequest) {
+  return Promise.reject(error)
+}
 
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error)
@@ -38,14 +50,18 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    if (isRefreshing) {
-      return new Promise((resolve) => {
-        pendingQueue.push((newToken) => {
-          originalRequest.headers.Authorization = `Bearer ${newToken}`
-          resolve(api(originalRequest))
-        })
-      })
-    }
+  if (isRefreshing) {
+  return new Promise((resolve, reject) => {
+    pendingQueue.push({
+      resolve: (newToken) => {
+        originalRequest.headers = originalRequest.headers ?? {}
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
+        resolve(api(originalRequest))
+      },
+      reject,
+    })
+  })
+}
 
     originalRequest._retry = true
     isRefreshing = true
@@ -55,14 +71,21 @@ api.interceptors.response.use(
         refresh: refreshToken,
       })
 
-      setSession({ accessToken: data.access, refreshToken: data.refresh })
-      resolvePending(data.access)
-      originalRequest.headers.Authorization = `Bearer ${data.access}`
-      return api(originalRequest)
+      setSession({
+  accessToken: data.access,
+  refreshToken: data.refresh,
+})
+
+processPendingQueue(null, data.access)
+
+originalRequest.headers = originalRequest.headers ?? {}
+originalRequest.headers.Authorization = `Bearer ${data.access}`
+
+return api(originalRequest)
     } catch (refreshError) {
       clearSession()
-      resolvePending(null)
-      return Promise.reject(refreshError)
+processPendingQueue(refreshError)
+return Promise.reject(refreshError)
     } finally {
       isRefreshing = false
     }

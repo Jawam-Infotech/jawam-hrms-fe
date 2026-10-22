@@ -224,7 +224,7 @@ const visibleMissedCheckouts = missedCheckouts.filter((attendance) => {
 
       <div className="grid grid-cols-3 gap-6 max-[1220px]:grid-cols-2 max-[760px]:grid-cols-1">
         <PerformanceScoreCard />
-        <LatestPayslipCard />
+        <LatestPayslipCard employeeId={user.id} />
         <AnnouncementCard />
       </div>
 

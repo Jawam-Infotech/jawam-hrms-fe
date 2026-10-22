@@ -5,7 +5,7 @@ import FieldError from '../../ui/FieldError.jsx'
 const inputClass =
   'h-[48px] w-full rounded-[9px] border-2 border-[#dedede] bg-white px-[16px] text-[#111827] outline-none transition-[border-color,box-shadow] duration-[250ms] focus:border-[#3a7be0] focus:shadow-[0_0_0_4px_rgba(58,123,224,0.16)] max-[380px]:h-14'
 
-function PayrollInformationSection({ formData, fieldError, onChange, onBlur }) {
+function PayrollInformationSection({ formData, fieldError, onChange, onBlur, isEditMode = false }) {
   return (
     <Card className="rounded-[24px] border border-[#e5e5e5] bg-white p-6 shadow-sm">
       <h3 className="mb-4 text-[18px] font-extrabold text-[#111827]">Payroll Information</h3>
@@ -14,8 +14,8 @@ function PayrollInformationSection({ formData, fieldError, onChange, onBlur }) {
         <FormField label="Account Number" id="accountNumber" type="text" value={formData.accountNumber} onChange={onChange} onBlur={onBlur} placeholder="Enter account number" className={inputClass} />
         <FormField label="IFSC Code" id="ifscCode" type="text" value={formData.ifscCode} onChange={onChange} onBlur={onBlur} placeholder="Enter IFSC code" className={inputClass} />
         <FormField label="Account Holder Name" id="bankAccountHolderName" type="text" value={formData.bankAccountHolderName} onChange={onChange} onBlur={onBlur} placeholder="Enter account holder name" className={inputClass}/>
-        <FormField label="Annual CTC" id="annualCtc" type="text" value={formData.annualCtc} onChange={onChange} onBlur={onBlur} placeholder="Enter annual CTC" className={inputClass} />
-        <FormField label="Monthly Salary" id="monthlySalary" type="text" value={formData.monthlySalary} onChange={onChange} onBlur={onBlur} placeholder="Enter monthly salary" className={inputClass} />
+        <FormField label="Annual CTC" id="annualCtc" type="text" value={formData.annualCtc} onChange={onChange} onBlur={onBlur} placeholder="Managed through Salary Revision" disabled={isEditMode} className={`${inputClass} disabled:cursor-not-allowed disabled:bg-[#f5f5f5]`} />
+        <FormField label="Monthly Salary" id="monthlySalary" type="text" value={formData.monthlySalary} onChange={onChange} onBlur={onBlur} placeholder="Managed through Salary Revision" disabled={isEditMode} className={`${inputClass} disabled:cursor-not-allowed disabled:bg-[#f5f5f5]`} />
       </div>
 
       <div className="mt-2 grid gap-4 md:grid-cols-2">

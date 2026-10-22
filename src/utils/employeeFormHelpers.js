@@ -134,10 +134,12 @@ function createInitialEmployeeFormValues(creatorRole = '') {
 function formatEmployeeFieldValue(fieldName, value) {
   const rawValue = String(value ?? '')
 
-  if (
-    ['phone', 'accountNumber', 'annualCtc', 'monthlySalary'].includes(fieldName)
-  ) {
+  if (['phone', 'accountNumber'].includes(fieldName)) {
     return rawValue.replace(/\D/g, '')
+  }
+
+  if (['annualCtc', 'monthlySalary'].includes(fieldName)) {
+    return rawValue.replace(/[^\d.]/g, '')
   }
 
   if (fieldName === 'ifscCode') {
@@ -171,6 +173,19 @@ function buildCreateUserPayload(formData, isEditMode = false) {
     payload.password = formData.password
   }
 
+  if (!isEditMode) {
+    const salaryFields = [
+      ['monthly_salary', formData.monthlySalary],
+      ['annual_ctc', formData.annualCtc],
+    ]
+
+    salaryFields.forEach(([key, value]) => {
+      if (String(value ?? '').trim()) {
+        payload[key] = String(value).trim()
+      }
+    })
+  }
+
   const optionalFields = [
     ['date_of_birth', formData.dateOfBirth],
     ['gender', formData.gender],
@@ -197,8 +212,8 @@ function buildCreateUserPayload(formData, isEditMode = false) {
     }
   })
 
-  // Last Working Date applies only to ON_NOTICE employees.
-  if (formData.employmentStatus === 'ON_NOTICE') {
+  // Last Working Date applies to employees who are on notice or pending exit.
+  if (['ON_NOTICE', 'EXIT_PENDING'].includes(formData.employmentStatus)) {
   if (String(formData.lastWorkingDate ?? '').trim()) {
     payload.last_working_date = formData.lastWorkingDate
   }

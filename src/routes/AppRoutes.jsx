@@ -35,6 +35,8 @@ const ProjectDetails = lazy(() => import('../pages/projects/ProjectDetails.jsx')
 
 const Performance = lazy(() => import('../pages/performance/Performance.jsx'))
 const Payroll = lazy(() => import('../pages/payroll/Payroll.jsx'))
+const PayrollDetail = lazy(() => import('../pages/payroll/PayrollDetail.jsx'))
+const FinalSettlementDetail = lazy(() => import('../pages/payroll/FinalSettlementDetail.jsx'))
 const Expenses = lazy(() => import('../pages/expenses/Expenses.jsx'))
 const Assets = lazy(() => import('../pages/assets/Assets.jsx'))
 const AssetManagement = lazy(() => import('../pages/assets/AssetManagement.jsx'))
@@ -316,6 +318,47 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/payroll/settings"
+          element={
+            <ProtectedRoute allowedRoles={['HR', 'CEO']}>
+              <Payroll />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/payroll/reports"
+          element={<ProtectedRoute allowedRoles={['HR', 'CEO']}><Payroll /></ProtectedRoute>}
+        />
+
+        <Route
+          path="/payroll/settlements/:id"
+          element={
+            <ProtectedRoute>
+              <FinalSettlementDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/payroll/:id"
+          element={
+            <ProtectedRoute>
+              <PayrollDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+  path="/payroll/salary-revisions"
+  element={
+    <ProtectedRoute allowedRoles={['HR', 'CEO']}>
+      <Payroll />
+    </ProtectedRoute>
+  }
+/>
 
 
         {/* ==================== TIMESHEET ==================== */}

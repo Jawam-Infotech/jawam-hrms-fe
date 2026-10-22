@@ -45,6 +45,7 @@ const BACKEND_FIELD_MAP = {
   employment_type: 'employmentType',
   employment_status: 'employmentStatus',
   joining_date: 'joiningDate',
+  date_of_joining: 'joiningDate',
   exit_date: 'exitDate',
   last_working_date: 'lastWorkingDate',
   work_location: 'workLocation',
@@ -53,6 +54,8 @@ const BACKEND_FIELD_MAP = {
   bank_name: 'bankName',
   bank_account_number: 'accountNumber',
   bank_ifsc_code: 'ifscCode',
+  monthly_salary: 'monthlySalary',
+  annual_ctc: 'annualCtc',
 }
 
 
@@ -176,14 +179,12 @@ function parseBackendErrors(error) {
           'non_field_errors',
         ].includes(key)
       ) {
-        const text =
-          Array.isArray(value)
-            ? value[0]
-            : value
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          return
+        }
 
-        message =
-          message ||
-          String(text || '')
+        const text = Array.isArray(value) ? value[0] : value
+        message = message || String(text || '')
 
         return
       }
@@ -200,11 +201,28 @@ function parseBackendErrors(error) {
       ) {
         fieldErrors[mappedKey] =
           value
+      } else if (value && typeof value === 'object') {
+        const nestedValue = value[mappedKey] || value[key]
+        if (Array.isArray(nestedValue)) {
+          fieldErrors[mappedKey] = String(nestedValue[0] || '')
+        } else if (nestedValue) {
+          fieldErrors[mappedKey] = String(nestedValue)
+        }
       }
     },
   )
 
-  if (!message) {
+  if (data.detail && typeof data.detail === 'object' && !Array.isArray(data.detail)) {
+    Object.entries(data.detail).forEach(([key, value]) => {
+      const mappedKey = BACKEND_FIELD_MAP[key] || key
+      const text = Array.isArray(value) ? value[0] : value
+      if (text && typeof text !== 'object') {
+        fieldErrors[mappedKey] = String(text)
+      }
+    })
+  }
+
+  if (!message && Object.keys(fieldErrors).length === 0) {
     message =
       status === 403
         ? 'You do not have permission to create this employee.'
@@ -293,7 +311,7 @@ const [designationOptions, setDesignationOptions] = useState([])
   const [
     isLoadingEmployee,
     setIsLoadingEmployee,
-  ] = useState(false)
+  ] = useState(isEditMode)
 
     const [
     originalRole,
@@ -1159,4 +1177,5 @@ assetTypes,
 }
 
 
+export { parseBackendErrors }
 export default useEmployeeOnboarding

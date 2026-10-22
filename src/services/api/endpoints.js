@@ -11,12 +11,66 @@ const AUTH_ENDPOINTS = {
 const EMPLOYEE_ENDPOINTS = {
   listUsers: 'users/',
   createUser: 'users/create-user/',
-  managers: '/users/managers/',
+  managers: 'users/managers/',
   departments: 'departments/',
 departmentById: (departmentId) => `departments/${departmentId}/`,
 designations: 'designations/',
 designationById: (designationId) => `designations/${designationId}/`,
 }
+
+const PAYROLL_ENDPOINTS = {
+  list: 'payroll/',
+  byId: (payrollId) => `payroll/${payrollId}/`,
+  payslip: (payrollId) => `payroll/${payrollId}/payslip/`,
+  approve: (payrollId) => `payroll/${payrollId}/approve/`,
+  reject: (payrollId) => `payroll/${payrollId}/reject/`,
+  ceoCorrection: (payrollId) => `payroll/${payrollId}/ceo-correction/`,
+  correction: (payrollId) => `payroll/${payrollId}/correction/`,
+  pay: (payrollId) => `payroll/${payrollId}/pay/`,
+  cancelRequest: (payrollId) => `payroll/${payrollId}/cancel-request/`,
+  cancelApprove: (payrollId) => `payroll/${payrollId}/cancel-approve/`,
+  cancelReject: (payrollId) => `payroll/${payrollId}/cancel-reject/`,
+  createReplacement: (payrollId) => `payroll/${payrollId}/create-replacement/`,
+  regenerate: (payrollId) => `payroll/${payrollId}/regenerate/`,
+  settings: 'payroll/settings/',
+  generate: 'payroll/generate/',
+  lateGenerationApprove: 'payroll/late-generation-approve/',
+  exportExcel: 'payroll/export/excel/',
+}
+
+const SETTLEMENT_ENDPOINTS = {
+  list: 'settlements/',
+  byId: (settlementId) => `settlements/${settlementId}/`,
+  regenerate: (settlementId) =>
+    `settlements/${settlementId}/regenerate/`,
+  approve: (settlementId) =>
+    `settlements/${settlementId}/approve/`,
+  reject: (settlementId) =>
+    `payroll/settlements/${settlementId}/reject/`,
+  correction: (settlementId) =>
+    `settlements/${settlementId}/correction/`,
+  ceoCorrection: (settlementId) =>
+    `payroll/settlements/${settlementId}/ceo-correction/`,
+  pay: (settlementId) =>
+    `settlements/${settlementId}/pay/`,
+  cancel: (settlementId) =>
+    `settlements/${settlementId}/cancel/`,
+  createReplacement: (settlementId) =>
+    `settlements/${settlementId}/create-replacement/`,
+  statement: (settlementId) =>
+    `settlements/${settlementId}/statement/`,
+}
+
+const SALARY_REVISION_ENDPOINTS = {
+  list: 'salary-revisions/',
+  byId: (revisionId) => `salary-revisions/${revisionId}/`,
+  approve: (revisionId) =>
+    `salary-revisions/${revisionId}/approve/`,
+  reject: (revisionId) =>
+    `salary-revisions/${revisionId}/reject/`,
+}
+
+
 
 const ATTENDANCE_ENDPOINTS = {
   checkIn: 'attendance/check-in/',
@@ -180,4 +234,15 @@ rejectInventoryRequest: (requestId) =>
 export const HOLIDAY_ENDPOINTS = {
   holidays: 'holidays/',
 }
-export { AUTH_ENDPOINTS, EMPLOYEE_ENDPOINTS, ATTENDANCE_ENDPOINTS, LEAVE_ENDPOINTS, NOTIFICATION_ENDPOINTS, ASSETS_ENDPOINTS,}
+
+export {
+  AUTH_ENDPOINTS,
+  EMPLOYEE_ENDPOINTS,
+  ATTENDANCE_ENDPOINTS,
+  LEAVE_ENDPOINTS,
+  NOTIFICATION_ENDPOINTS,
+  ASSETS_ENDPOINTS,
+  PAYROLL_ENDPOINTS,
+  SALARY_REVISION_ENDPOINTS,
+  SETTLEMENT_ENDPOINTS,
+}

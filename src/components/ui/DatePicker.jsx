@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 const MONTHS = Array.from({ length: 12 }, (_, month) =>
@@ -32,6 +33,9 @@ function DatePicker({
   className = '',
   placeholder = 'Select date',
   ariaLabel,
+  monthOnly = false,
+  showCalendarIcon = true,
+  portal = false,
 }) {
   const inputDate = parseDate(value)
   const today = new Date()
@@ -43,10 +47,32 @@ function DatePicker({
     Math.floor((inputDate?.getFullYear() ?? today.getFullYear()) / 12) * 12,
   )
   const rootRef = useRef(null)
+  const popupRef = useRef(null)
+  const [popupPosition, setPopupPosition] = useState(null)
+
+  useEffect(() => {
+    if (!open || !portal) return undefined
+    const updatePosition = () => {
+      const rect = rootRef.current?.getBoundingClientRect()
+      if (!rect) return
+      setPopupPosition({
+        left: rect.left,
+        top: rect.bottom + 8,
+        width: Math.min(320, window.innerWidth - 32),
+      })
+    }
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition, true)
+    }
+  }, [open, portal])
 
   useEffect(() => {
     const close = (event) => {
-      if (!rootRef.current?.contains(event.target)) setOpen(false)
+      if (!rootRef.current?.contains(event.target) && !popupRef.current?.contains(event.target)) setOpen(false)
     }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
@@ -94,17 +120,17 @@ function DatePicker({
         disabled={disabled}
         onClick={() => {
           setOpen((current) => !current)
-          setView('day')
+          setView(monthOnly ? 'year' : 'day')
         }}
         onBlur={onBlur}
         className={`flex min-h-11 w-full items-center justify-between rounded-xl border border-[#d1d5db] bg-white px-3 py-2 text-left text-[14px] text-[#111827] outline-none transition focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/20 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
       >
-        <span className={value ? '' : 'text-[#9ca3af]'}>{value || placeholder}</span>
-        <span aria-hidden="true">📅</span>
+        <span className={value ? '' : 'text-[#9ca3af]'}>{monthOnly && value ? `${MONTHS[month]} ${year}` : value || placeholder}</span>
+        {showCalendarIcon && <span aria-hidden="true">📅</span>}
       </button>
 
-      {open && (
-        <div className="absolute z-50 mt-2 w-[min(320px,calc(100vw-2rem))] min-w-[280px] rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-xl">
+      {open && (portal ? createPortal(
+        <div ref={popupRef} style={{ position: 'fixed', left: popupPosition?.left, top: popupPosition?.top, width: popupPosition?.width }} className="z-[60] min-w-[280px] rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-xl">
           {view === 'day' && (
             <>
               <div className="mb-3 flex items-center justify-between">
@@ -143,11 +169,30 @@ function DatePicker({
           {view === 'month' && (
             <>
               <div className="mb-3 flex items-center justify-between font-bold"><button type="button" onClick={() => setView('year')} aria-label="Back to year picker">‹</button><span>{year}</span><button type="button" onClick={() => setView('day')} aria-label="Close month picker">×</button></div>
-              <div className="grid grid-cols-3 gap-2">{MONTHS.map((label, candidate) => <button key={label} type="button" disabled={monthDisabled(candidate)} onClick={() => { setMonth(candidate); setView('day') }} className={`rounded-lg px-2 py-3 text-sm ${candidate === month ? 'bg-[#2563eb] text-white' : 'hover:bg-[#eff6ff]'} disabled:text-[#cbd5e1]`}>{label}</button>)}</div>
+              <div className="grid grid-cols-3 gap-2">{MONTHS.map((label, candidate) => <button key={label} type="button" disabled={monthDisabled(candidate)} onClick={() => { setMonth(candidate); monthOnly ? selectDate(new Date(year, candidate, 1)) : setView('day') }} className={`rounded-lg px-2 py-3 text-sm ${candidate === month ? 'bg-[#2563eb] text-white' : 'hover:bg-[#eff6ff]'} disabled:text-[#cbd5e1]`}>{label}</button>)}</div>
             </>
           )}
+        </div>, document.body,
+      ) : (
+        <div ref={popupRef} className="absolute z-50 mt-2 w-[min(320px,calc(100vw-2rem))] min-w-[280px] rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-xl">
+          {view === 'day' && (
+            <>
+              <div className="mb-3 flex items-center justify-between">
+                <button type="button" className="rounded-lg px-2 py-1 text-lg hover:bg-[#eff6ff]" onClick={() => { const date = new Date(year, month - 1, 1); setYear(date.getFullYear()); setMonth(date.getMonth()) }} aria-label="Previous month">‹</button>
+                <button type="button" className="rounded-lg px-3 py-1 font-bold hover:bg-[#eff6ff]" onClick={() => setView('year')}>{MONTHS[month]} {year}</button>
+                <button type="button" className="rounded-lg px-2 py-1 text-lg hover:bg-[#eff6ff]" onClick={() => { const date = new Date(year, month + 1, 1); setYear(date.getFullYear()); setMonth(date.getMonth()) }} aria-label="Next month">›</button>
+              </div>
+              <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-[#6b7280]">
+                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => <span key={day}>{day}</span>)}
+                {days.map((date, index) => date ? <button key={formatDate(date)} type="button" disabled={isDisabled(date)} onClick={() => selectDate(date)} className={`h-9 rounded-lg text-sm ${sameDate(date, inputDate) ? 'bg-[#2563eb] text-white' : 'hover:bg-[#eff6ff]'} disabled:cursor-not-allowed disabled:text-[#cbd5e1]`}>{date.getDate()}</button> : <span key={`blank-${index}`} />)}
+              </div>
+              <div className="mt-3 flex justify-between border-t border-[#f1f5f9] pt-3 text-xs font-semibold"><button type="button" className="text-[#2563eb] hover:underline" onClick={() => selectDate(today)}>Today</button><button type="button" className="text-[#6b7280] hover:underline" onClick={() => { onChange?.(''); setOpen(false) }}>Clear</button></div>
+            </>
+          )}
+          {view === 'year' && (<><div className="mb-3 flex items-center justify-between font-bold"><span>Select Year</span><button type="button" onClick={() => setView('day')} aria-label="Close year picker">×</button></div><div className="mb-3 flex items-center justify-between"><button type="button" disabled={!canGoPreviousYears} onClick={() => setYearPageStart((start) => start - 12)} className="rounded-lg px-2 py-1 text-lg hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:text-[#cbd5e1]" aria-label="Previous years">‹</button><span className="text-sm font-bold text-[#374151]">{yearPageStart} – {yearPageStart + 11}</span><button type="button" disabled={!canGoNextYears} onClick={() => setYearPageStart((start) => start + 12)} className="rounded-lg px-2 py-1 text-lg hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:text-[#cbd5e1]" aria-label="Next years">›</button></div><div className="grid grid-cols-3 gap-2">{years.map((candidate) => <button key={candidate} type="button" disabled={yearDisabled(candidate)} onClick={() => { setYear(candidate); setView('month') }} className={`rounded-lg px-2 py-3 text-sm ${candidate === year ? 'bg-[#2563eb] text-white' : 'hover:bg-[#eff6ff]'} disabled:text-[#cbd5e1]`}>{candidate}</button>)}</div></>)}
+          {view === 'month' && (<><div className="mb-3 flex items-center justify-between font-bold"><button type="button" onClick={() => setView('year')} aria-label="Back to year picker">‹</button><span>{year}</span><button type="button" onClick={() => setView('day')} aria-label="Close month picker">×</button></div><div className="grid grid-cols-3 gap-2">{MONTHS.map((label, candidate) => <button key={label} type="button" disabled={monthDisabled(candidate)} onClick={() => { setMonth(candidate); monthOnly ? selectDate(new Date(year, candidate, 1)) : setView('day') }} className={`rounded-lg px-2 py-3 text-sm ${candidate === month ? 'bg-[#2563eb] text-white' : 'hover:bg-[#eff6ff]'} disabled:text-[#cbd5e1]`}>{label}</button>)}</div></>)}
         </div>
-      )}
+      ))}
     </div>
   )
 }

@@ -68,8 +68,9 @@ function AssetFilters({
     setIsOpen(false)
   }
 
-  const activeFilterCount = Object.values(filters).filter(
-    (value) =>
+  const activeFilterCount = Object.entries(filters).filter(
+    ([key, value]) =>
+      key !== 'page' &&
       value !== '' &&
       value !== null &&
       value !== undefined,
@@ -124,6 +125,11 @@ function AssetFilters({
                 <label className="mb-1.5 block text-[12px] font-bold text-[#374151]">
                   {field.label}
                 </label>
+
+                {field.render?.({
+                  value: draftFilters[field.key] || '',
+                  onChange: (value) => handleChange(field.key, value),
+                })}
 
                 {field.type === 'select' && (
                   <select

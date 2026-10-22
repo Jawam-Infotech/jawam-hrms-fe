@@ -2,6 +2,7 @@ import { createContext, useState, useCallback, useEffect } from 'react'
 import { loginRequest, fetchCurrentUser, logoutRequest } from '../services/authService'
 import { getAccessToken, getStoredUser, setSession, clearSession } from '../utils/tokenStorage'
 
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const UserContext = createContext()
 

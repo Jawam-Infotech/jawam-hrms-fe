@@ -3,12 +3,13 @@ function RequestReviewComment({
   onChange,
   required = false,
   error = '',
+  label = 'Review Comment',
 }) {
   return (
     <div className="mt-6 space-y-2 border-t border-[#e5e7eb] pt-5">
       <div>
         <label className="text-[12px] font-extrabold uppercase tracking-wide text-[#6b7280]">
-          Review Comment
+          {label}
           {required && (
             <span className="ml-1 text-[#dc2626]">*</span>
           )}

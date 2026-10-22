@@ -21,7 +21,7 @@ function EmploymentInformationSection({
   onChange,
   onBlur,
 }) {
-  const showLastWorkingDate = formData.employmentStatus === 'ON_NOTICE'
+  const showLastWorkingDate = ['ON_NOTICE', 'EXIT_PENDING'].includes(formData.employmentStatus)
   const showExitDate = formData.employmentStatus === 'EXITED'
 
   return (

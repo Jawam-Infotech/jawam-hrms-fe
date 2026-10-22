@@ -4,15 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "lint": "eslint .",
-  "test": "vitest",
-  "preview": "vite preview"
-},
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "test": "vitest",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.2",
     "axios": "^1.18.1",
+    "html2pdf.js": "^0.14.0",
     "lucide-react": "^1.26.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
