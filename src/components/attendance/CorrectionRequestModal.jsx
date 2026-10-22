@@ -58,6 +58,7 @@ const formatDateTimeForApi = (date, time) =>
   date && time ? `${date}T${time}:00+05:30` : null
 
 const getDateValue = (value) => String(value || '').slice(0, 10)
+
 function getAttendanceValues(attendance, fallbackDate) {
   const breakSessions = attendance?.break_sessions || attendance?.breakSessions || []
   const date = getDateValue(attendance?.rawDate || attendance?.date) || fallbackDate

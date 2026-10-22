@@ -28,7 +28,19 @@ function Attendance() {
     goToNextPage,
     goToPreviousPage,
   } = useAttendanceHistory(currentDate)
-   const { attendance } = useAttendance()
+  const { attendance } = useAttendance()
+
+  const calendarMap = useMemo(() => {
+    const map = {}
+    if (Array.isArray(calendar)) {
+      calendar.forEach((item) => {
+        if (item?.date) {
+          map[item.date] = item
+        }
+      })
+    }
+    return map
+  }, [calendar])
 
   const weeks = useMemo(
     () => getMonthWeeks(currentDate.getFullYear(), currentDate.getMonth()),
@@ -167,9 +179,9 @@ function Attendance() {
                     const dayNumber = date.getDate()
                     const isWeekend = date.getDay() === 0 || date.getDay() === 6
                     const dateKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
-const calendarEntry = isCurrentMonth ? calendar.find((item) => item.date === dateKey) : null
-const holiday = isCurrentMonth ? holidayMap[dateKey] : null
-const entry = isCurrentMonth ? recordsByDay[dayNumber] : null
+                    const calendarEntry = isCurrentMonth ? calendarMap[dateKey] : null
+                    const holiday = isCurrentMonth ? holidayMap[dateKey] : null
+                    const entry = isCurrentMonth ? recordsByDay[dayNumber] : null
 
                     const isSelected = false
                     const isHoliday = calendarEntry?.status === 'HOLIDAY' || Boolean(holiday)

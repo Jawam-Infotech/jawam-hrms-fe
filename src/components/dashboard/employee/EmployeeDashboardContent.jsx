@@ -60,41 +60,47 @@ const hasCheckedOut =
     return 'Good evening'
   }
 
+  const [actionError, setActionError] = useState('')
+
   const handleCheckIn = async () => {
     try {
+      setActionError('')
       await checkIn()
       await loadTodayAttendance()
     } catch (error) {
-      alert(error.response?.data?.detail || 'Failed to check in.')
+      setActionError(error.response?.data?.detail || 'Failed to check in.')
     }
   }
 
   const handleCheckOut = async () => {
     try {
+      setActionError('')
       await checkOut()
       await loadTodayAttendance()
       setShowCheckoutModal(false)
     } catch (error) {
-      alert(error.response?.data?.detail || 'Failed to check out.')
+      setActionError(error.response?.data?.detail || 'Failed to check out.')
     }
   }
 
   const handleBreak = async () => {
     try {
+      setActionError('')
       await startBreak()
       await loadTodayAttendance()
     } catch (error) {
-      alert(error.response?.data?.detail || 'Failed to start break.')
+      setActionError(error.response?.data?.detail || 'Failed to start break.')
       await loadTodayAttendance()
     }
   }
 
   const handleResumeWork = async () => {
     try {
+      setActionError('')
       await endBreak()
       await loadTodayAttendance()
     } catch (error) {
-      alert(error.response?.data?.detail || 'Failed to end break.')
+      setActionError(error.response?.data?.detail || 'Failed to end break.')
       await loadTodayAttendance()
     }
   }
@@ -133,6 +139,18 @@ const visibleMissedCheckouts = missedCheckouts.filter((attendance) => {
 })
   return (
     <div className="space-y-8">
+      {actionError && (
+        <div className="flex items-center justify-between rounded-[14px] border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-sm font-semibold text-[#b91c1c]">
+          <span>{actionError}</span>
+          <button
+            type="button"
+            onClick={() => setActionError('')}
+            className="ml-3 text-[#b91c1c] hover:opacity-75"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[36px] font-black text-[#111827] mb-2">{getGreeting()}, {user.name}</h1>
@@ -141,6 +159,11 @@ const visibleMissedCheckouts = missedCheckouts.filter((attendance) => {
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
+
+
+
+
+
 
         <div className="flex gap-3 flex-wrap">
           <button
