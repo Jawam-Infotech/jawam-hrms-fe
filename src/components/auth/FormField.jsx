@@ -13,6 +13,7 @@ function FormField({
   maxLength,
   inputMode,
   pattern,
+  disabled,
 }) {
   return (
     <div className={rightElement ? 'relative mb-[20px] block' : 'mb-5 block'}>
@@ -38,6 +39,7 @@ function FormField({
         maxLength={maxLength}
         inputMode={inputMode}
         pattern={pattern}
+        disabled={disabled}
       />
 
       {rightElement}

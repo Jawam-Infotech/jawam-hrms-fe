@@ -52,6 +52,7 @@ export const EMPLOYEE_EMPLOYMENT_TYPE_OPTIONS = [
 export const EMPLOYEE_EMPLOYMENT_STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
   { value: 'ON_NOTICE', label: 'On Notice' },
+  { value: 'EXIT_PENDING', label: 'Exit Pending' },
   { value: 'EXITED', label: 'Exited' },
 ]
 

@@ -8,10 +8,12 @@ function SelectField({
   options,
   placeholder,
   className,
+  labelClass = 'mb-[4px] block text-[18px] leading-[1.2] font-extrabold max-[760px]:text-lg',
+  disabled = false,
 }) {
   return (
     <div className="block">
-      <label className="mb-[4px] block text-[18px] leading-[1.2] font-extrabold max-[760px]:text-lg" htmlFor={id}>
+      <label className={labelClass} htmlFor={id}>
         {label}
         {required && <span className="ml-1 text-[#3b82f6]">*</span>}
       </label>
@@ -23,6 +25,7 @@ function SelectField({
         onChange={onChange}
         onBlur={onBlur}
         required={required}
+        disabled={disabled}
       >
         {placeholder && (
           <option value="">

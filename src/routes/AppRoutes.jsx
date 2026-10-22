@@ -33,6 +33,8 @@ import ProjectDetails from '../pages/projects/ProjectDetails.jsx'
 
 import Performance from '../pages/performance/Performance.jsx'
 import Payroll from '../pages/payroll/Payroll.jsx'
+import PayrollDetail from '../pages/payroll/PayrollDetail.jsx'
+import FinalSettlementDetail from '../pages/payroll/FinalSettlementDetail.jsx'
 import Expenses from '../pages/expenses/Expenses.jsx'
 import Assets from '../pages/assets/Assets.jsx'
 import AssetManagement from '../pages/assets/AssetManagement.jsx'
@@ -313,6 +315,47 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/payroll/settings"
+          element={
+            <ProtectedRoute allowedRoles={['HR', 'CEO']}>
+              <Payroll />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/payroll/reports"
+          element={<ProtectedRoute allowedRoles={['HR', 'CEO']}><Payroll /></ProtectedRoute>}
+        />
+
+        <Route
+          path="/payroll/settlements/:id"
+          element={
+            <ProtectedRoute>
+              <FinalSettlementDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/payroll/:id"
+          element={
+            <ProtectedRoute>
+              <PayrollDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+  path="/payroll/salary-revisions"
+  element={
+    <ProtectedRoute allowedRoles={['HR', 'CEO']}>
+      <Payroll />
+    </ProtectedRoute>
+  }
+/>
 
 
         {/* ==================== TIMESHEET ==================== */}

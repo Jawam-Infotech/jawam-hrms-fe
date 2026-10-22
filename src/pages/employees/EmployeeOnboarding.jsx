@@ -207,6 +207,7 @@ if (isHrEditingCeo) {
           fieldError={fieldError}
           onChange={handleFieldChange}
           onBlur={handleFieldBlur}
+          isEditMode={isEditMode}
         />
 
         <SystemAccessSection
