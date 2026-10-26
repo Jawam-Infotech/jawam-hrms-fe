@@ -14,7 +14,7 @@ const dateValue = (value) => {
   return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
 }
 
-function FinalSettlementPreview({ settlement, isOpen, onClose }) {
+function FinalSettlementPreview({ settlement, isOpen, onClose, previewRef, exportOnly = false }) {
   if (!isOpen || !settlement) return null
   const version = settlement.current_version || {}
   const results = version.calculation_results || {}
@@ -36,10 +36,14 @@ function FinalSettlementPreview({ settlement, isOpen, onClose }) {
   const employeeCode = settlement.employee_code || settlement.employee_id || employee.employee_code || employee.employee_id || employee.code
   const netPayable = results.net_payable ?? settlement.net_payable
 
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="settlement-preview-title">
+  const containerClassName = exportOnly
+    ? 'pointer-events-none absolute left-[-10000px] top-0 w-[794px] bg-white p-0'
+    : 'fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4'
+
+  return <div className={containerClassName} role="dialog" aria-modal="true" aria-labelledby="settlement-preview-title">
     <div className="mx-auto max-w-4xl rounded-[24px] bg-[#f3f4f6] shadow-2xl">
       <div className="flex items-center justify-between border-b border-[#e5e7eb] bg-white px-6 py-5"><h2 id="settlement-preview-title" className="text-[22px] font-black text-[#111827]">Final Settlement Preview</h2><button type="button" onClick={onClose} aria-label="Close settlement preview" className="rounded-full p-1 text-[#6b7280] hover:bg-[#f3f4f6]"><X size={22} /></button></div>
-      <article className="mx-auto my-6 max-w-[794px] bg-white p-8 text-[#111827] shadow-sm print:my-0 print:max-w-none print:shadow-none sm:p-10">
+      <article ref={previewRef} data-settlement-preview className="mx-auto my-6 max-w-[794px] bg-white p-8 text-[#111827] shadow-sm print:my-0 print:max-w-none print:shadow-none sm:p-10">
         <header className="flex flex-wrap items-start justify-between gap-5 border-b-2 border-[#111827] pb-5"><div><img src="/assets/jawam.png" alt="Jawam Infotech" className="h-28 w-44 object-contain object-left" /></div><div className="text-right"><h1 className="text-[20px] font-black uppercase tracking-wider">Final Settlement Statement</h1><span className={`mt-2 inline-block rounded-full px-3 py-1 text-[11px] font-extrabold uppercase ${paymentStatusClass(status)}`}>{valueOrDash(status)}</span></div></header>
         <div className="mt-5 grid gap-3 rounded-xl bg-[#f8fafc] p-4 text-[12px] sm:grid-cols-4"><Info label="Settlement ID" value={settlement.id} /><Info label="Generated Date" value={dateValue(settlement.created_at || settlement.generated_at)} /><Info label="Payment Date" value={dateValue(settlement.actual_payment_date || settlement.payment_date)} /><Info label="Payment Status" value={settlement.payment_status || settlement.status} /></div>
         <section className="mt-6"><h3 className="border-b border-[#d1d5db] pb-2 text-[13px] font-black uppercase tracking-wider">Employee Details</h3><div className="mt-3 grid gap-x-6 gap-y-3 text-[13px] sm:grid-cols-2"><Info label="Employee Name" value={settlement.employee_name || employee.name || employee.full_name} /><Info label="Employee ID" value={employeeCode} /><Info label="Department" value={employeeFields.department} /><Info label="Designation" value={employeeFields.designation} /><Info label="Employment Start Date" value={dateValue(employeeFields.employmentStartDate)} /><Info label="Last Working Date" value={dateValue(settlement.last_working_date)} /></div></section>

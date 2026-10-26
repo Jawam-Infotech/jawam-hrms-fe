@@ -128,7 +128,7 @@ function FinalSettlement() {
                     <PaymentStatusBadge status={settlement.payment_status} />
                   </td>
                   <td className="py-4">
-                    {settlement.actual_payment_date || '—'}
+                    {settlement.actual_payment_date || settlement.payment_date || '—'}
                   </td>
                   <td className="py-4"><button type="button" onClick={() => navigate('/payroll/settlements/' + settlement.id)} className="rounded-full bg-[#e5e7eb] px-4 py-2 text-[12px] font-semibold text-[#374151]">View</button></td>
                 </tr>

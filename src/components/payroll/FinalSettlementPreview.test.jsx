@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import FinalSettlementPreview from './FinalSettlementPreview.jsx'
+
+afterEach(cleanup)
 
 describe('FinalSettlementPreview', () => {
   it('renders employee fields from the linked payroll record', () => {
@@ -22,5 +24,13 @@ describe('FinalSettlementPreview', () => {
   it('uses dashes when employee fields are unavailable', () => {
     render(<FinalSettlementPreview isOpen onClose={vi.fn()} settlement={{ current_version: { items: [] } }} />)
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+
+  it('does not render a viewport backdrop in export mode', () => {
+    render(<FinalSettlementPreview exportOnly isOpen onClose={vi.fn()} settlement={{ current_version: { items: [] } }} />)
+
+    const preview = screen.getByRole('dialog')
+    expect(preview.className).toContain('absolute')
+    expect(preview.className).not.toContain('bg-black/50')
   })
 })

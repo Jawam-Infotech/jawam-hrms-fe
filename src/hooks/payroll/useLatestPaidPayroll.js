@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getPayrolls } from '../../services/payrollService.js'
 
 const isPaid = (payroll) => String(payroll?.payment_status || '').toUpperCase() === 'PAID'
@@ -18,6 +18,7 @@ const belongsToEmployee = (payroll, employeeId) => {
 
 const latestBySalaryMonth = (records) => records
   .filter(isPaid)
+  .slice()
   .sort((a, b) => String(b.salary_month || '').localeCompare(String(a.salary_month || '')))[0] || null
 
 export const selectLatestPaidPayroll = (records, employeeId) =>
@@ -27,8 +28,10 @@ export default function useLatestPaidPayroll(employeeId) {
   const [payroll, setPayroll] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const requestRef = useRef(0)
 
   const load = useCallback(async () => {
+    const requestId = ++requestRef.current
     setLoading(true)
     setError(null)
     try {
@@ -36,24 +39,41 @@ export default function useLatestPaidPayroll(employeeId) {
       let page = 1
       let hasNext = true
       while (hasNext) {
-        const response = await getPayrolls({ page, employee: employeeId })
-        records.push(...(response.payrolls || []))
+        const response = await getPayrolls({
+          page,
+          employee: employeeId,
+          payment_status: 'PAID',
+        })
+        if (!Array.isArray(response?.payrolls)) {
+          throw new Error('Invalid payroll response.')
+        }
+        records.push(...response.payrolls)
         hasNext = Boolean(response.next)
         page += 1
       }
-      setPayroll(selectLatestPaidPayroll(records, employeeId))
+      if (requestId === requestRef.current) {
+        setPayroll(selectLatestPaidPayroll(records, employeeId))
+      }
     } catch (requestError) {
-      setPayroll(null)
-      setError(requestError)
+      if (requestId === requestRef.current) {
+        setPayroll(null)
+        setError(requestError)
+      }
     } finally {
-      setLoading(false)
+      if (requestId === requestRef.current) setLoading(false)
     }
   }, [employeeId])
 
   useEffect(() => {
     // The initial fetch synchronizes this hook with the authenticated payroll API.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (employeeId) void load()
+    if (employeeId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void load()
+    } else {
+      setPayroll(null)
+      setError(null)
+      setLoading(false)
+    }
   }, [employeeId, load])
 
   return { payroll, loading, error, retry: load }

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import usePayrollData from './usePayrollData.js'
 
@@ -89,5 +89,64 @@ describe('usePayrollData payroll correction workflow', () => {
     expect(service.payPayroll).toHaveBeenCalledWith('11', {
       actual_payment_date: '2026-10-09',
     })
+  })
+
+  it('does not let an older payroll list response replace a newer one', async () => {
+    let resolveFirst
+    let resolveSecond
+    service.getPayrolls
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve }))
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveSecond = resolve }))
+
+    const { result } = renderHook(() => usePayrollData())
+
+    let firstRequest
+    let secondRequest
+    await act(async () => {
+      firstRequest = result.current.fetchPayrolls({ page: 1, salary_month: '2026-09' })
+      secondRequest = result.current.fetchPayrolls({ page: 1, salary_month: '2026-10' })
+    })
+
+    await act(async () => {
+      resolveSecond({ payrolls: [{ id: 2 }], count: 1, next: null, previous: null })
+      await secondRequest
+    })
+    await waitFor(() => expect(result.current.payrolls).toEqual([{ id: 2 }]))
+
+    await act(async () => {
+      resolveFirst({ payrolls: [{ id: 1 }], count: 1, next: null, previous: null })
+      await firstRequest
+    })
+
+    expect(result.current.payrolls).toEqual([{ id: 2 }])
+  })
+
+  it('does not let an older payroll detail response replace the selected record', async () => {
+    let resolveFirst
+    let resolveSecond
+    service.getPayrollById
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve }))
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveSecond = resolve }))
+
+    const { result } = renderHook(() => usePayrollData())
+    let firstRequest
+    let secondRequest
+    await act(async () => {
+      firstRequest = result.current.fetchPayrollById(1)
+      secondRequest = result.current.fetchPayrollById(2)
+    })
+
+    await act(async () => {
+      resolveSecond({ id: 2 })
+      await secondRequest
+    })
+    await waitFor(() => expect(result.current.payroll).toEqual({ id: 2 }))
+
+    await act(async () => {
+      resolveFirst({ id: 1 })
+      await firstRequest
+    })
+
+    expect(result.current.payroll).toEqual({ id: 2 })
   })
 })
