@@ -244,7 +244,7 @@ function AppRoutes() {
         <Route
           path="/workupdate"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['HR']}>
               <WorkUpdate />
             </ProtectedRoute>
           }

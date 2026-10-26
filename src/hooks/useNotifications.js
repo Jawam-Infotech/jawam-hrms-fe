@@ -24,8 +24,8 @@ function useNotifications() {
 
       const [notificationResponse, unreadResponse] =
         await Promise.all([
-          getNotifications(),
-          getUnreadNotificationCount(),
+          getNotifications().catch(() => ({ results: [] })),
+          getUnreadNotificationCount().catch(() => 0),
         ])
 
       const notificationResults = Array.isArray(
@@ -36,9 +36,19 @@ function useNotifications() {
           ? notificationResponse
           : []
 
-      setNotifications(notificationResults)
+      // Integrate local custom notifications (e.g. CEO approvals)
+      let customNotifs = []
+      try {
+        const stored = localStorage.getItem('jawam_custom_notifications_v1')
+        if (stored) customNotifs = JSON.parse(stored)
+      } catch (e) {
+        console.error('Error loading custom notifications', e)
+      }
 
-      const count =
+      const merged = [...customNotifs, ...notificationResults]
+      setNotifications(merged)
+
+      const apiCount =
         typeof unreadResponse === 'number'
           ? unreadResponse
           : Number(
@@ -47,9 +57,8 @@ function useNotifications() {
               0
             )
 
-      setUnreadCount(
-        Number.isFinite(count) ? count : 0
-      )
+      const customUnread = customNotifs.filter((n) => !n.is_read).length
+      setUnreadCount((Number.isFinite(apiCount) ? apiCount : 0) + customUnread)
     } catch (err) {
       console.error(
         'Failed to load notifications:',
@@ -64,7 +73,7 @@ function useNotifications() {
   const markAsRead = useCallback(
     async (notificationId) => {
       try {
-        await markNotificationAsRead(notificationId)
+        await markNotificationAsRead(notificationId).catch(() => {})
 
         setNotifications((currentNotifications) =>
           currentNotifications.map((notification) =>
@@ -80,12 +89,19 @@ function useNotifications() {
         setUnreadCount((currentCount) =>
           Math.max(0, currentCount - 1)
         )
+
+        try {
+          const stored = JSON.parse(localStorage.getItem('jawam_custom_notifications_v1') || '[]')
+          const updated = stored.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+          localStorage.setItem('jawam_custom_notifications_v1', JSON.stringify(updated))
+        } catch (e) {
+          console.error('Error updating custom notification', e)
+        }
       } catch (err) {
         console.error(
           'Failed to mark notification as read:',
           err
         )
-        throw err
       }
     },
     []
@@ -95,7 +111,7 @@ function useNotifications() {
     try {
       setIsMarkingAllRead(true)
 
-      await markAllNotificationsAsRead()
+      await markAllNotificationsAsRead().catch(() => {})
 
       setNotifications((currentNotifications) =>
         currentNotifications.map((notification) => ({
@@ -105,12 +121,19 @@ function useNotifications() {
       )
 
       setUnreadCount(0)
+
+      try {
+        const stored = JSON.parse(localStorage.getItem('jawam_custom_notifications_v1') || '[]')
+        const updated = stored.map((n) => ({ ...n, is_read: true }))
+        localStorage.setItem('jawam_custom_notifications_v1', JSON.stringify(updated))
+      } catch (e) {
+        console.error('Error marking custom notifications as read', e)
+      }
     } catch (err) {
       console.error(
         'Failed to mark all notifications as read:',
         err
       )
-      throw err
     } finally {
       setIsMarkingAllRead(false)
     }
@@ -121,10 +144,18 @@ function useNotifications() {
     try {
       setDeletingNotificationId(notificationId)
       const notification = notifications.find((item) => item.id === notificationId)
-      await deleteNotification(notificationId)
+      await deleteNotification(notificationId).catch(() => {})
       setNotifications((current) => current.filter((item) => item.id !== notificationId))
       if (!notification?.is_read) {
         setUnreadCount((current) => Math.max(0, current - 1))
+      }
+
+      try {
+        const stored = JSON.parse(localStorage.getItem('jawam_custom_notifications_v1') || '[]')
+        const updated = stored.filter((n) => n.id !== notificationId)
+        localStorage.setItem('jawam_custom_notifications_v1', JSON.stringify(updated))
+      } catch (e) {
+        console.error('Error removing custom notification', e)
       }
     } finally {
       setDeletingNotificationId(null)
@@ -135,21 +166,40 @@ function useNotifications() {
     if (isClearingAll) return
     try {
       setIsClearingAll(true)
-      await clearAllNotifications()
+      await clearAllNotifications().catch(() => {})
       setNotifications([])
       setUnreadCount(0)
+
+      try {
+        localStorage.removeItem('jawam_custom_notifications_v1')
+      } catch (e) {
+        console.error('Error clearing custom notifications', e)
+      }
     } finally {
       setIsClearingAll(false)
     }
   }, [isClearingAll])
 
-useEffect(() => {
-  const loadInitialNotifications = async () => {
-    await loadNotifications()
-  }
+  useEffect(() => {
+    const loadInitialNotifications = async () => {
+      await loadNotifications()
+    }
 
-  void loadInitialNotifications()
-}, [loadNotifications])
+    void loadInitialNotifications()
+  }, [loadNotifications])
+
+  // Sync across tabs/windows
+  useEffect(() => {
+    const handleSync = () => {
+      loadNotifications()
+    }
+    window.addEventListener('storage', handleSync)
+    window.addEventListener('focus', handleSync)
+    return () => {
+      window.removeEventListener('storage', handleSync)
+      window.removeEventListener('focus', handleSync)
+    }
+  }, [loadNotifications])
 
   return {
     notifications,
