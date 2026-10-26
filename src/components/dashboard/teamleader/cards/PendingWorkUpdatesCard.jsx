@@ -1,6 +1,9 @@
+import { useNavigate } from 'react-router-dom'
 import DashboardCard from '../../common/DashboardCard.jsx'
 
 function PendingWorkUpdatesCard() {
+  const navigate = useNavigate()
+
   return (
     <DashboardCard>
       <div className="flex items-center gap-4 mb-4">
@@ -29,6 +32,7 @@ function PendingWorkUpdatesCard() {
 
       <button
         type="button"
+        onClick={() => navigate('/projects')}
         className="text-[#3b82f6] text-[14px] font-extrabold hover:underline mt-3"
       >
         Review Updates

@@ -15,6 +15,7 @@ import ExpensesOverviewCard from '../../components/dashboard/ceo/cards/ExpensesO
 import UpcomingInterviewsCard from '../../components/dashboard/ceo/cards/UpcomingInterviewsCard.jsx'
 import UpcomingMeetingsCard from '../../components/dashboard/ceo/cards/UpcomingMeetingsCard.jsx'
 import CEOLeaveRequestCard from '../../components/dashboard/ceo/cards/CEOLeaveRequestCard.jsx'
+import CEOHRWorkUpdatesCard from '../../components/dashboard/ceo/cards/CEOHRWorkUpdatesCard.jsx'
 
 function CEODashboard() {
   const { user } = useContext(UserContext)
@@ -259,6 +260,9 @@ function CEODashboard() {
             onFooterClick={() => navigate('/learning/calendar')}
           />
         </div>
+
+        {/* HR Operations & Work Updates */}
+        <CEOHRWorkUpdatesCard />
 
         {/* Leave Request */}
         <CEOLeaveRequestCard

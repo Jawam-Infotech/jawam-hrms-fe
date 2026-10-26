@@ -1,297 +1,865 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import StatusBadge from '../../components/ui/StatusBadge.jsx'
+import { UserContext } from '../../context/UserContext.jsx'
 
-const projectCards = [
+import EmployeeProjectsView from '../../components/projects/views/EmployeeProjectsView.jsx'
+import TLProjectsView from '../../components/projects/views/TLProjectsView.jsx'
+import HRProjectsView from '../../components/projects/views/HRProjectsView.jsx'
+import CEOProjectsView from '../../components/projects/views/CEOProjectsView.jsx'
+
+import ProjectCreateModal from '../../components/projects/modals/ProjectCreateModal.jsx'
+import TLProjectRequestModal from '../../components/projects/modals/TLProjectRequestModal.jsx'
+import TaskWorkUpdateModal from '../../components/projects/modals/TaskWorkUpdateModal.jsx'
+import TaskApprovalModal from '../../components/projects/modals/TaskApprovalModal.jsx'
+import ProjectClosureModal from '../../components/projects/modals/ProjectClosureModal.jsx'
+import TaskChangeReviewModal from '../../components/projects/modals/TaskChangeReviewModal.jsx'
+
+const STORAGE_KEY = 'jawam_projects_state_v1'
+const TL_REQUESTS_KEY = 'jawam_tl_project_requests_v1'
+const TL_PERMISSION_KEY = 'jawam_tl_can_create_projects_v1'
+const TL_CONSUMED_KEY = 'jawam_tl_creation_consumed_v1'
+
+const getInitialTLRequests = () => [
+  {
+    id: 'tlreq-initial-shivani',
+    requestedBy: 'Shivani k',
+    projectName: 'Mobile Banking & Field Attendance Overhaul',
+    description: 'Client-facing mobile module for geo-fenced punches, camera verification, and offline sync.',
+    priority: 'High',
+    staffingMode: 'TEAM',
+    justification: 'High business urgency for enterprise field workers who work outside office networks.',
+    status: 'PENDING_CEO_APPROVAL',
+    submittedAt: new Date().toLocaleDateString(),
+  },
+]
+
+function loadTLRequests() {
+  try {
+    const saved = localStorage.getItem(TL_REQUESTS_KEY)
+    if (saved) return JSON.parse(saved)
+  } catch (e) {
+    console.error('Error loading TL requests from localStorage', e)
+  }
+  return getInitialTLRequests()
+}
+
+function loadCanTLCreate(projectsList = []) {
+  try {
+    const saved = localStorage.getItem(TL_PERMISSION_KEY)
+    if (saved !== null) {
+      const parsed = JSON.parse(saved)
+      // One-time permission check: if permission was granted but a project was already created by TL, consume it
+      const hasCreatedProject = (projectsList || []).some(
+        (p) => p.createdBy === 'Shivani k' || (p.id && String(p.id).startsWith('proj-') && p.createdBy)
+      )
+      const isConsumed = localStorage.getItem(TL_CONSUMED_KEY) === 'true'
+      if (parsed === true && (isConsumed || hasCreatedProject)) {
+        localStorage.setItem(TL_PERMISSION_KEY, JSON.stringify(false))
+        localStorage.setItem(TL_CONSUMED_KEY, 'true')
+        return false
+      }
+      return parsed
+    }
+  } catch (e) {
+    console.error('Error loading TL permission from localStorage', e)
+  }
+  return false
+}
+
+// Dynamic initial enterprise projects seed
+const getInitialProjects = () => [
   {
     id: 'hrms',
-    title: 'HRMS',
-    progress: 46,
-    dueDate: '30/12/2026',
-    teamLead: 'Naman K.',
+    title: 'HRMS NextGen Suite',
+    description: 'Enterprise HRMS overhaul with modular dashboards, role governance, and attendance.',
+    status: 'ACTIVE',
     priority: 'High',
-    tagColor: 'bg-[#fee2e2] text-[#b91c1c]',
+    staffingMode: 'TEAM',
+    primaryPm: 'Rajesh Singh',
+    teamLead: 'Shivani k',
+    dueDate: '30/12/2026',
+    membersCount: 4,
+    members: [
+      { id: 'emp-kp', name: 'Kanishk Prashad', role: 'UI/UX Developer', isIndependent: false },
+      { id: 'emp-sk', name: 'Shivani k', role: 'Team Leader', isIndependent: false },
+      { id: 'emp-2', name: 'Rajesh Singh', role: 'Project Manager', isPm: true },
+      { id: 'emp-4', name: 'Brijesh Bisht', role: 'Backend Engineer', isIndependent: false },
+    ],
+    tasks: [
+      { id: 't-1', name: 'Dashboard UI Architecture', assignee: 'Kanishk Prashad', assigneeId: 'emp-kp', progress: 100, status: 'COMPLETED', reworkCount: 0, dueDate: '30/12/2026' },
+      { id: 't-2', name: 'Attendance Geolocation Punch', assignee: 'Kanishk Prashad', assigneeId: 'emp-kp', progress: 80, status: 'IN_PROGRESS', reworkCount: 0, dueDate: '30/12/2026' },
+      { id: 't-3', name: 'Leave Workflow Validation', assignee: 'Kanishk Prashad', assigneeId: 'emp-kp', progress: 100, status: 'PENDING_TL_REVIEW', reworkCount: 1, dueDate: '30/12/2026', deliverable: { type: 'LINK', value: 'https://github.com/Jawam-Infotech/jawam-hrms-fe/pull/15' } },
+      { id: 't-4', name: 'Biometric API Gateway', assignee: 'Brijesh Bisht', assigneeId: 'emp-4', progress: 40, status: 'BLOCKED', reworkCount: 0, dueDate: '30/12/2026' },
+    ],
   },
   {
-    id: 'ims',
-    title: 'IMS',
-    progress: 46,
-    dueDate: '30/12/2026',
-    teamLead: 'Naman K.',
+    id: 'ai-screen',
+    title: 'AI Resume Screening Tool',
+    description: 'Autonomous LLM-assisted candidate screening pipeline for recruitment.',
+    status: 'ACTIVE',
     priority: 'Medium',
-    tagColor: 'bg-[#fef3c7] text-[#b45309]',
+    staffingMode: 'SOLO',
+    primaryPm: 'CEO Oversight',
+    dueDate: '15/11/2026',
+    membersCount: 1,
+    members: [
+      { id: 'emp-5', name: 'Priya Verma', role: 'Full Stack Engineer', isIndependent: true },
+    ],
+    tasks: [
+      { id: 't-5', name: 'Resume Parser Core', assignee: 'Priya Verma', assigneeId: 'emp-5', progress: 100, status: 'DIRECT_APPROVAL_REQUIRED', reworkCount: 0, deliverable: { type: 'LINK', value: 'https://figma.com/file/ai-screen-prototype' }, isIndependent: true, dueDate: '20/12/2026' },
+      { id: 't-6', name: 'Candidate Scoring Algorithm', assignee: 'Priya Verma', assigneeId: 'emp-5', progress: 50, status: 'IN_PROGRESS', reworkCount: 0, isIndependent: true, dueDate: '20/12/2026' },
+    ],
   },
   {
-    id: 'jawam',
-    title: 'Jawam Website',
-    progress: 46,
-    dueDate: '30/12/2026',
-    teamLead: 'Naman K.',
+    id: 'mobile-app',
+    title: 'Employee Mobile Self-Service',
+    description: 'React Native companion app for clocking attendance and leave balance.',
+    status: 'PENDING_CEO_CLOSURE',
     priority: 'High',
-    tagColor: 'bg-[#fee2e2] text-[#b91c1c]',
+    staffingMode: 'TEAM',
+    primaryPm: 'Rajesh Singh',
+    teamLead: 'Shivani k',
+    dueDate: '10/10/2026',
+    membersCount: 2,
+    members: [
+      { id: 'emp-2', name: 'Rajesh Singh', role: 'Project Manager', isPm: true },
+      { id: 'emp-sk', name: 'Shivani k', role: 'Team Leader', isIndependent: false },
+      { id: 'emp-kp', name: 'Kanishk Prashad', role: 'Frontend Engineer', isIndependent: false },
+    ],
+    tasks: [
+      { id: 't-7', name: 'Push Notifications Hook', assignee: 'Kanishk Prashad', assigneeId: 'emp-kp', progress: 100, status: 'COMPLETED', reworkCount: 0, dueDate: '10/10/2026' },
+      { id: 't-8', name: 'App Store Submission Package', assignee: 'Rajesh Singh', assigneeId: 'emp-2', progress: 100, status: 'COMPLETED', reworkCount: 0, dueDate: '10/10/2026' },
+    ],
+  },
+  {
+    id: 'infra-cloud',
+    title: 'AWS Cloud Cost Optimization',
+    description: 'DevOps audit and spot instance automated scheduling.',
+    status: 'PLANNED',
+    priority: 'Low',
+    staffingMode: 'TEAM',
+    primaryPm: null,
+    dueDate: '20/01/2027',
+    membersCount: 1,
+    members: [
+      { id: 'emp-6', name: 'Karan Mehra', role: 'DevOps Specialist', isIndependent: false },
+    ],
+    tasks: [],
   },
 ]
 
-const assignedTasks = [
-  { id: '1', name: 'Dashboard UI', project: 'HRMS', progress: 80, status: 'In Progress', priority: 'High', endDate: '10/06/2025', description: 'Dashboard design and implementation to match the new HRMS interface.', file: 'dashboard-specs.pdf' },
-  { id: '2', name: 'Leave Module', project: 'Jawam Website', progress: 60, status: 'In Progress', priority: 'Medium', endDate: '15/06/2025', description: 'Develop leave request form, approval flow and history display.', file: 'leave-flow.pdf' },
-  { id: '3', name: 'Wire framing', project: 'IMS Product', progress: 100, status: 'Completed', priority: 'Low', endDate: '01/06/2025', description: 'Complete wireframes for the IMS product screens.', file: 'ims-wireframes.pdf' },
-  { id: '4', name: 'Wire framing', project: 'HRMS', progress: 40, status: 'Blocked', priority: 'High', endDate: '20/06/2025', description: 'Finalize wireframes for HRMS task assignment and reports.', file: 'hrms-wireframes.pdf' },
-]
+function sanitizeProjectsList(list) {
+  if (!Array.isArray(list)) return []
+  return list.map((p) => {
+    const cleanedMembers = (p.members || []).filter(
+      (m) => m && m.role !== 'CEO' && m.id !== 'emp-gp' && m.name !== 'Gaurav Pandey',
+    )
+    return {
+      ...p,
+      members: cleanedMembers,
+      membersCount: cleanedMembers.length,
+    }
+  })
+}
+
+function loadProjects() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      if (Array.isArray(parsed)) {
+        const sanitized = sanitizeProjectsList(parsed)
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized))
+        } catch (err) {
+          console.error(err)
+        }
+        return sanitized
+      }
+    }
+  } catch (e) {
+    console.error('Error loading projects from localStorage', e)
+  }
+  return sanitizeProjectsList(getInitialProjects())
+}
 
 function Projects() {
-  const navigate = useNavigate()
-  const [selectedTask, setSelectedTask] = useState(null)
+  const { user } = useContext(UserContext)
 
-  const stats = useMemo(
-    () => ({
-      activeProjects: projectCards.length,
-      openTasks: assignedTasks.filter((task) => task.status === 'In Progress').length,
-      dueThisWeek: 4,
-      completedTask: assignedTasks.filter((task) => task.status === 'Completed').length,
-    }),
-    [],
-  )
+  const currentUser = useMemo(() => user || {
+    name: 'Kanishk Prashad',
+    role: 'EMPLOYEE',
+    canCreateProjects: false,
+  }, [user])
+
+  const [projects, setProjects] = useState(loadProjects)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(projects))
+    } catch (e) {
+      console.error('Error saving projects to localStorage', e)
+    }
+  }, [projects])
+
+  // Modals state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isTLRequestModalOpen, setIsTLRequestModalOpen] = useState(false)
+  const [activeUpdateTask, setActiveUpdateTask] = useState(null)
+  const [activeApprovalTask, setActiveApprovalTask] = useState(null)
+  const [activeClosureProject, setActiveClosureProject] = useState(null)
+  const [activeChangeReviewTask, setActiveChangeReviewTask] = useState(null)
+
+  // TL project creation permission — toggled by CEO via Grant/Deny (persisted across accounts)
+  const [tlProjectRequests, setTLProjectRequests] = useState(loadTLRequests)
+  const [canTLCreate, setCanTLCreate] = useState(() => {
+    const currentProjs = loadProjects()
+    return loadCanTLCreate(currentProjs)
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(TL_REQUESTS_KEY, JSON.stringify(tlProjectRequests))
+    } catch (e) {
+      console.error('Error saving TL requests to localStorage', e)
+    }
+  }, [tlProjectRequests])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(TL_PERMISSION_KEY, JSON.stringify(canTLCreate))
+    } catch (e) {
+      console.error('Error saving TL permission to localStorage', e)
+    }
+  }, [canTLCreate])
+
+  // Sync projects and TL requests in real-time across tabs / role switching
+  useEffect(() => {
+    const handleSync = () => {
+      setProjects(loadProjects())
+      setTLProjectRequests(loadTLRequests())
+      setCanTLCreate(loadCanTLCreate(loadProjects()))
+    }
+    window.addEventListener('storage', handleSync)
+    window.addEventListener('focus', handleSync)
+    return () => {
+      window.removeEventListener('storage', handleSync)
+      window.removeEventListener('focus', handleSync)
+    }
+  }, [])
+
+  // Enriched projects with mathematical progress
+  const enrichedProjects = useMemo(() => {
+    return projects.map((p) => {
+      const activeTasks = (p.tasks || []).filter((t) => t.status !== 'CANCELLED')
+      const completedTasks = activeTasks.filter((t) => t.status === 'COMPLETED')
+      const mathProgress = activeTasks.length > 0
+        ? Math.round((completedTasks.length / activeTasks.length) * 100)
+        : 0
+
+      return {
+        ...p,
+        activeTasksCount: activeTasks.length,
+        completedTasksCount: completedTasks.length,
+        openTasksCount: activeTasks.filter((t) => t.status !== 'COMPLETED').length,
+        progress: mathProgress,
+      }
+    })
+  }, [projects])
+
+  // All tasks flattened
+  const allTasks = useMemo(() => {
+    const list = []
+    enrichedProjects.forEach((p) => {
+      (p.tasks || []).forEach((t) => {
+        list.push({
+          ...t,
+          projectTitle: p.title,
+          projectId: p.id,
+          primaryPm: p.primaryPm,
+          teamLead: p.teamLead,
+          members: p.members,
+        })
+      })
+    })
+    return list
+  }, [enrichedProjects])
+
+  // All active task-change requests (TCR) across projects
+  const allTCRs = useMemo(() => {
+    return allTasks.filter(
+      (t) =>
+        t.changeRequest &&
+        t.changeRequest.status &&
+        !['APPROVED', 'REJECTED'].includes(t.changeRequest.status),
+    )
+  }, [allTasks])
+
+  // Team Leader TCR reviews queue (Stage 1)
+  const tlTcrReviews = useMemo(() => {
+    return allTCRs.filter((t) => {
+      const status = t.changeRequest?.status
+      if (status !== 'PENDING_TL_REVIEW') return false
+      if (t.changeRequest?.requester === currentUser.name) return false
+      // If currentUser is TL, show requests under their projects
+      if (currentUser.role === 'TL') {
+        return !t.teamLead || t.teamLead === currentUser.name || (t.members || []).some((m) => m.name === currentUser.name)
+      }
+      return true
+    })
+  }, [allTCRs, currentUser])
+
+  // Executive / PM TCR reviews queue (Stage 2 or Solo/PM requests or Executive Oversight)
+  const executiveTcrReviews = useMemo(() => {
+    return allTCRs.filter((t) => {
+      const status = t.changeRequest?.status
+      if (!status) return false
+      // CEO has company-wide executive visibility over all pending change requests
+      if (currentUser.role === 'CEO') return true
+      // If user is project primary PM, show TCRs awaiting PM approval
+      if (t.primaryPm === currentUser.name) {
+        return ['PENDING_PM_APPROVAL', 'DIRECT_APPROVAL_REQUIRED', 'PENDING_CEO_APPROVAL'].includes(status)
+      }
+      return false
+    })
+  }, [allTCRs, currentUser])
+
+  // Role-scoped data filters
+  // 1. Employee: only projects where they are a member, only their tasks
+  const employeeProjects = useMemo(() => {
+    return enrichedProjects.filter((p) =>
+      (p.members || []).some((m) => m.name === currentUser.name || m.id === currentUser.id),
+    )
+  }, [enrichedProjects, currentUser])
+
+  const myTasks = useMemo(() => {
+    return allTasks.filter((t) =>
+      t.assignee === currentUser.name || t.assigneeId === currentUser.id,
+    )
+  }, [allTasks, currentUser])
+
+  // 2. Team Leader: Team reviews queue (only PENDING_TL_REVIEW tasks from team)
+  const teamReviews = useMemo(() => {
+    return allTasks.filter((t) => t.status === 'PENDING_TL_REVIEW')
+  }, [allTasks])
+
+  // 3. CEO: Pending closures and direct approvals
+  const pendingClosures = useMemo(() => {
+    return enrichedProjects.filter((p) => p.status === 'PENDING_CEO_CLOSURE')
+  }, [enrichedProjects])
+
+  const directApprovals = useMemo(() => {
+    return allTasks.filter((t) =>
+      ['DIRECT_APPROVAL_REQUIRED', 'PENDING_CEO_APPROVAL', 'PENDING_PM_APPROVAL'].includes(t.status),
+    )
+  }, [allTasks])
+
+  // Mutation Handlers
+  const handleCreateProject = (newProjectData) => {
+    // Non-Negotiable Rule 2.1: The project creator is not automatically its PM
+    // and is not automatically an assigned member.
+    const created = {
+      ...newProjectData,
+      id: `proj-${Date.now()}`,
+      createdBy: currentUser.name,
+      members: newProjectData.members || [],
+      pmHistory: newProjectData.primaryPm
+        ? [{ previousPm: null, newPm: newProjectData.primaryPm, reason: 'Initial PM designated upon project creation', replacedBy: currentUser.name, timestamp: new Date().toLocaleString() }]
+        : [],
+      tasks: [],
+    }
+    setProjects((prev) => [created, ...prev])
+
+    // TL project creation permission is strictly single-use: consumed upon creating 1 project
+    if (currentUser.role === 'TL') {
+      setCanTLCreate(false)
+      try {
+        localStorage.setItem(TL_PERMISSION_KEY, JSON.stringify(false))
+        localStorage.setItem(TL_CONSUMED_KEY, 'true')
+      } catch (e) {
+        console.error('Error updating TL permission after project creation', e)
+      }
+    }
+  }
+
+  // TL submits a project creation request → goes to CEO queue
+  const handleTLRequest = (requestData) => {
+    setTLProjectRequests((prev) => [requestData, ...prev])
+  }
+
+  // CEO grants permission → TL project is created immediately, notification dispatched
+  const handleGrantTLPermission = (req) => {
+    // 1. Remove from pending TL requests queue
+    const updatedRequests = tlProjectRequests.filter((r) => r.id !== req.id)
+    setTLProjectRequests(updatedRequests)
+    try {
+      localStorage.setItem(TL_REQUESTS_KEY, JSON.stringify(updatedRequests))
+    } catch (e) {
+      console.error('Error saving updated TL requests', e)
+    }
+
+    // 2. Automatically instantiate and activate the project requested by the TL!
+    const newProjectId = `proj-${Date.now()}`
+    const tlName = req.requestedBy || 'Shivani k'
+    const newProject = {
+      id: newProjectId,
+      title: req.projectName,
+      description: req.description || 'Project initiated upon CEO approval.',
+      priority: req.priority || 'Medium',
+      staffingMode: req.staffingMode || 'TEAM',
+      status: 'ACTIVE',
+      teamLead: tlName,
+      createdBy: tlName,
+      primaryPm: null,
+      dueDate: '30/12/2026',
+      membersCount: 1,
+      members: [
+        { id: 'emp-sk', name: tlName, role: 'Team Leader', isIndependent: false },
+      ],
+      pmHistory: [],
+      tasks: [],
+      justification: req.justification || '',
+      approvedBy: 'Gaurav Pandey (CEO)',
+      approvedAt: new Date().toLocaleString(),
+    }
+
+    setProjects((prev) => [newProject, ...prev])
+    try {
+      const currentProjects = loadProjects()
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([newProject, ...currentProjects]))
+    } catch (e) {
+      console.error('Error saving new project to localStorage', e)
+    }
+
+    // 3. Consume creation permission
+    setCanTLCreate(false)
+    try {
+      localStorage.setItem(TL_PERMISSION_KEY, JSON.stringify(false))
+      localStorage.setItem(TL_CONSUMED_KEY, 'true')
+    } catch (e) {
+      console.error('Error updating TL permission key in localStorage', e)
+    }
+
+    // 4. Create and dispatch persistent Notification for TL
+    const newNotification = {
+      id: `notif-${Date.now()}`,
+      recipientName: tlName,
+      recipientRole: 'TL',
+      title: 'Project Request Approved',
+      message: `CEO Gaurav Pandey accepted your project request for "${req.projectName}". The project is now live in your workspace!`,
+      projectName: req.projectName,
+      projectId: newProjectId,
+      created_at: new Date().toISOString(),
+      is_read: false,
+    }
+
+    try {
+      const savedNotifs = JSON.parse(localStorage.getItem('jawam_custom_notifications_v1') || '[]')
+      localStorage.setItem('jawam_custom_notifications_v1', JSON.stringify([newNotification, ...savedNotifs]))
+
+      // Store alert banner payload for TL dashboard and projects view
+      localStorage.setItem('jawam_tl_latest_approved_project_v1', JSON.stringify({
+        projectName: req.projectName,
+        projectId: newProjectId,
+        approvedAt: new Date().toLocaleString(),
+      }))
+    } catch (e) {
+      console.error('Error saving notification to localStorage', e)
+    }
+  }
+
+  // CEO denies the TL request → remove from queue, notify TL
+  const handleDenyTLRequest = (reqId) => {
+    const req = tlProjectRequests.find((r) => r.id === reqId)
+    const updatedRequests = tlProjectRequests.filter((r) => r.id !== reqId)
+    setTLProjectRequests(updatedRequests)
+    try {
+      localStorage.setItem(TL_REQUESTS_KEY, JSON.stringify(updatedRequests))
+    } catch (e) {
+      console.error('Error updating TL requests', e)
+    }
+
+    if (req) {
+      const denyNotification = {
+        id: `notif-${Date.now()}`,
+        recipientName: req.requestedBy || 'Shivani k',
+        recipientRole: 'TL',
+        title: 'Project Request Denied',
+        message: `CEO Gaurav Pandey declined your project request for "${req.projectName}".`,
+        projectName: req.projectName,
+        created_at: new Date().toISOString(),
+        is_read: false,
+      }
+      try {
+        const savedNotifs = JSON.parse(localStorage.getItem('jawam_custom_notifications_v1') || '[]')
+        localStorage.setItem('jawam_custom_notifications_v1', JSON.stringify([denyNotification, ...savedNotifs]))
+      } catch (e) {
+        console.error('Error saving deny notification', e)
+      }
+    }
+  }
+
+  const handleWorkUpdate = ({
+    taskId,
+    newProgress,
+    note,
+    decreaseReason,
+    deliverable,
+    isCompletion,
+    isIndependent,
+    isBlocked,
+    blockerCategory,
+    blockerReason,
+  }) => {
+    setProjects((prev) =>
+      prev.map((proj) => ({
+        ...proj,
+        tasks: (proj.tasks || []).map((task) => {
+          if (task.id !== taskId) return task
+
+          let newStatus
+          let blockerData
+
+          if (isBlocked) {
+            newStatus = 'BLOCKED'
+            blockerData = {
+              category: blockerCategory || 'General Blocker',
+              reason: blockerReason || 'Work is blocked',
+              reportedAt: new Date().toISOString(),
+            }
+          } else {
+            blockerData = null
+            if (isCompletion) {
+              const isAssigneePm = Boolean(
+                task.isPm ||
+                task.assignee === proj.primaryPm ||
+                (proj.members || []).find((m) => (m.id === task.assigneeId || m.name === task.assignee))?.isPm
+              )
+
+              if (isAssigneePm) {
+                // Section 7.5: Zero Self-Approval Rule: PM tasks route directly to CEO
+                newStatus = 'PENDING_CEO_APPROVAL'
+              } else if (isIndependent || task.isIndependent || proj.staffingMode === 'SOLO' || proj.isSoloProject) {
+                // Section 7.3: Independent Contributor -> Direct PM/CEO Approval
+                newStatus = 'DIRECT_APPROVAL_REQUIRED'
+              } else {
+                // Section 7.3: Team Member under TL -> TL Review
+                newStatus = 'PENDING_TL_REVIEW'
+              }
+            } else if (newProgress > 0) {
+              newStatus = 'IN_PROGRESS'
+            } else {
+              newStatus = 'TODO'
+            }
+          }
+
+          return {
+            ...task,
+            progress: newProgress,
+            status: newStatus,
+            blocker: blockerData,
+            lastNote: note,
+            lastDecreaseReason: decreaseReason,
+            deliverable: deliverable || task.deliverable,
+          }
+        }),
+      })),
+    )
+  }
+
+  const handleApproveTask = (taskId) => {
+    setProjects((prev) =>
+      prev.map((proj) => ({
+        ...proj,
+        tasks: (proj.tasks || []).map((task) => {
+          if (task.id !== taskId) return task
+
+          // TL approves -> passes to PM. PM/CEO approves -> COMPLETED
+          const isPmOrCeoApprover = currentUser.name === proj.primaryPm || currentUser.role === 'CEO'
+          const nextStatus =
+            task.status === 'PENDING_TL_REVIEW' && !isPmOrCeoApprover
+              ? 'PENDING_PM_APPROVAL'
+              : 'COMPLETED'
+          return { ...task, status: nextStatus, rejectionFeedback: null }
+        }),
+      })),
+    )
+  }
+
+  const handleRejectTask = (taskId, rejectionReason) => {
+    setProjects((prev) =>
+      prev.map((proj) => ({
+        ...proj,
+        tasks: (proj.tasks || []).map((task) => {
+          if (task.id !== taskId) return task
+          return {
+            ...task,
+            progress: 85,
+            status: 'IN_PROGRESS',
+            reworkCount: (task.reworkCount || 0) + 1,
+            rejectionFeedback: rejectionReason,
+          }
+        }),
+      })),
+    )
+  }
+
+  const handleApproveClosure = (projId) => {
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === projId
+          ? {
+              ...p,
+              status: 'COMPLETED',
+              auditEvents: [
+                {
+                  id: `audit-${Date.now()}`,
+                  action: 'Project Closure Approved',
+                  actor: currentUser.name,
+                  description: 'CEO officially verified deliverables and approved closure.',
+                  timestamp: new Date().toLocaleString(),
+                },
+                ...(p.auditEvents || []),
+              ],
+            }
+          : p,
+      ),
+    )
+  }
+
+  const handleRejectClosure = (projId, rejectionReason) => {
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === projId
+          ? {
+              ...p,
+              status: 'ACTIVE',
+              closureRejectionReason: rejectionReason,
+              auditEvents: [
+                {
+                  id: `audit-${Date.now()}`,
+                  action: 'Project Closure Rejected',
+                  actor: currentUser.name,
+                  description: `Closure rejected and retained ACTIVE: ${rejectionReason}`,
+                  reason: rejectionReason,
+                  timestamp: new Date().toLocaleString(),
+                },
+                ...(p.auditEvents || []),
+              ],
+            }
+          : p,
+      ),
+    )
+  }
+
+  const handleApproveTaskChange = (taskId, changeRequest) => {
+    setProjects((prev) =>
+      prev.map((proj) => {
+        const hasTask = (proj.tasks || []).some((t) => t.id === taskId)
+        if (!hasTask) return proj
+
+        let isIntermediate = false
+        const updatedTasks = proj.tasks.map((task) => {
+          if (task.id !== taskId) return task
+
+          if (!task.changeRequest || task.changeRequest.id !== changeRequest.id) {
+            return task
+          }
+
+          // Two-stage review: TL recommends -> PM/CEO decides
+          if (task.changeRequest.status === 'PENDING_TL_REVIEW' && currentUser.role === 'TL') {
+            isIntermediate = true
+            return {
+              ...task,
+              changeRequest: {
+                ...task.changeRequest,
+                status: 'PENDING_PM_APPROVAL',
+                tlRecommendedBy: currentUser.name,
+                tlRecommendedAt: new Date().toLocaleString(),
+              },
+            }
+          }
+
+          // Atomic Execution of Approved Change (PM or CEO sign-off)
+          const updated = {
+            ...task,
+            changeRequest: null,
+          }
+
+          if (changeRequest.type === 'DEADLINE_EXTENSION') {
+            updated.dueDate = changeRequest.requestedChange?.dueDate || task.dueDate
+          } else if (changeRequest.type === 'REASSIGNMENT') {
+            updated.assignee = changeRequest.requestedChange?.newAssignee || task.assignee
+          } else if (changeRequest.type === 'TASK_DELETION') {
+            updated.status = 'CANCELLED'
+            updated.cancellationReason = changeRequest.reason
+          }
+
+          return updated
+        })
+
+        const taskName = proj.tasks.find((t) => t.id === taskId)?.name || 'Task'
+        const newAudit = isIntermediate
+          ? {
+              id: `audit-${Date.now()}`,
+              action: 'Task-Change Request Recommended by TL (Stage 1 of 2)',
+              actor: currentUser.name,
+              description: `TL recommended ${changeRequest.type} for "${taskName}". Routed to CEO for final decision.`,
+              timestamp: new Date().toLocaleString(),
+            }
+          : {
+              id: `audit-${Date.now()}`,
+              action: `Task-Change Request Approved (${changeRequest.type})`,
+              actor: currentUser.name,
+              description: `Approved ${changeRequest.type} for "${taskName}". Applied changes atomically.`,
+              timestamp: new Date().toLocaleString(),
+            }
+
+        return {
+          ...proj,
+          tasks: updatedTasks,
+          auditEvents: [newAudit, ...(proj.auditEvents || [])],
+        }
+      }),
+    )
+  }
+
+  const handleRejectTaskChange = (taskId, changeRequest, decisionReason) => {
+    setProjects((prev) =>
+      prev.map((proj) => {
+        const hasTask = (proj.tasks || []).some((t) => t.id === taskId)
+        if (!hasTask) return proj
+
+        const updatedTasks = proj.tasks.map((task) => {
+          if (task.id !== taskId) return task
+
+          if (!task.changeRequest || task.changeRequest.id !== changeRequest.id) {
+            return task
+          }
+
+          return {
+            ...task,
+            changeRequest: null,
+          }
+        })
+
+        const taskName = proj.tasks.find((t) => t.id === taskId)?.name || 'Task'
+        const newAudit = {
+          id: `audit-${Date.now()}`,
+          action: `Task-Change Request Rejected (${changeRequest.type})`,
+          actor: currentUser.name,
+          description: `Rejected ${changeRequest.type} for "${taskName}". Mandatory Reason: "${decisionReason}"`,
+          reason: decisionReason,
+          timestamp: new Date().toLocaleString(),
+        }
+
+        return {
+          ...proj,
+          tasks: updatedTasks,
+          auditEvents: [newAudit, ...(proj.auditEvents || [])],
+        }
+      }),
+    )
+  }
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-[32px] font-black text-[#111827]">Project Management</h1>
-          <p className="text-[16px] text-[#5f6679] mt-2">Apply and track your leave requests</p>
-        </div>
-
-
-
-
-
-
-
-
-
-
-
-
-<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-  {/* Active Project */}
-  <div className="rounded-[20px] border border-[#e5e7eb] bg-white p-4 shadow-sm lg:h-[120px]">
-    <div className="flex items-center gap-3">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#dbeafe]">
-        <svg width="22" height="22" viewBox="0 0 37 37" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M7.40039 25.4531C8.66931 25.4533 9.69727 26.4811 9.69727 27.75C9.69716 29.0189 8.66925 30.0467 7.40039 30.0469C6.13143 30.0469 5.10362 29.0189 5.10352 27.75C5.10352 26.481 6.13136 25.4531 7.40039 25.4531ZM14.7998 25.915H31.4502C32.4648 25.9151 33.2842 26.7354 33.2842 27.75C33.2841 28.7646 32.4648 29.584 31.4502 29.584H14.7998C13.7854 29.5838 12.9659 28.7644 12.9658 27.75C12.9658 26.7355 13.7853 25.9152 14.7998 25.915ZM9.51172 15.4043C9.91905 14.8201 10.6983 14.6527 11.3027 14.9922L11.4316 15.0742L11.4365 15.0684C12.0511 15.505 12.1957 16.3567 11.7637 16.9707L8.52637 21.5957C8.29201 21.9271 7.92615 22.1385 7.52051 22.1729C7.11445 22.2072 6.71432 22.0697 6.42871 21.7842L4.11621 19.4717C3.57884 18.9343 3.57899 18.0657 4.11621 17.5342C4.65367 17.0025 5.52229 16.997 6.05371 17.5342L7.19824 18.6787L7.21191 18.6914L7.22266 18.6768L9.51172 15.4043ZM18.5 16.665H31.4502C32.4648 16.6651 33.2842 17.4854 33.2842 18.5C33.2841 19.5146 32.4648 20.334 31.4502 20.334H18.5C17.4855 20.3339 16.6661 19.5145 16.666 18.5C16.666 17.4854 17.4854 16.6651 18.5 16.665ZM9.51758 6.14844C9.95202 5.52548 10.8095 5.37715 11.4268 5.81152C12.0496 6.246 12.198 7.10349 11.7637 7.7207L8.52637 12.3457C8.29201 12.6771 7.92615 12.8885 7.52051 12.9229C7.11446 12.9572 6.71432 12.8197 6.42871 12.5342L4.11621 10.2217C3.58459 9.68434 3.58462 8.81567 4.11621 8.27832C4.64765 7.74117 5.52211 7.74658 6.05957 8.27832L7.2168 9.43555L7.22754 9.4209L9.51758 6.14844ZM18.5 7.41504H31.4502C32.4648 7.41506 33.2842 8.23536 33.2842 9.25C33.2841 10.2646 32.4648 11.084 31.4502 11.084H18.5C17.4855 11.0839 16.6661 10.2645 16.666 9.25C16.666 8.2354 17.4854 7.41512 18.5 7.41504Z" fill="#3B82F6" stroke="#10B981" strokeWidth="0.03125"/>
-        </svg>
-      </div>
-      <p className="text-[18px] font-bold text-[#111827]">Active Project</p>
-    </div>
-    <div className="pl-[60px]">
-      <div className="mt-3 flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-[#3b82f6]" />
-        <p className="text-[20px] font-bold text-[#3b82f6]">{stats.activeProjects}</p>
-      </div>
-    </div>
-  </div>
-
-  {/* Open Tasks */}
-  <div className="rounded-[20px] border border-[#e5e7eb] bg-white p-4 shadow-sm lg:h-[120px]">
-    <div className="flex items-center gap-3">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#d1fae5]">
-        <svg width="22" height="22" viewBox="0 0 37 37" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path fillRule="evenodd" clipRule="evenodd" d="M3.08398 8.86523C3.08398 8.22666 3.60166 7.70898 4.24023 7.70898H31.9902C32.6288 7.70898 33.1465 8.22666 33.1465 8.86523C33.1465 9.50381 32.6288 10.0215 31.9902 10.0215H4.24023C3.60166 10.0215 3.08398 9.50381 3.08398 8.86523ZM3.08398 15.0319C3.08398 14.3933 3.60166 13.8757 4.24023 13.8757H31.9902C32.6288 13.8757 33.1465 14.3933 33.1465 15.0319C33.1465 15.6705 32.6288 16.1882 31.9902 16.1882H4.24023C3.60166 16.1882 3.08398 15.6705 3.08398 15.0319ZM31.1597 19.516C31.6632 19.9088 31.753 20.6353 31.3603 21.1389L25.3478 28.8472C25.1332 29.1223 24.8059 29.2858 24.457 29.2921C24.1082 29.2985 23.7751 29.1469 23.5507 28.8798L20.3132 25.0256C19.9025 24.5366 19.9659 23.8073 20.4549 23.3966C20.9438 22.9858 21.6732 23.0492 22.0839 23.5382L24.4028 26.2988L29.5369 19.7166C29.9296 19.2131 30.6562 19.1233 31.1597 19.516ZM3.08398 21.1986C3.08398 20.56 3.60166 20.0423 4.24023 20.0423H15.0319C15.6705 20.0423 16.1882 20.56 16.1882 21.1986C16.1882 21.8371 15.6705 22.3548 15.0319 22.3548H4.24023C3.60166 22.3548 3.08398 21.8371 3.08398 21.1986ZM3.08398 27.3652C3.08398 26.7267 3.60166 26.209 4.24023 26.209H15.0319C15.6705 26.209 16.1882 26.7267 16.1882 27.3652C16.1882 28.0038 15.6705 28.5215 15.0319 28.5215H4.24023C3.60166 28.5215 3.08398 28.0038 3.08398 27.3652Z" fill="#10B981" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      </div>
-      <p className="text-[18px] font-bold text-[#111827]">Open Tasks</p>
-    </div>
-    <div className="pl-[60px]">
-      <div className="mt-3 flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-[#10b981]" />
-        <p className="text-[20px] font-bold text-[#10b981]">{stats.openTasks}</p>
-      </div>
-    </div>
-  </div>
-
-  {/* Due this week */}
-  <div className="rounded-[20px] border border-[#e5e7eb] bg-white p-4 lg:h-[120px] shadow-sm">
-    <div className="flex items-center gap-3">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#fef3c7]">
-        <svg width="22" height="22" viewBox="0 0 37 37" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path fillRule="evenodd" clipRule="evenodd" d="M3.46875 9.25C3.46875 8.61142 3.98642 8.09375 4.625 8.09375H32.375C33.0136 8.09375 33.5313 8.61142 33.5313 9.25C33.5313 9.88858 33.0136 10.4062 32.375 10.4062H4.625C3.98642 10.4062 3.46875 9.88858 3.46875 9.25ZM3.46875 15.4167C3.46875 14.7781 3.98642 14.2604 4.625 14.2604H32.375C33.0136 14.2604 33.5313 14.7781 33.5313 15.4167C33.5313 16.0552 33.0136 16.5729 32.375 16.5729H4.625C3.98642 16.5729 3.46875 16.0552 3.46875 15.4167ZM3.46875 21.5833C3.46875 20.9448 3.98642 20.4271 4.625 20.4271H16.9583C17.5969 20.4271 18.1146 20.9448 18.1146 21.5833C18.1146 22.2219 17.5969 22.7396 16.9583 22.7396H4.625C3.98642 22.7396 3.46875 22.2219 3.46875 21.5833ZM26.2267 22.2471C26.6597 21.876 27.2986 21.876 27.7316 22.2471L33.1275 26.8721C33.6123 27.2877 33.6685 28.0176 33.2529 28.5025C32.8373 28.9873 32.1074 29.0435 31.6225 28.6279L26.9792 24.6479L22.3358 28.6279C21.851 29.0435 21.121 28.9873 20.7054 28.5025C20.2899 28.0176 20.346 27.2877 20.8309 26.8721L26.2267 22.2471ZM3.46875 27.75C3.46875 27.1114 3.98642 26.5938 4.625 26.5938H16.9583C17.5969 26.5938 18.1146 27.1114 18.1146 27.75C18.1146 28.3886 17.5969 28.9063 16.9583 28.9063H4.625C3.98642 28.9063 3.46875 28.3886 3.46875 27.75Z" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      </div>
-      <p className="text-[18px] font-bold text-[#111827]">Due this week</p>
-    </div>
-    <div className="pl-[60px]">
-      <div className="mt-3 flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-[#f59e0b]" />
-        <p className="text-[20px] font-bold text-[#f59e0b]">{stats.dueThisWeek}</p>
-      </div>
-    </div>
-  </div>
-
-  {/* Completed task */}
-  <div className="rounded-[20px] border border-[#e5e7eb] bg-white p-4 shadow-sm lg:h-[120px]">
-    <div className="flex items-center gap-3 ">
-      
-      <div className="flex h-12 w-12  shrink-0 items-center justify-center rounded-full bg-[#fee2e2]">
-        <svg width="22" height="22" viewBox="0 0 37 37" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path fillRule="evenodd" clipRule="evenodd" d="M3.46875 9.25C3.46875 8.61142 3.98642 8.09375 4.625 8.09375H32.375C33.0136 8.09375 33.5312 8.61142 33.5312 9.25C33.5312 9.88858 33.0136 10.4062 32.375 10.4062H4.625C3.98642 10.4062 3.46875 9.88858 3.46875 9.25ZM3.46875 15.4167C3.46875 14.7781 3.98642 14.2604 4.625 14.2604H32.375C33.0136 14.2604 33.5312 14.7781 33.5312 15.4167C33.5312 16.0552 33.0136 16.5729 32.375 16.5729H4.625C3.98642 16.5729 3.46875 16.0552 3.46875 15.4167ZM22.3074 19.9949C22.759 19.5434 23.491 19.5434 23.9426 19.9949L26.9792 23.0315L30.0157 19.9949C30.4673 19.5434 31.1994 19.5434 31.6509 19.9949C32.1025 20.4465 32.1025 21.1785 31.6509 21.6301L28.6143 24.6667L31.6509 27.7032C32.1025 28.1548 32.1025 28.8869 31.6509 29.3384C31.1994 29.79 30.4673 29.79 30.0157 29.3384L26.9792 26.3019L23.9426 29.3384C23.491 29.79 22.759 29.79 22.3074 29.3384C21.8559 28.8869 21.8559 28.1548 22.3074 27.7032L25.344 24.6667L22.3074 21.6301C21.8559 21.1785 21.8559 20.4465 22.3074 19.9949ZM3.46875 21.5833C3.46875 20.9448 3.98642 20.4271 4.625 20.4271H16.9583C17.5969 20.4271 18.1146 20.9448 18.1146 21.5833C18.1146 22.2219 17.5969 22.7396 16.9583 22.7396H4.625C3.98642 22.7396 3.46875 22.2219 3.46875 21.5833ZM3.46875 27.75C3.46875 27.1114 3.98642 26.5938 4.625 26.5938H16.9583C17.5969 26.5938 18.1146 27.1114 18.1146 27.75C18.1146 28.3886 17.5969 28.9063 16.9583 28.9063H4.625C3.98642 28.9063 3.46875 28.3886 3.46875 27.75Z" fill="#EF4444" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      </div>
-      
-      <p className="text-[18px] font-bold text-[#111827]">Completed task</p>
-    </div>
-    <div className="pl-[60px]">
-      <div className="mt-3 flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-[#ef4444]" />
-        <p className="text-[20px] font-bold text-[#ef4444]">{stats.completedTask}</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    <div className="space-y-6">
-  <h2 className="text-[24px] font-black text-[#111827]">Projects</h2>
-  <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-    {projectCards.map((project) => (
-      <div key={project.id} className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-4 pb-4">
-          <h3 className="text-[18px] font-black text-[#111827]">{project.title}</h3>
-          <span className={`rounded-full px-3 py-1 text-[12px] font-semibold ${project.tagColor}`}>{project.priority}</span>
-        </div>
-        <div className="border-t border-[#e5e7eb]" />
-        <div className="space-y-2 py-4 text-[16px] text-[#6b7280]">
-          <p><span className="font-semibold text-[#374151]">Progress:</span> {project.progress}%</p>
-          <p><span className="font-semibold text-[#374151]">Due Date:</span> {project.dueDate}</p>
-          <p><span className="font-semibold text-[#374151]">Team Lead:</span> {project.teamLead}</p>
-        </div>
-        <div className="border-t border-[#e5e7eb]" />
-        <div className="flex justify-end pt-4">
-          <button
-            type="button"
-            onClick={() => navigate(`/projects/${project.id}`)}
-            className="text-[14px] font-semibold text-[#2563eb] transition-colors hover:text-[#1d4ed8] hover:underline"
-          >
-            View Project
-          </button>
-        </div>
-      </div>
-    ))}
-  </div>
-</div>
-
-
-
-
-
-
-
-
-
-
-        <div className="rounded-[30px] border border-[#e5e7eb] bg-white p-6 shadow-sm">
-          <h2 className="text-[20px] font-black text-[#111827] mb-6">Your Assigned Tasks</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-[16px]">
-              <thead>
-                <tr className="border-b border-[#e5e7eb] text-[#6b7280]">
-                  <th className="px-6 py-4 font-semibold">Task Name</th>
-                  <th className="px-6 py-4 font-semibold">Project</th>
-                  <th className="px-6 py-4 font-semibold">Progress</th>
-                  <th className="px-6 py-4 font-semibold">Status</th>
-                  <th className="px-6 py-4 font-semibold">View</th>
-                </tr>
-              </thead>
-              <tbody>
-                {assignedTasks.map((task) => (
-                  <tr key={task.id} className="border-b border-[#f1f5f9] hover:bg-[#f8fafc]">
-                    <td className="px-6 py-4 font-semibold text-[#111827]">{task.name}</td>
-                    <td className="px-6 py-4 text-[#111827]">{task.project}</td>
-                    <td className="px-6 py-4 text-[#111827]">{task.progress}%</td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={task.status} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTask(task)}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#eff6ff] text-[#2563eb] transition-all hover:bg-[#dbeafe]"
-                        aria-label="View task details"
-                      >
-                        👁️
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {selectedTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="max-w-[800px] w-full rounded-[30px] bg-white p-8 shadow-2xl">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h3 className="text-[24px] font-black text-[#111827]">{selectedTask.name}</h3>
-                <p className="text-[14px] text-[#6b7280] mt-2">{selectedTask.project} • {selectedTask.priority} priority</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedTask(null)}
-                className="rounded-full border border-[#e5e7eb] px-4 py-2 text-[14px] font-semibold text-[#ef4444] hover:bg-[#fef2f2]"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="mt-8 grid gap-6 lg:grid-cols-2">
-              <div className="space-y-5 rounded-[24px] bg-[#f8fafc] p-6">
-                <div>
-                  <p className="text-[14px] font-semibold text-[#111827]">Task Name</p>
-                  <p className="mt-2 text-[16px] text-[#374151]">{selectedTask.name}</p>
-                </div>
-                <div>
-                  <p className="text-[14px] font-semibold text-[#111827]">Project Name</p>
-                  <p className="mt-2 text-[16px] text-[#374151]">{selectedTask.project}</p>
-                </div>
-                <div>
-                  <p className="text-[14px] font-semibold text-[#111827]">Priority</p>
-                  <p className="mt-2 text-[16px] text-[#374151]">{selectedTask.priority}</p>
-                </div>
-                <div>
-                  <p className="text-[14px] font-semibold text-[#111827]">End Date</p>
-                  <p className="mt-2 text-[16px] text-[#374151]">{selectedTask.endDate}</p>
-                </div>
-              </div>
-
-              <div className="space-y-5 rounded-[24px] bg-[#f8fafc] p-6">
-                <div>
-                  <p className="text-[14px] font-semibold text-[#111827]">Description</p>
-                  <p className="mt-2 text-[16px] text-[#374151]">{selectedTask.description}</p>
-                </div>
-                <div>
-                  <p className="text-[14px] font-semibold text-[#111827]">Attach File (if any)</p>
-                  <p className="mt-2 text-[16px] text-[#374151]">{selectedTask.file}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* 1. EMPLOYEE DASHBOARD VIEW */}
+      {currentUser.role === 'EMPLOYEE' && (
+        <EmployeeProjectsView
+          projects={employeeProjects}
+          myTasks={myTasks}
+          onOpenUpdateModal={(t) => setActiveUpdateTask(t)}
+        />
       )}
+
+      {/* 2. TEAM LEADER (TL) DASHBOARD VIEW */}
+      {currentUser.role === 'TL' && (
+        <TLProjectsView
+          projects={enrichedProjects}
+          teamReviews={teamReviews}
+          tcrReviews={tlTcrReviews}
+          myTasks={myTasks}
+          canCreateProject={canTLCreate}
+          tlProjectRequests={tlProjectRequests}
+          onOpenCreateModal={() => setIsCreateModalOpen(true)}
+          onOpenUpdateModal={(t) => setActiveUpdateTask(t)}
+          onOpenApprovalModal={(t) => setActiveApprovalTask(t)}
+          onOpenChangeReviewModal={(t) => setActiveChangeReviewTask(t)}
+          onOpenRequestModal={() => setIsTLRequestModalOpen(true)}
+        />
+      )}
+
+      {/* 3. HR DASHBOARD VIEW */}
+      {currentUser.role === 'HR' && (
+        <HRProjectsView projects={enrichedProjects} />
+      )}
+
+      {/* 4. CEO DASHBOARD VIEW */}
+      {currentUser.role === 'CEO' && (
+        <CEOProjectsView
+          projects={enrichedProjects}
+          pendingClosures={pendingClosures}
+          directApprovals={directApprovals}
+          tlProjectRequests={tlProjectRequests}
+          tcrReviews={executiveTcrReviews}
+          onOpenCreateModal={() => setIsCreateModalOpen(true)}
+          onOpenApprovalModal={(t) => setActiveApprovalTask(t)}
+          onOpenClosureModal={(p) => setActiveClosureProject(p)}
+          onOpenChangeReviewModal={(t) => setActiveChangeReviewTask(t)}
+          onGrantTLPermission={handleGrantTLPermission}
+          onDenyTLRequest={handleDenyTLRequest}
+        />
+      )}
+
+      {/* Shared Modals */}
+      <ProjectCreateModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreateProject={handleCreateProject}
+        showPmAssignment={currentUser.role === 'CEO'}
+      />
+
+      {/* TL Project Creation Request Modal (TL only) */}
+      <TLProjectRequestModal
+        isOpen={isTLRequestModalOpen}
+        onClose={() => setIsTLRequestModalOpen(false)}
+        onSubmitRequest={handleTLRequest}
+        tlName={currentUser.name}
+      />
+
+      <TaskWorkUpdateModal
+        isOpen={Boolean(activeUpdateTask)}
+        onClose={() => setActiveUpdateTask(null)}
+        task={activeUpdateTask}
+        onSubmitUpdate={handleWorkUpdate}
+      />
+
+      <TaskApprovalModal
+        isOpen={Boolean(activeApprovalTask)}
+        onClose={() => setActiveApprovalTask(null)}
+        task={activeApprovalTask}
+        currentUser={currentUser}
+        onApprove={handleApproveTask}
+        onReject={handleRejectTask}
+      />
+
+      <ProjectClosureModal
+        isOpen={Boolean(activeClosureProject)}
+        onClose={() => setActiveClosureProject(null)}
+        project={activeClosureProject}
+        onApproveClosure={handleApproveClosure}
+        onRejectClosure={handleRejectClosure}
+      />
+
+      <TaskChangeReviewModal
+        isOpen={Boolean(activeChangeReviewTask)}
+        onClose={() => setActiveChangeReviewTask(null)}
+        task={activeChangeReviewTask}
+        currentUser={currentUser}
+        onApprove={handleApproveTaskChange}
+        onReject={handleRejectTaskChange}
+      />
     </DashboardLayout>
   )
 }
