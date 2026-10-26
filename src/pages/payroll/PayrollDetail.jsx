@@ -8,9 +8,10 @@ import { UserContext } from '../../context/UserContext.jsx'
 import Button from '../../components/ui/Button.jsx'
 import ConfirmationModal from '../../components/shared/ConfirmationModal.jsx'
 import PayrollCorrectionModal from '../../components/payroll/PayrollCorrectionModal.jsx'
-import DatePicker from '../../components/ui/DatePicker.jsx'
 import PayslipPreview from '../../components/payroll/PayslipPreview.jsx'
 import { downloadPayslipPreview } from '../../utils/payslipPdf.js'
+import PayrollDetailMetrics, { Detail } from '../../components/payroll/PayrollDetailMetrics.jsx'
+import PayrollDetailActionBar from '../../components/payroll/PayrollDetailActionBar.jsx'
 
 function getSelectedCeoCorrectionRequest(payroll) {
   if (Array.isArray(payroll?.correction_issues)) return { issues: payroll.correction_issues }
@@ -373,36 +374,21 @@ function PayrollDetail() {
             )}
             {(payrollRejectionError || payrollCorrectionError || payrollRegenerateError || cancellationError) && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{getApiErrorMessage(payrollRejectionError || payrollCorrectionError || payrollRegenerateError || cancellationError, 'Payroll action failed.')}</div>}
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {detailFields.map(([label, value]) => {
-                const manualType = label === 'Other Earnings'
-                  ? 'earnings'
-                  : label === 'Other Deductions'
-                    ? 'deductions'
-                    : label === 'Adjustment'
-                      ? 'adjustments'
-                      : null
-
-                if (manualType && canApplyCorrection && !correctionReady) {
-                  const serverEntries = manualType === 'earnings'
-                    ? payroll?.current_version?.earnings?.filter((item) => item.earning_type === 'OTHER')
-                    : manualType === 'deductions'
-                      ? payroll?.current_version?.deductions?.filter((item) => item.deduction_type === 'OTHER')
-                      : payroll?.current_version?.adjustments
-                  const count = (manualDraftInitialized ? manualDraft[manualType] : serverEntries || []).length
-                  return <ManualSummaryCard key={label} label={label} value={count ? `${count} ${count === 1 ? 'entry' : 'entries'}` : '0'} canEdit={userRole === 'HR'} onOpen={() => openManualEditor(manualType)} onViewDetails={canViewComponentDetails ? () => setDetailsCategory({ label, records: serverEntries || [] }) : undefined} />
-                }
-
-                const records = manualType === 'earnings'
-                  ? earnings.filter((item) => item.earning_type === 'OTHER')
-                  : manualType === 'deductions'
-                    ? (payroll?.current_version?.deductions || []).filter((item) => item.deduction_type === 'OTHER')
-                    : manualType === 'adjustments'
-                      ? (payroll?.current_version?.adjustments || [])
-                      : []
-                return <Detail key={label} label={label} value={value} onViewDetails={manualType && canViewComponentDetails ? () => setDetailsCategory({ label, records }) : undefined} />
-              })}
-            </div>
+            <PayrollDetailMetrics
+              detailFields={detailFields}
+              canApplyCorrection={canApplyCorrection}
+              correctionReady={correctionReady}
+              manualDraftInitialized={manualDraftInitialized}
+              manualDraft={manualDraft}
+              earnings={earnings}
+              deductions={payroll?.current_version?.deductions || []}
+              adjustments={payroll?.current_version?.adjustments || []}
+              canViewComponentDetails={canViewComponentDetails}
+              userRole={userRole}
+              payroll={payroll}
+              onOpenManualEditor={openManualEditor}
+              onViewDetails={setDetailsCategory}
+            />
 
             {payrollStatus === 'ERROR' && (
               <WorkflowNotice
@@ -425,18 +411,33 @@ function PayrollDetail() {
             {payrollStatus === 'HR_REJECTED' && userRole === 'HR' && <WorkflowNotice title="Needs Changes" value={payroll.hr_rejection_reason || payroll.rejection_reason || 'Payroll was rejected.'} valueLabel="HR Rejection Reason" onAction={canApplyCorrection ? handleConfirmChanges : undefined} loading={payrollCorrectionLoading} actionLabel="Make Changes" />}
             {payrollStatus === 'CORRECTION_REQUIRED' && userRole === 'HR' && <WorkflowNotice title="Correction Required" value={payroll.correction_remarks || payroll.remarks || 'Review the requested correction and apply the required changes.'} onAction={handleConfirmChanges} onDetails={() => setIsCeoRequestDetailsOpen(true)} loading={payrollCorrectionLoading} actionLabel="Make Changes" />}
 
-            {(canApprove || canReject || canRequestCancellation || canRequestCorrection || canPay || canReviewCancellation || canCreateReplacement || (canApplyCorrection && ['GENERATED', 'HR_REJECTED', 'CORRECTION_REQUIRED'].includes(payrollStatus))) && (
-              <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
-                {canPay && <div className="flex min-w-[230px] flex-col gap-1"><span className="text-[12px] font-bold uppercase tracking-wider text-[#6b7280]">Actual Payment Date</span><DatePicker value={paymentDate} onChange={setPaymentDate} disabled={payrollCorrectionLoading} ariaLabel="Actual payment date" placeholder="Select payment date" className="min-h-12 w-full px-4 text-[15px]" /></div>}
-                <div className="flex flex-wrap items-end gap-3">
-                {canApplyCorrection && !['GENERATED', 'HR_REJECTED', 'CORRECTION_REQUIRED'].includes(payrollStatus) && !correctionReady && <Button type="button" onClick={handleConfirmChanges} disabled={payrollCorrectionLoading} className="rounded-full bg-[#2563eb] px-5 py-2.5 text-[14px] font-bold text-white">{payrollCorrectionLoading ? 'Saving...' : 'Confirm Changes'}</Button>}
-                {canApprove && <Button type="button" onClick={() => setIsApprovalConfirmationOpen(true)} disabled={payrollApprovalLoading} className="rounded-full bg-[#2563eb] px-5 py-2.5 text-[14px] font-bold text-white hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50">Approve Payroll</Button>}
-                {canReject && <Button type="button" onClick={() => setIsRejectOpen(true)} disabled={payrollRejectionLoading} className="rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white">Reject Payroll</Button>}{canRequestCancellation && <Button type="button" onClick={() => setIsCancellationOpen(true)} disabled={cancellationLoading} className="rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white">Cancel Payroll</Button>}{canReviewCancellation && <><Button type="button" onClick={handleApproveCancellation} disabled={cancellationLoading} className="rounded-full bg-green-600 px-5 py-2.5 text-sm font-bold text-white">{cancellationLoading ? 'Approving...' : 'Approve Cancellation'}</Button><Button type="button" onClick={() => setIsCancellationRejectOpen(true)} disabled={cancellationLoading} className="rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white">Reject Cancellation</Button></>}{canCreateReplacement && <Button type="button" onClick={handleCreateReplacement} disabled={cancellationLoading} className="rounded-full bg-[#2563eb] px-5 py-2.5 text-[14px] font-bold text-white disabled:opacity-50">{cancellationLoading ? 'Creating...' : 'Create Replacement Payroll'}</Button>}
-                {canRequestCorrection && <Button type="button" onClick={() => setIsCorrectionOpen(true)} className="rounded-full bg-amber-600 px-5 py-2.5 text-sm font-bold text-white">Request Correction</Button>}
-                {canPay && <Button type="button" onClick={handlePay} disabled={!paymentDate || payrollCorrectionLoading} className="rounded-full bg-[#16a34a] px-5 py-2.5 text-sm font-bold text-white">{payrollCorrectionLoading ? 'Paying...' : 'Mark as Paid'}</Button>}
-                </div>
-              </div>
-            )}
+            <PayrollDetailActionBar
+              canApprove={canApprove}
+              canReject={canReject}
+              canRequestCancellation={canRequestCancellation}
+              canRequestCorrection={canRequestCorrection}
+              canPay={canPay}
+              canReviewCancellation={canReviewCancellation}
+              canCreateReplacement={canCreateReplacement}
+              canApplyCorrection={canApplyCorrection}
+              payrollStatus={payrollStatus}
+              correctionReady={correctionReady}
+              payrollApprovalLoading={payrollApprovalLoading}
+              payrollRejectionLoading={payrollRejectionLoading}
+              payrollCorrectionLoading={payrollCorrectionLoading}
+              cancellationLoading={cancellationLoading}
+              paymentDate={paymentDate}
+              onPaymentDateChange={setPaymentDate}
+              onOpenApproval={() => setIsApprovalConfirmationOpen(true)}
+              onOpenRejection={() => setIsRejectOpen(true)}
+              onOpenCancellation={() => setIsCancellationOpen(true)}
+              onApproveCancellation={handleApproveCancellation}
+              onOpenCancellationRejection={() => setIsCancellationRejectOpen(true)}
+              onCreateReplacement={handleCreateReplacement}
+              onOpenCorrection={() => setIsCorrectionOpen(true)}
+              onConfirmChanges={handleConfirmChanges}
+              onPay={handlePay}
+            />
             {payslipDownloadError && <p className="mt-4 rounded-xl border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-[14px] font-semibold text-[#b91c1c]">{payslipDownloadError}</p>}
             {canDownloadPayslip && <div className="mt-6 flex justify-end border-t border-[#e5e7eb] pt-5"><Button type="button" onClick={handleDownloadPayslip} disabled={payslipDownloadLoading} className="rounded-full bg-[#2563eb] px-5 py-2.5 text-[14px] font-bold text-white hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50">{payslipDownloadLoading ? 'Downloading...' : 'Download Payslip'}</Button></div>}
           </div>
@@ -473,24 +474,6 @@ function PayrollCancellationModal({ isOpen, loading, error, title = 'Cancel Payr
 function WorkflowNotice({ title, value, valueLabel, issues = [], onAction, onDetails, loading, actionLabel }) {
   const loadingLabel = actionLabel === 'Make Changes' ? 'Saving...' : 'Regenerating...'
   return <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-bold text-amber-900">{title}</p>{valueLabel && <p className="mt-1 text-[12px] font-semibold text-amber-900">{valueLabel}</p>}<p className="mt-1 text-sm text-amber-800">{value}</p>{issues.length > 0 && <div className="mt-3 space-y-2 text-sm text-amber-900"><p className="font-bold">Correction Issues</p>{issues.map((issue, index) => <div key={`${issue.field_name || 'issue'}-${index}`} className="rounded-lg border border-amber-200 bg-amber-100/50 p-2"><p><strong>Field:</strong> {issue.field_name || '—'}</p><p><strong>Current:</strong> {issue.current_value || '—'}</p><p><strong>Expected:</strong> {issue.expected_value || '—'}</p><p><strong>Reason:</strong> {issue.reason || '—'}</p></div>)}</div>}</div><div className="flex gap-3">{onDetails && <Button type="button" onClick={onDetails} className="rounded-full border border-amber-300 px-4 py-2 text-sm font-bold text-amber-900 hover:bg-amber-100">View Details</Button>}{onAction && <Button type="button" onClick={onAction} disabled={loading} className="rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">{loading ? loadingLabel : actionLabel}</Button>}</div></div></div>
-}
-
-function Detail({ label, value, onViewDetails }) {
-  const displayValue = Array.isArray(value)
-    ? (value.length ? JSON.stringify(value) : '—')
-    : value ?? '—'
-
-  return <div className="rounded-[14px] bg-[#f9fafb] p-4"><p className="text-[12px] font-semibold text-[#6b7280]">{label}</p><p className="mt-1 break-words text-[14px] font-bold text-[#111827]">{String(displayValue)}</p>{onViewDetails && <button type="button" onClick={onViewDetails} className="mt-2 text-[11px] font-semibold text-[#2563eb] hover:text-[#1d4ed8]">View Details</button>}</div>
-}
-
-function ManualSummaryCard({ label, value, canEdit, onOpen, onViewDetails }) {
-  return (
-    <div className="rounded-[14px] bg-[#f9fafb] p-4 text-left">
-      <p className="text-[12px] font-semibold text-[#6b7280]">{label}</p>
-      <p className="mt-1 text-[14px] font-bold text-[#111827]">{value}</p>
-      <div className="mt-2 flex gap-3">{canEdit && <button type="button" onClick={onOpen} className="text-[11px] font-semibold text-[#2563eb]">Edit entries</button>}{onViewDetails && <button type="button" onClick={onViewDetails} className="text-[11px] font-semibold text-[#2563eb]">View Details</button>}</div>
-    </div>
-  )
 }
 
 function PayrollRecordsModal({ category, onClose }) {

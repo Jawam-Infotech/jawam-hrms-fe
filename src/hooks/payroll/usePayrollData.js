@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   getPayrolls,
   getPayrollById,
@@ -57,8 +57,15 @@ function usePayrollData(initialFilters = {}) {
 
   const [generateLoading, setGenerateLoading] = useState(false)
 const [generateError, setGenerateError] = useState(null)
-const [lateGenerationLoading, setLateGenerationLoading] = useState(false)
+  const [lateGenerationLoading, setLateGenerationLoading] = useState(false)
 const [lateGenerationError, setLateGenerationError] = useState(null)
+  const listRequestRef = useRef(0)
+  const detailRequestRef = useRef(0)
+
+  useEffect(() => () => {
+    listRequestRef.current += 1
+    detailRequestRef.current += 1
+  }, [])
 const handleGeneratePayroll = useCallback(async (salaryMonth) => {
   setGenerateLoading(true)
   setGenerateError(null)
@@ -100,12 +107,15 @@ const clearLateGenerationError = useCallback(() => {
 
 
   const fetchPayrolls = useCallback(async (nextFilters = filters) => {
+    const requestId = listRequestRef.current + 1
+    listRequestRef.current = requestId
     setLoading(true)
     setError(null)
 
     try {
       const data = await getPayrolls(nextFilters)
 
+      if (listRequestRef.current !== requestId) return data
       setPayrolls(data.payrolls)
       setPagination({
         count: data.count,
@@ -115,15 +125,17 @@ const clearLateGenerationError = useCallback(() => {
 
       return data
     } catch (requestError) {
-      setError(requestError)
+      if (listRequestRef.current === requestId) setError(requestError)
       throw requestError
     } finally {
-      setLoading(false)
+      if (listRequestRef.current === requestId) setLoading(false)
     }
   }, [filters])
 
 
   const fetchPayrollById = useCallback(async (payrollId) => {
+    const requestId = detailRequestRef.current + 1
+    detailRequestRef.current = requestId
     if (!payrollId) {
       return null
     }
@@ -133,14 +145,15 @@ const clearLateGenerationError = useCallback(() => {
 
     try {
       const data = await getPayrollById(payrollId)
+      if (detailRequestRef.current !== requestId) return data
       setPayroll(data)
 
       return data
     } catch (requestError) {
-      setDetailError(requestError)
+      if (detailRequestRef.current === requestId) setDetailError(requestError)
       throw requestError
     } finally {
-      setDetailLoading(false)
+      if (detailRequestRef.current === requestId) setDetailLoading(false)
     }
   }, [])
 

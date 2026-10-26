@@ -78,7 +78,7 @@ function PayrollReports({ embedded = false }) {
         period,
         ...(period === 'single_month' ? { salary_month: month } : {}),
         ...(period === 'financial_year' ? { financial_year: financialYear } : {}),
-        ...(period === 'custom_range' ? { from_month: fromMonth, to_month: toMonth } : {}),
+        ...(period === 'custom_range' ? { start_month: fromMonth, end_month: toMonth } : {}),
         department,
       })
       const url = URL.createObjectURL(response.data)

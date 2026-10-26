@@ -148,8 +148,8 @@ async function exportPayrollExcel(filters = {}) {
   if (filters.period) params.period = filters.period
   if (filters.salary_month) params.salary_month = filters.salary_month
   if (filters.financial_year) params.financial_year = filters.financial_year
-  if (filters.from_month) params.from_month = filters.from_month
-  if (filters.to_month) params.to_month = filters.to_month
+  if (filters.start_month) params.start_month = filters.start_month
+  if (filters.end_month) params.end_month = filters.end_month
   if (filters.department) params.department = filters.department
   return api.get(PAYROLL_ENDPOINTS.exportExcel, { params, responseType: 'blob' })
 }
