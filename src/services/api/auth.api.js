@@ -15,6 +15,8 @@ function mapUser(data) {
     email: data.email,
     name: data.name,
     role: ROLE_MAP[data.role] || String(data.role || '').toLowerCase(),
+    can_create_projects: Boolean(data.can_create_projects),
+    canCreateProjects: Boolean(data.can_create_projects),
   }
 }
 

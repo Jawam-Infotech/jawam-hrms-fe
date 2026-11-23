@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState, useCallback } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { UserContext } from '../../context/UserContext.jsx'
 
@@ -13,252 +13,149 @@ import TaskWorkUpdateModal from '../../components/projects/modals/TaskWorkUpdate
 import TaskApprovalModal from '../../components/projects/modals/TaskApprovalModal.jsx'
 import ProjectClosureModal from '../../components/projects/modals/ProjectClosureModal.jsx'
 import TaskChangeReviewModal from '../../components/projects/modals/TaskChangeReviewModal.jsx'
+import TaskDetailModal from '../../components/projects/modals/TaskDetailModal.jsx'
 
-const STORAGE_KEY = 'jawam_projects_state_v1'
-const TL_REQUESTS_KEY = 'jawam_tl_project_requests_v1'
-const TL_PERMISSION_KEY = 'jawam_tl_can_create_projects_v1'
-const TL_CONSUMED_KEY = 'jawam_tl_creation_consumed_v1'
-
-const getInitialTLRequests = () => [
-  {
-    id: 'tlreq-initial-shivani',
-    requestedBy: 'Shivani k',
-    projectName: 'Mobile Banking & Field Attendance Overhaul',
-    description: 'Client-facing mobile module for geo-fenced punches, camera verification, and offline sync.',
-    priority: 'High',
-    staffingMode: 'TEAM',
-    justification: 'High business urgency for enterprise field workers who work outside office networks.',
-    status: 'PENDING_CEO_APPROVAL',
-    submittedAt: new Date().toLocaleDateString(),
-  },
-]
-
-function loadTLRequests() {
-  try {
-    const saved = localStorage.getItem(TL_REQUESTS_KEY)
-    if (saved) return JSON.parse(saved)
-  } catch (e) {
-    console.error('Error loading TL requests from localStorage', e)
-  }
-  return getInitialTLRequests()
-}
-
-function loadCanTLCreate(projectsList = []) {
-  try {
-    const saved = localStorage.getItem(TL_PERMISSION_KEY)
-    if (saved !== null) {
-      const parsed = JSON.parse(saved)
-      // One-time permission check: if permission was granted but a project was already created by TL, consume it
-      const hasCreatedProject = (projectsList || []).some(
-        (p) => p.createdBy === 'Shivani k' || (p.id && String(p.id).startsWith('proj-') && p.createdBy)
-      )
-      const isConsumed = localStorage.getItem(TL_CONSUMED_KEY) === 'true'
-      if (parsed === true && (isConsumed || hasCreatedProject)) {
-        localStorage.setItem(TL_PERMISSION_KEY, JSON.stringify(false))
-        localStorage.setItem(TL_CONSUMED_KEY, 'true')
-        return false
-      }
-      return parsed
-    }
-  } catch (e) {
-    console.error('Error loading TL permission from localStorage', e)
-  }
-  return false
-}
-
-// Dynamic initial enterprise projects seed
-const getInitialProjects = () => [
-  {
-    id: 'hrms',
-    title: 'HRMS NextGen Suite',
-    description: 'Enterprise HRMS overhaul with modular dashboards, role governance, and attendance.',
-    status: 'ACTIVE',
-    priority: 'High',
-    staffingMode: 'TEAM',
-    primaryPm: 'Rajesh Singh',
-    teamLead: 'Shivani k',
-    dueDate: '30/12/2026',
-    membersCount: 4,
-    members: [
-      { id: 'emp-kp', name: 'Kanishk Prashad', role: 'UI/UX Developer', isIndependent: false },
-      { id: 'emp-sk', name: 'Shivani k', role: 'Team Leader', isIndependent: false },
-      { id: 'emp-2', name: 'Rajesh Singh', role: 'Project Manager', isPm: true },
-      { id: 'emp-4', name: 'Brijesh Bisht', role: 'Backend Engineer', isIndependent: false },
-    ],
-    tasks: [
-      { id: 't-1', name: 'Dashboard UI Architecture', assignee: 'Kanishk Prashad', assigneeId: 'emp-kp', progress: 100, status: 'COMPLETED', reworkCount: 0, dueDate: '30/12/2026' },
-      { id: 't-2', name: 'Attendance Geolocation Punch', assignee: 'Kanishk Prashad', assigneeId: 'emp-kp', progress: 80, status: 'IN_PROGRESS', reworkCount: 0, dueDate: '30/12/2026' },
-      { id: 't-3', name: 'Leave Workflow Validation', assignee: 'Kanishk Prashad', assigneeId: 'emp-kp', progress: 100, status: 'PENDING_TL_REVIEW', reworkCount: 1, dueDate: '30/12/2026', deliverable: { type: 'LINK', value: 'https://github.com/Jawam-Infotech/jawam-hrms-fe/pull/15' } },
-      { id: 't-4', name: 'Biometric API Gateway', assignee: 'Brijesh Bisht', assigneeId: 'emp-4', progress: 40, status: 'BLOCKED', reworkCount: 0, dueDate: '30/12/2026' },
-    ],
-  },
-  {
-    id: 'ai-screen',
-    title: 'AI Resume Screening Tool',
-    description: 'Autonomous LLM-assisted candidate screening pipeline for recruitment.',
-    status: 'ACTIVE',
-    priority: 'Medium',
-    staffingMode: 'SOLO',
-    primaryPm: 'CEO Oversight',
-    dueDate: '15/11/2026',
-    membersCount: 1,
-    members: [
-      { id: 'emp-5', name: 'Priya Verma', role: 'Full Stack Engineer', isIndependent: true },
-    ],
-    tasks: [
-      { id: 't-5', name: 'Resume Parser Core', assignee: 'Priya Verma', assigneeId: 'emp-5', progress: 100, status: 'DIRECT_APPROVAL_REQUIRED', reworkCount: 0, deliverable: { type: 'LINK', value: 'https://figma.com/file/ai-screen-prototype' }, isIndependent: true, dueDate: '20/12/2026' },
-      { id: 't-6', name: 'Candidate Scoring Algorithm', assignee: 'Priya Verma', assigneeId: 'emp-5', progress: 50, status: 'IN_PROGRESS', reworkCount: 0, isIndependent: true, dueDate: '20/12/2026' },
-    ],
-  },
-  {
-    id: 'mobile-app',
-    title: 'Employee Mobile Self-Service',
-    description: 'React Native companion app for clocking attendance and leave balance.',
-    status: 'PENDING_CEO_CLOSURE',
-    priority: 'High',
-    staffingMode: 'TEAM',
-    primaryPm: 'Rajesh Singh',
-    teamLead: 'Shivani k',
-    dueDate: '10/10/2026',
-    membersCount: 2,
-    members: [
-      { id: 'emp-2', name: 'Rajesh Singh', role: 'Project Manager', isPm: true },
-      { id: 'emp-sk', name: 'Shivani k', role: 'Team Leader', isIndependent: false },
-      { id: 'emp-kp', name: 'Kanishk Prashad', role: 'Frontend Engineer', isIndependent: false },
-    ],
-    tasks: [
-      { id: 't-7', name: 'Push Notifications Hook', assignee: 'Kanishk Prashad', assigneeId: 'emp-kp', progress: 100, status: 'COMPLETED', reworkCount: 0, dueDate: '10/10/2026' },
-      { id: 't-8', name: 'App Store Submission Package', assignee: 'Rajesh Singh', assigneeId: 'emp-2', progress: 100, status: 'COMPLETED', reworkCount: 0, dueDate: '10/10/2026' },
-    ],
-  },
-  {
-    id: 'infra-cloud',
-    title: 'AWS Cloud Cost Optimization',
-    description: 'DevOps audit and spot instance automated scheduling.',
-    status: 'PLANNED',
-    priority: 'Low',
-    staffingMode: 'TEAM',
-    primaryPm: null,
-    dueDate: '20/01/2027',
-    membersCount: 1,
-    members: [
-      { id: 'emp-6', name: 'Karan Mehra', role: 'DevOps Specialist', isIndependent: false },
-    ],
-    tasks: [],
-  },
-]
-
-function sanitizeProjectsList(list) {
-  if (!Array.isArray(list)) return []
-  return list.map((p) => {
-    const cleanedMembers = (p.members || []).filter(
-      (m) => m && m.role !== 'CEO' && m.id !== 'emp-gp' && m.name !== 'Gaurav Pandey',
-    )
-    return {
-      ...p,
-      members: cleanedMembers,
-      membersCount: cleanedMembers.length,
-    }
-  })
-}
-
-function loadProjects() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed)) {
-        const sanitized = sanitizeProjectsList(parsed)
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized))
-        } catch (err) {
-          console.error(err)
-        }
-        return sanitized
-      }
-    }
-  } catch (e) {
-    console.error('Error loading projects from localStorage', e)
-  }
-  return sanitizeProjectsList(getInitialProjects())
-}
+import { projectsApi } from '../../services/api/index.js'
+import formatApiError from '../../utils/formatApiError.js'
+import downloadDeliverable from '../../utils/downloadDeliverable.js'
+import { getTaskRejection, recordTaskRejection, clearTaskRejection } from '../../utils/taskRejectionStorage.js'
+import { dispatchProjectNotification } from '../../utils/projectNotificationService.js'
 
 function Projects() {
-  const { user } = useContext(UserContext)
+  const { user, refreshUser } = useContext(UserContext)
 
   const currentUser = useMemo(() => user || {
-    name: 'Kanishk Prashad',
+    id: null,
+    name: '',
     role: 'EMPLOYEE',
+    can_create_projects: false,
     canCreateProjects: false,
   }, [user])
 
-  const [projects, setProjects] = useState(loadProjects)
+  // Real backend projects state
+  const [projects, setProjects] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(20)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(projects))
-    } catch (e) {
-      console.error('Error saving projects to localStorage', e)
-    }
-  }, [projects])
+  // Real approval queue items from E35
+  const [approvalQueue, setApprovalQueue] = useState([])
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isCreatingProject, setIsCreatingProject] = useState(false)
+  const [createError, setCreateError] = useState(null)
+
   const [isTLRequestModalOpen, setIsTLRequestModalOpen] = useState(false)
+  const [tlProjectRequests, setTLProjectRequests] = useState(() => {
+    try {
+      const saved = localStorage.getItem('jawam_tl_project_requests')
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
+
   const [activeUpdateTask, setActiveUpdateTask] = useState(null)
+  const [activeDetailTask, setActiveDetailTask] = useState(null)
   const [activeApprovalTask, setActiveApprovalTask] = useState(null)
   const [activeClosureProject, setActiveClosureProject] = useState(null)
   const [activeChangeReviewTask, setActiveChangeReviewTask] = useState(null)
+  const [isModalSubmitting, setIsModalSubmitting] = useState(false)
+  const [modalActionError, setModalActionError] = useState(null)
+  const [qualityRiskAlert, setQualityRiskAlert] = useState(null)
 
-  // TL project creation permission — toggled by CEO via Grant/Deny (persisted across accounts)
-  const [tlProjectRequests, setTLProjectRequests] = useState(loadTLRequests)
-  const [canTLCreate, setCanTLCreate] = useState(() => {
-    const currentProjs = loadProjects()
-    return loadCanTLCreate(currentProjs)
-  })
-
-  useEffect(() => {
+  // Fetch projects list (E01 GET) and approval queue (E35 GET)
+  const fetchProjectsData = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
     try {
-      localStorage.setItem(TL_REQUESTS_KEY, JSON.stringify(tlProjectRequests))
-    } catch (e) {
-      console.error('Error saving TL requests to localStorage', e)
+      const [projectsRes, queueRes] = await Promise.allSettled([
+        projectsApi.getProjects({ page: currentPage, page_size: pageSize }),
+        projectsApi.getApprovalQueue({ page_size: 50 }),
+      ])
+
+      if (projectsRes.status === 'fulfilled') {
+        const data = projectsRes.value.data
+        const rawList = Array.isArray(data) ? data : (data?.results || [])
+
+        // Concurrently fetch tasks and members for each project so task metrics and PM roles are populated
+        const [tasksResults, membersResults] = await Promise.all([
+          Promise.allSettled(rawList.map((p) => projectsApi.getTasks(p.id, { page_size: 100 }))),
+          Promise.allSettled(rawList.map((p) => projectsApi.getMembers(p.id, { page_size: 100, include_inactive: false }))),
+        ])
+
+        const projectsWithDetails = rawList.map((p, idx) => {
+          const tRes = tasksResults[idx]
+          const tData = tRes?.status === 'fulfilled' ? tRes.value.data : []
+          const taskList = Array.isArray(tData) ? tData : (tData?.results || [])
+
+          const mRes = membersResults[idx]
+          const mData = mRes?.status === 'fulfilled' ? mRes.value.data : []
+          const memberList = Array.isArray(mData) ? mData : (mData?.results || [])
+
+          const primaryPmMember = memberList.find((m) => m.is_current_pm || m.isPm)
+
+          return {
+            ...p,
+            tasks: taskList,
+            members: memberList,
+            primaryPm: primaryPmMember ? (primaryPmMember.name || primaryPmMember.full_name) : p.primaryPm,
+            primaryPmId: primaryPmMember ? (primaryPmMember.user_id || primaryPmMember.id) : p.primaryPmId,
+          }
+        })
+
+        setProjects(projectsWithDetails)
+        setTotalCount(data?.count || rawList.length)
+      } else {
+        const errMsg = formatApiError(projectsRes.reason, 'Failed to fetch projects list')
+        setError(errMsg)
+      }
+
+      if (queueRes.status === 'fulfilled') {
+        const qData = queueRes.value.data
+        const qItems = Array.isArray(qData) ? qData : (qData?.results || [])
+        setApprovalQueue(qItems)
+      } else {
+        // E35 may return 403 or empty if not permitted, treat non-fatal
+        setApprovalQueue([])
+      }
+    } catch (err) {
+      setError(formatApiError(err, 'Failed to load projects workspace'))
+    } finally {
+      setIsLoading(false)
     }
-  }, [tlProjectRequests])
+  }, [currentPage, pageSize])
 
   useEffect(() => {
-    try {
-      localStorage.setItem(TL_PERMISSION_KEY, JSON.stringify(canTLCreate))
-    } catch (e) {
-      console.error('Error saving TL permission to localStorage', e)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchProjectsData()
+    if (typeof refreshUser === 'function') {
+      void refreshUser()
     }
-  }, [canTLCreate])
+  }, [fetchProjectsData, refreshUser])
 
-  // Sync projects and TL requests in real-time across tabs / role switching
-  useEffect(() => {
-    const handleSync = () => {
-      setProjects(loadProjects())
-      setTLProjectRequests(loadTLRequests())
-      setCanTLCreate(loadCanTLCreate(loadProjects()))
-    }
-    window.addEventListener('storage', handleSync)
-    window.addEventListener('focus', handleSync)
-    return () => {
-      window.removeEventListener('storage', handleSync)
-      window.removeEventListener('focus', handleSync)
-    }
-  }, [])
-
-  // Enriched projects with mathematical progress
+  // Enriched projects adapting real backend serializer fields with safe fallbacks
   const enrichedProjects = useMemo(() => {
-    return projects.map((p) => {
+    return (projects || []).map((p) => {
       const activeTasks = (p.tasks || []).filter((t) => t.status !== 'CANCELLED')
       const completedTasks = activeTasks.filter((t) => t.status === 'COMPLETED')
       const mathProgress = activeTasks.length > 0
         ? Math.round((completedTasks.length / activeTasks.length) * 100)
-        : 0
+        : (p.progress || 0)
 
       return {
         ...p,
+        title: p.name || p.title || 'Untitled Project',
+        name: p.name || p.title || 'Untitled Project',
+        dueDate: p.target_end_date || p.dueDate || 'TBD',
+        target_end_date: p.target_end_date || p.dueDate,
+        membersCount: p.active_member_count ?? p.membersCount ?? (p.members?.length || 0),
+        active_member_count: p.active_member_count ?? p.membersCount ?? (p.members?.length || 0),
+        staffingMode: p.staffing_mode || p.staffingMode || 'TEAM',
+        staffing_mode: p.staffing_mode || p.staffingMode || 'TEAM',
         activeTasksCount: activeTasks.length,
         completedTasksCount: completedTasks.length,
         openTasksCount: activeTasks.filter((t) => t.status !== 'COMPLETED').length,
@@ -267,25 +164,55 @@ function Projects() {
     })
   }, [projects])
 
-  // All tasks flattened
+  // Flattened tasks across loaded projects
   const allTasks = useMemo(() => {
     const list = []
     enrichedProjects.forEach((p) => {
       (p.tasks || []).forEach((t) => {
+        const assigneeName = typeof t.assignee === 'string'
+          ? t.assignee
+          : (t.assignee?.name || t.assignee_name || (t.assignee_id ? `User #${t.assignee_id}` : 'Unassigned'))
+        const assigneeId = t.assignee_id || t.assigneeId || (typeof t.assignee === 'object' ? t.assignee?.id : (typeof t.assignee === 'number' ? t.assignee : undefined))
+
+        const localRej = getTaskRejection(t.id)
+        const reworkCount = Number(t.rejection_count ?? t.rework_count ?? t.reworkCount ?? (localRej ? (localRej.count || 1) : 0))
+        const rawFeedback = t.rejection_feedback || t.rejection_reason || t.latest_rejection_reason || t.rework_reason || localRej?.reason || ''
+        const isQualityRisk = Boolean(t.quality_risk || reworkCount >= 3)
+        const isRejected = (t.status === 'IN_PROGRESS' || t.status === 'REJECTED') && (reworkCount > 0 || Boolean(rawFeedback) || Boolean(localRej))
+        const rejectionFeedback = rawFeedback || (isRejected ? 'Deliverable was rejected by reviewer. Please make the requested updates and resubmit.' : '')
+
         list.push({
           ...t,
-          projectTitle: p.title,
+          title: t.title || t.name,
+          name: t.name || t.title,
+          assignee: assigneeName,
+          assigneeId: assigneeId,
+          assignee_id: assigneeId,
+          dueDate: t.due_date || t.dueDate || 'TBD',
+          projectTitle: p.title || p.name,
           projectId: p.id,
+          project_id: p.id,
           primaryPm: p.primaryPm,
+          primaryPmId: p.primaryPmId,
           teamLead: p.teamLead,
           members: p.members,
+          reworkCount,
+          rework_count: reworkCount,
+          rejection_count: reworkCount,
+          isQualityRisk,
+          quality_risk: isQualityRisk,
+          rejectionFeedback,
+          rejection_feedback: rejectionFeedback,
+          isRejected,
+          displayStatus: isRejected ? 'REJECTED' : t.status,
+          rejectedBy: localRej?.rejectedBy || 'Reviewer',
         })
       })
     })
     return list
   }, [enrichedProjects])
 
-  // All active task-change requests (TCR) across projects
+  // All active task-change requests across projects
   const allTCRs = useMemo(() => {
     return allTasks.filter(
       (t) =>
@@ -297,484 +224,580 @@ function Projects() {
 
   // Team Leader TCR reviews queue (Stage 1)
   const tlTcrReviews = useMemo(() => {
+    const queueTCRs = approvalQueue.filter((item) => item.type === 'CHANGE' && item.stage === 'TL')
+    if (queueTCRs.length > 0) return queueTCRs
+
     return allTCRs.filter((t) => {
       const status = t.changeRequest?.status
       if (status !== 'PENDING_TL_REVIEW') return false
       if (t.changeRequest?.requester === currentUser.name) return false
-      // If currentUser is TL, show requests under their projects
       if (currentUser.role === 'TL') {
         return !t.teamLead || t.teamLead === currentUser.name || (t.members || []).some((m) => m.name === currentUser.name)
       }
       return true
     })
-  }, [allTCRs, currentUser])
+  }, [approvalQueue, allTCRs, currentUser])
 
-  // Executive / PM TCR reviews queue (Stage 2 or Solo/PM requests or Executive Oversight)
+  // Executive / PM TCR reviews queue
   const executiveTcrReviews = useMemo(() => {
+    const queueTCRs = approvalQueue.filter((item) => item.type === 'CHANGE' && (item.stage === 'PM' || item.stage === 'DIRECT'))
+    if (queueTCRs.length > 0) return queueTCRs
+
     return allTCRs.filter((t) => {
       const status = t.changeRequest?.status
       if (!status) return false
-      // CEO has company-wide executive visibility over all pending change requests
       if (currentUser.role === 'CEO') return true
-      // If user is project primary PM, show TCRs awaiting PM approval
       if (t.primaryPm === currentUser.name) {
         return ['PENDING_PM_APPROVAL', 'DIRECT_APPROVAL_REQUIRED', 'PENDING_CEO_APPROVAL'].includes(status)
       }
       return false
     })
-  }, [allTCRs, currentUser])
+  }, [approvalQueue, allTCRs, currentUser])
 
   // Role-scoped data filters
-  // 1. Employee: only projects where they are a member, only their tasks
   const employeeProjects = useMemo(() => {
-    return enrichedProjects.filter((p) =>
-      (p.members || []).some((m) => m.name === currentUser.name || m.id === currentUser.id),
-    )
+    return enrichedProjects.filter((p) => {
+      if (!p.members || p.members.length === 0) return true
+      return p.members.some(
+        (m) =>
+          String(m.name || '').toLowerCase() === String(currentUser.name || '').toLowerCase() ||
+          String(m.id || m.user_id) === String(currentUser.id)
+      )
+    })
   }, [enrichedProjects, currentUser])
 
   const myTasks = useMemo(() => {
-    return allTasks.filter((t) =>
-      t.assignee === currentUser.name || t.assigneeId === currentUser.id,
-    )
+    const curId = String(currentUser.id || '')
+    const curName = String(currentUser.name || '').trim().toLowerCase()
+
+    return allTasks.filter((t) => {
+      const matchId = curId && (String(t.assignee_id || t.assigneeId || '') === curId)
+      const matchName = curName && (String(t.assignee || '').trim().toLowerCase() === curName)
+      return matchId || matchName
+    })
   }, [allTasks, currentUser])
 
-  // 2. Team Leader: Team reviews queue (only PENDING_TL_REVIEW tasks from team)
   const teamReviews = useMemo(() => {
-    return allTasks.filter((t) => t.status === 'PENDING_TL_REVIEW')
-  }, [allTasks])
+    const queueCompletions = approvalQueue.filter(
+      (item) => item.type === 'COMPLETION' && (item.stage === 'TL' || item.stage === 'PM' || item.stage === 'DIRECT')
+    )
+    if (queueCompletions.length > 0) return queueCompletions
 
-  // 3. CEO: Pending closures and direct approvals
+    const pendingReviewStatuses = [
+      'PENDING_TL_REVIEW',
+      'PENDING_PM_APPROVAL',
+      'DIRECT_APPROVAL_REQUIRED',
+      'PENDING_CEO_APPROVAL',
+    ]
+
+    const curId = String(currentUser.id || '')
+    const curName = String(currentUser.name || '').trim().toLowerCase()
+
+    return allTasks.filter((t) => {
+      const statusUpper = String(t.status || '').trim().toUpperCase()
+      // Must be in one of the pending review statuses
+      if (!pendingReviewStatuses.includes(statusUpper)) return false
+
+      // Enforce zero self-approval: cannot review own tasks
+      const isAssignee =
+        (curId && String(t.assignee_id || t.assigneeId || '') === curId) ||
+        (curName && String(t.assignee || '').trim().toLowerCase() === curName)
+      if (isAssignee) return false
+
+      return true
+    })
+  }, [approvalQueue, allTasks, currentUser])
+
   const pendingClosures = useMemo(() => {
-    return enrichedProjects.filter((p) => p.status === 'PENDING_CEO_CLOSURE')
+    return enrichedProjects.filter((p) => {
+      const s = String(p.status || '').trim().toUpperCase()
+      return s === 'PENDING_CEO_CLOSURE'
+    })
   }, [enrichedProjects])
 
   const directApprovals = useMemo(() => {
-    return allTasks.filter((t) =>
-      ['DIRECT_APPROVAL_REQUIRED', 'PENDING_CEO_APPROVAL', 'PENDING_PM_APPROVAL'].includes(t.status),
+    const queueCompletions = approvalQueue.filter(
+      (item) => item.type === 'COMPLETION' && (item.stage === 'PM' || item.stage === 'DIRECT')
     )
-  }, [allTasks])
+    if (queueCompletions.length > 0) return queueCompletions
+    return allTasks.filter((t) => {
+      const statusUpper = String(t.status || '').trim().toUpperCase()
+      return ['DIRECT_APPROVAL_REQUIRED', 'PENDING_CEO_APPROVAL', 'PENDING_PM_APPROVAL'].includes(statusUpper)
+    })
+  }, [approvalQueue, allTasks])
 
-  // Mutation Handlers
-  const handleCreateProject = (newProjectData) => {
-    // Non-Negotiable Rule 2.1: The project creator is not automatically its PM
-    // and is not automatically an assigned member.
-    const created = {
-      ...newProjectData,
-      id: `proj-${Date.now()}`,
-      createdBy: currentUser.name,
-      members: newProjectData.members || [],
-      pmHistory: newProjectData.primaryPm
-        ? [{ previousPm: null, newPm: newProjectData.primaryPm, reason: 'Initial PM designated upon project creation', replacedBy: currentUser.name, timestamp: new Date().toLocaleString() }]
-        : [],
-      tasks: [],
-    }
-    setProjects((prev) => [created, ...prev])
+  // E01 POST: Real Project Creation via API
+  const handleCreateProject = async (formData) => {
+    setIsCreatingProject(true)
+    setCreateError(null)
 
-    // TL project creation permission is strictly single-use: consumed upon creating 1 project
-    if (currentUser.role === 'TL') {
-      setCanTLCreate(false)
-      try {
-        localStorage.setItem(TL_PERMISSION_KEY, JSON.stringify(false))
-        localStorage.setItem(TL_CONSUMED_KEY, 'true')
-      } catch (e) {
-        console.error('Error updating TL permission after project creation', e)
+    try {
+      const payload = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        start_date: formData.start_date || formData.startDate,
+        target_end_date: formData.target_end_date || formData.targetEndDate,
+        staffing_mode: currentUser.role === 'CEO' ? (formData.staffing_mode || 'TEAM') : 'TEAM',
       }
+
+      const res = await projectsApi.createProject(payload)
+      const createdProject = res.data
+
+      // If designated initial PM on creation (CEO only)
+      if (formData.assignedPmId && currentUser.role === 'CEO' && createdProject?.id) {
+        try {
+          const pmUserId = parseInt(formData.assignedPmId, 10)
+          if (!isNaN(pmUserId)) {
+            await projectsApi.addMember(createdProject.id, { user_id: pmUserId })
+            if (payload.staffing_mode === 'TEAM') {
+              await projectsApi.assignPrimaryPM(createdProject.id, {
+                user_id: pmUserId,
+                reason: 'Designated primary PM during project creation',
+              })
+            }
+          }
+        } catch (assignErr) {
+          console.warn('Initial PM assignment note:', assignErr)
+        }
+      }
+
+      setIsCreateModalOpen(false)
+      dispatchProjectNotification({
+        title: '📁 New Project Created',
+        message: `Project "${payload.name}" was successfully created.`,
+        type: 'success',
+        targetRole: 'ALL',
+        link: '/projects',
+      })
+      await fetchProjectsData()
+    } catch (err) {
+      const formatted = formatApiError(err, 'Failed to create project')
+      setCreateError(formatted)
+    } finally {
+      setIsCreatingProject(false)
     }
   }
 
-  // TL submits a project creation request → goes to CEO queue
+  // TL submits a project creation request
   const handleTLRequest = (requestData) => {
-    setTLProjectRequests((prev) => [requestData, ...prev])
+    const enrichedReq = {
+      ...requestData,
+      userId: currentUser.id || currentUser.user_id,
+      requestedBy: currentUser.name || requestData.requestedBy,
+    }
+    const updated = [enrichedReq, ...tlProjectRequests]
+    setTLProjectRequests(updated)
+    try {
+      localStorage.setItem('jawam_tl_project_requests', JSON.stringify(updated))
+    } catch (e) {
+      console.error(e)
+    }
+
+    // Notify CEO of the new project creation request
+    dispatchProjectNotification({
+      title: '📋 New Project Request',
+      message: `Team Leader ${enrichedReq.requestedBy || 'TL'} requested approval to create project "${enrichedReq.projectName || 'New Project'}".`,
+      type: 'info',
+      targetRole: 'CEO',
+      link: '/projects',
+    })
+
+    setIsTLRequestModalOpen(false)
   }
 
-  // CEO grants permission → TL project is created immediately, notification dispatched
-  const handleGrantTLPermission = (req) => {
-    // 1. Remove from pending TL requests queue
-    const updatedRequests = tlProjectRequests.filter((r) => r.id !== req.id)
-    setTLProjectRequests(updatedRequests)
+  // CEO grants permission and directly creates the project (Option A)
+  const handleGrantTLPermission = async (req) => {
     try {
-      localStorage.setItem(TL_REQUESTS_KEY, JSON.stringify(updatedRequests))
-    } catch (e) {
-      console.error('Error saving updated TL requests', e)
-    }
-
-    // 2. Automatically instantiate and activate the project requested by the TL!
-    const newProjectId = `proj-${Date.now()}`
-    const tlName = req.requestedBy || 'Shivani k'
-    const newProject = {
-      id: newProjectId,
-      title: req.projectName,
-      description: req.description || 'Project initiated upon CEO approval.',
-      priority: req.priority || 'Medium',
-      staffingMode: req.staffingMode || 'TEAM',
-      status: 'ACTIVE',
-      teamLead: tlName,
-      createdBy: tlName,
-      primaryPm: null,
-      dueDate: '30/12/2026',
-      membersCount: 1,
-      members: [
-        { id: 'emp-sk', name: tlName, role: 'Team Leader', isIndependent: false },
-      ],
-      pmHistory: [],
-      tasks: [],
-      justification: req.justification || '',
-      approvedBy: 'Gaurav Pandey (CEO)',
-      approvedAt: new Date().toLocaleString(),
-    }
-
-    setProjects((prev) => [newProject, ...prev])
-    try {
-      const currentProjects = loadProjects()
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([newProject, ...currentProjects]))
-    } catch (e) {
-      console.error('Error saving new project to localStorage', e)
-    }
-
-    // 3. Consume creation permission
-    setCanTLCreate(false)
-    try {
-      localStorage.setItem(TL_PERMISSION_KEY, JSON.stringify(false))
-      localStorage.setItem(TL_CONSUMED_KEY, 'true')
-    } catch (e) {
-      console.error('Error updating TL permission key in localStorage', e)
-    }
-
-    // 4. Create and dispatch persistent Notification for TL
-    const newNotification = {
-      id: `notif-${Date.now()}`,
-      recipientName: tlName,
-      recipientRole: 'TL',
-      title: 'Project Request Approved',
-      message: `CEO Gaurav Pandey accepted your project request for "${req.projectName}". The project is now live in your workspace!`,
-      projectName: req.projectName,
-      projectId: newProjectId,
-      created_at: new Date().toISOString(),
-      is_read: false,
-    }
-
-    try {
-      const savedNotifs = JSON.parse(localStorage.getItem('jawam_custom_notifications_v1') || '[]')
-      localStorage.setItem('jawam_custom_notifications_v1', JSON.stringify([newNotification, ...savedNotifs]))
-
-      // Store alert banner payload for TL dashboard and projects view
-      localStorage.setItem('jawam_tl_latest_approved_project_v1', JSON.stringify({
-        projectName: req.projectName,
-        projectId: newProjectId,
-        approvedAt: new Date().toLocaleString(),
-      }))
-    } catch (e) {
-      console.error('Error saving notification to localStorage', e)
-    }
-  }
-
-  // CEO denies the TL request → remove from queue, notify TL
-  const handleDenyTLRequest = (reqId) => {
-    const req = tlProjectRequests.find((r) => r.id === reqId)
-    const updatedRequests = tlProjectRequests.filter((r) => r.id !== reqId)
-    setTLProjectRequests(updatedRequests)
-    try {
-      localStorage.setItem(TL_REQUESTS_KEY, JSON.stringify(updatedRequests))
-    } catch (e) {
-      console.error('Error updating TL requests', e)
-    }
-
-    if (req) {
-      const denyNotification = {
-        id: `notif-${Date.now()}`,
-        recipientName: req.requestedBy || 'Shivani k',
-        recipientRole: 'TL',
-        title: 'Project Request Denied',
-        message: `CEO Gaurav Pandey declined your project request for "${req.projectName}".`,
-        projectName: req.projectName,
-        created_at: new Date().toISOString(),
-        is_read: false,
+      const targetId = req.userId || req.requestedById
+      if (targetId) {
+        try {
+          await projectsApi.setCreationPermission(targetId, true)
+        } catch (permErr) {
+          console.warn('Set creation permission warning:', permErr)
+        }
       }
+
+      // Automatically compute target end date: 14 days from today
+      const today = new Date()
+      const targetEnd = new Date()
+      targetEnd.setDate(today.getDate() + 14)
+      const startDateStr = today.toISOString().split('T')[0]
+      const targetEndDateStr = targetEnd.toISOString().split('T')[0]
+
+      // Directly create the project in the backend database
+      const projectPayload = {
+        name: req.projectName?.trim() || 'New Project',
+        description: req.description?.trim() || req.justification?.trim() || 'Project requested by Team Leader',
+        start_date: startDateStr,
+        target_end_date: targetEndDateStr,
+        staffing_mode: req.staffingMode || 'TEAM',
+      }
+
+      const res = await projectsApi.createProject(projectPayload)
+      const createdProj = res?.data
+
+      // Assign the requesting TL to the created project and designate as Primary PM if it's a team project
+      if (createdProj?.id && targetId) {
+        try {
+          const tlUserId = parseInt(targetId, 10)
+          if (!isNaN(tlUserId)) {
+            await projectsApi.addMember(createdProj.id, { user_id: tlUserId })
+            if (projectPayload.staffing_mode === 'TEAM') {
+              await projectsApi.assignPrimaryPM(createdProj.id, {
+                user_id: tlUserId,
+                reason: 'Requesting Team Leader assigned as Primary PM upon project approval',
+              })
+            }
+          }
+        } catch (assignErr) {
+          console.warn('Failed to assign TL as project PM/member:', assignErr)
+        }
+      }
+
+      const updated = tlProjectRequests.filter((r) => r.id !== req.id)
+      setTLProjectRequests(updated)
       try {
-        const savedNotifs = JSON.parse(localStorage.getItem('jawam_custom_notifications_v1') || '[]')
-        localStorage.setItem('jawam_custom_notifications_v1', JSON.stringify([denyNotification, ...savedNotifs]))
+        localStorage.setItem('jawam_tl_project_requests', JSON.stringify(updated))
+        localStorage.setItem('jawam_tl_latest_approved_project_v1', JSON.stringify(req))
       } catch (e) {
-        console.error('Error saving deny notification', e)
+        console.error(e)
       }
+
+      // Notify the TL that the project was created and is active
+      dispatchProjectNotification({
+        title: '🎉 Project Request Approved & Created',
+        message: `CEO approved your request for "${req.projectName || 'Project'}". The project has been created and is active in your workspace!`,
+        type: 'success',
+        targetRole: 'TL',
+        targetUserId: targetId,
+        targetUserName: req.requestedBy,
+        link: createdProj?.id ? `/projects/${createdProj.id}` : '/projects',
+      })
+
+      // Dispatch global notification
+      dispatchProjectNotification({
+        title: '📁 New Project Created',
+        message: `Project "${req.projectName}" was approved and created.`,
+        type: 'success',
+        targetRole: 'ALL',
+        link: createdProj?.id ? `/projects/${createdProj.id}` : '/projects',
+      })
+
+      await fetchProjectsData()
+    } catch (err) {
+      alert(formatApiError(err, 'Failed to create requested project'))
     }
   }
 
-  const handleWorkUpdate = ({
-    taskId,
-    newProgress,
-    note,
-    decreaseReason,
-    deliverable,
-    isCompletion,
-    isIndependent,
-    isBlocked,
-    blockerCategory,
-    blockerReason,
-  }) => {
-    setProjects((prev) =>
-      prev.map((proj) => ({
-        ...proj,
-        tasks: (proj.tasks || []).map((task) => {
-          if (task.id !== taskId) return task
+  const handleDenyTLRequest = (reqId) => {
+    const targetReq = tlProjectRequests.find((r) => r.id === reqId)
+    const updated = tlProjectRequests.filter((r) => r.id !== reqId)
+    setTLProjectRequests(updated)
+    try {
+      localStorage.setItem('jawam_tl_project_requests', JSON.stringify(updated))
+    } catch (e) {
+      console.error(e)
+    }
 
-          let newStatus
-          let blockerData
-
-          if (isBlocked) {
-            newStatus = 'BLOCKED'
-            blockerData = {
-              category: blockerCategory || 'General Blocker',
-              reason: blockerReason || 'Work is blocked',
-              reportedAt: new Date().toISOString(),
-            }
-          } else {
-            blockerData = null
-            if (isCompletion) {
-              const isAssigneePm = Boolean(
-                task.isPm ||
-                task.assignee === proj.primaryPm ||
-                (proj.members || []).find((m) => (m.id === task.assigneeId || m.name === task.assignee))?.isPm
-              )
-
-              if (isAssigneePm) {
-                // Section 7.5: Zero Self-Approval Rule: PM tasks route directly to CEO
-                newStatus = 'PENDING_CEO_APPROVAL'
-              } else if (isIndependent || task.isIndependent || proj.staffingMode === 'SOLO' || proj.isSoloProject) {
-                // Section 7.3: Independent Contributor -> Direct PM/CEO Approval
-                newStatus = 'DIRECT_APPROVAL_REQUIRED'
-              } else {
-                // Section 7.3: Team Member under TL -> TL Review
-                newStatus = 'PENDING_TL_REVIEW'
-              }
-            } else if (newProgress > 0) {
-              newStatus = 'IN_PROGRESS'
-            } else {
-              newStatus = 'TODO'
-            }
-          }
-
-          return {
-            ...task,
-            progress: newProgress,
-            status: newStatus,
-            blocker: blockerData,
-            lastNote: note,
-            lastDecreaseReason: decreaseReason,
-            deliverable: deliverable || task.deliverable,
-          }
-        }),
-      })),
-    )
+    // Notify the TL that the request was rejected
+    if (targetReq) {
+      dispatchProjectNotification({
+        title: '❌ Project Request Rejected',
+        message: `CEO reviewed and declined the project creation request for "${targetReq.projectName || 'Project'}".`,
+        type: 'warning',
+        targetRole: 'TL',
+        targetUserId: targetReq.userId || targetReq.requestedById,
+        targetUserName: targetReq.requestedBy,
+        link: '/projects',
+      })
+    }
   }
 
-  const handleApproveTask = (taskId) => {
-    setProjects((prev) =>
-      prev.map((proj) => ({
-        ...proj,
-        tasks: (proj.tasks || []).map((task) => {
-          if (task.id !== taskId) return task
+  // Modals action handlers
+  const handleWorkUpdate = async ({ taskId, payload, isMultipart } = {}) => {
+    const projId = activeUpdateTask?.projectId || activeUpdateTask?.project_id || activeUpdateTask?.project
+    const targetTaskId = taskId || activeUpdateTask?.id
+    if (!projId || !targetTaskId) {
+      console.error('Missing projectId or taskId for work update', { activeUpdateTask, taskId })
+      return
+    }
+    setIsModalSubmitting(true)
+    setModalActionError(null)
+    try {
+      await projectsApi.recordWorkUpdate(projId, targetTaskId, payload, isMultipart)
+      clearTaskRejection(targetTaskId)
 
-          // TL approves -> passes to PM. PM/CEO approves -> COMPLETED
-          const isPmOrCeoApprover = currentUser.name === proj.primaryPm || currentUser.role === 'CEO'
-          const nextStatus =
-            task.status === 'PENDING_TL_REVIEW' && !isPmOrCeoApprover
-              ? 'PENDING_PM_APPROVAL'
-              : 'COMPLETED'
-          return { ...task, status: nextStatus, rejectionFeedback: null }
-        }),
-      })),
-    )
-  }
+      const rawProgress = isMultipart && typeof payload?.get === 'function'
+        ? payload.get('progress')
+        : (payload?.progress ?? activeUpdateTask?.progress ?? 0)
+      const progressNum = Number(rawProgress)
+      const isComplete = progressNum >= 100
+      const employeeName = currentUser?.name || 'Assignee'
+      const taskName = activeUpdateTask?.name || activeUpdateTask?.title || 'Task'
+      const projectName = activeUpdateTask?.projectTitle || activeUpdateTask?.projectName || 'Project'
 
-  const handleRejectTask = (taskId, rejectionReason) => {
-    setProjects((prev) =>
-      prev.map((proj) => ({
-        ...proj,
-        tasks: (proj.tasks || []).map((task) => {
-          if (task.id !== taskId) return task
-          return {
-            ...task,
-            progress: 85,
-            status: 'IN_PROGRESS',
-            reworkCount: (task.reworkCount || 0) + 1,
-            rejectionFeedback: rejectionReason,
-          }
-        }),
-      })),
-    )
-  }
+      // 1. Real-time alert to TL and PM leadership
+      dispatchProjectNotification({
+        title: isComplete ? '🎯 100% Deliverable Submitted' : '📈 Work Progress Updated',
+        message: isComplete
+          ? `"${employeeName}" submitted final 100% completion deliverables for task "${taskName}" in project "${projectName}". Review required.`
+          : `"${employeeName}" updated work progress to ${progressNum}% on task "${taskName}" in project "${projectName}".`,
+        type: isComplete ? 'warning' : 'info',
+        targetRole: 'TL_PM',
+        link: `/projects/${projId}`,
+      })
 
-  const handleApproveClosure = (projId) => {
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === projId
-          ? {
-              ...p,
-              status: 'COMPLETED',
-              auditEvents: [
-                {
-                  id: `audit-${Date.now()}`,
-                  action: 'Project Closure Approved',
-                  actor: currentUser.name,
-                  description: 'CEO officially verified deliverables and approved closure.',
-                  timestamp: new Date().toLocaleString(),
-                },
-                ...(p.auditEvents || []),
-              ],
-            }
-          : p,
-      ),
-    )
-  }
-
-  const handleRejectClosure = (projId, rejectionReason) => {
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === projId
-          ? {
-              ...p,
-              status: 'ACTIVE',
-              closureRejectionReason: rejectionReason,
-              auditEvents: [
-                {
-                  id: `audit-${Date.now()}`,
-                  action: 'Project Closure Rejected',
-                  actor: currentUser.name,
-                  description: `Closure rejected and retained ACTIVE: ${rejectionReason}`,
-                  reason: rejectionReason,
-                  timestamp: new Date().toLocaleString(),
-                },
-                ...(p.auditEvents || []),
-              ],
-            }
-          : p,
-      ),
-    )
-  }
-
-  const handleApproveTaskChange = (taskId, changeRequest) => {
-    setProjects((prev) =>
-      prev.map((proj) => {
-        const hasTask = (proj.tasks || []).some((t) => t.id === taskId)
-        if (!hasTask) return proj
-
-        let isIntermediate = false
-        const updatedTasks = proj.tasks.map((task) => {
-          if (task.id !== taskId) return task
-
-          if (!task.changeRequest || task.changeRequest.id !== changeRequest.id) {
-            return task
-          }
-
-          // Two-stage review: TL recommends -> PM/CEO decides
-          if (task.changeRequest.status === 'PENDING_TL_REVIEW' && currentUser.role === 'TL') {
-            isIntermediate = true
-            return {
-              ...task,
-              changeRequest: {
-                ...task.changeRequest,
-                status: 'PENDING_PM_APPROVAL',
-                tlRecommendedBy: currentUser.name,
-                tlRecommendedAt: new Date().toLocaleString(),
-              },
-            }
-          }
-
-          // Atomic Execution of Approved Change (PM or CEO sign-off)
-          const updated = {
-            ...task,
-            changeRequest: null,
-          }
-
-          if (changeRequest.type === 'DEADLINE_EXTENSION') {
-            updated.dueDate = changeRequest.requestedChange?.dueDate || task.dueDate
-          } else if (changeRequest.type === 'REASSIGNMENT') {
-            updated.assignee = changeRequest.requestedChange?.newAssignee || task.assignee
-          } else if (changeRequest.type === 'TASK_DELETION') {
-            updated.status = 'CANCELLED'
-            updated.cancellationReason = changeRequest.reason
-          }
-
-          return updated
+      // 2. Direct confirmation for the employee submitter
+      if (currentUser?.role === 'EMPLOYEE') {
+        dispatchProjectNotification({
+          title: '✅ Progress Update Sent',
+          message: `Your update (${progressNum}%) for task "${taskName}" has been submitted to your Team Leader / PM.`,
+          type: 'success',
+          targetRole: 'EMPLOYEE',
+          targetUserId: currentUser.id,
+          targetUserName: currentUser.name,
+          link: `/projects/${projId}`,
         })
-
-        const taskName = proj.tasks.find((t) => t.id === taskId)?.name || 'Task'
-        const newAudit = isIntermediate
-          ? {
-              id: `audit-${Date.now()}`,
-              action: 'Task-Change Request Recommended by TL (Stage 1 of 2)',
-              actor: currentUser.name,
-              description: `TL recommended ${changeRequest.type} for "${taskName}". Routed to CEO for final decision.`,
-              timestamp: new Date().toLocaleString(),
-            }
-          : {
-              id: `audit-${Date.now()}`,
-              action: `Task-Change Request Approved (${changeRequest.type})`,
-              actor: currentUser.name,
-              description: `Approved ${changeRequest.type} for "${taskName}". Applied changes atomically.`,
-              timestamp: new Date().toLocaleString(),
-            }
-
-        return {
-          ...proj,
-          tasks: updatedTasks,
-          auditEvents: [newAudit, ...(proj.auditEvents || [])],
-        }
-      }),
-    )
+      }
+      setActiveUpdateTask(null)
+      await fetchProjectsData()
+    } catch (err) {
+      const errMsg = formatApiError(err, 'Failed to record work update.')
+      setModalActionError(errMsg)
+    } finally {
+      setIsModalSubmitting(false)
+    }
   }
 
-  const handleRejectTaskChange = (taskId, changeRequest, decisionReason) => {
-    setProjects((prev) =>
-      prev.map((proj) => {
-        const hasTask = (proj.tasks || []).some((t) => t.id === taskId)
-        if (!hasTask) return proj
+  const handleApproveTask = async ({ taskId, submissionId, reason } = {}) => {
+    const projId = activeApprovalTask?.projectId || activeApprovalTask?.project_id || activeApprovalTask?.project
+    const targetTaskId = taskId || activeApprovalTask?.id
+    const targetSubId = submissionId || activeApprovalTask?.open_completion_submission?.id || activeApprovalTask?.submissionId || targetTaskId
+    if (!projId || !targetTaskId) return
+    setIsModalSubmitting(true)
+    setModalActionError(null)
+    try {
+      await projectsApi.decideCompletion(projId, targetTaskId, targetSubId, {
+        decision: 'APPROVE',
+        reason: reason || undefined,
+      })
+      clearTaskRejection(targetTaskId)
+      dispatchProjectNotification({
+        title: '✅ Deliverable Approved',
+        message: `Deliverable for task "${activeApprovalTask?.name || activeApprovalTask?.title || 'Task'}" was approved by ${currentUser?.name || 'Reviewer'}.`,
+        type: 'success',
+        targetRole: 'EMPLOYEE',
+        targetUserId: activeApprovalTask?.assigneeId || activeApprovalTask?.assignee_id,
+        targetUserName: activeApprovalTask?.assignee,
+        link: `/projects/${projId}`,
+      })
+      setActiveApprovalTask(null)
+      await fetchProjectsData()
+    } catch (err) {
+      const errMsg = formatApiError(err, 'Failed to approve task completion.')
+      setModalActionError(errMsg)
+    } finally {
+      setIsModalSubmitting(false)
+    }
+  }
 
-        const updatedTasks = proj.tasks.map((task) => {
-          if (task.id !== taskId) return task
-
-          if (!task.changeRequest || task.changeRequest.id !== changeRequest.id) {
-            return task
-          }
-
-          return {
-            ...task,
-            changeRequest: null,
-          }
+  const handleRejectTask = async ({ taskId, submissionId, reason } = {}) => {
+    const projId = activeApprovalTask?.projectId || activeApprovalTask?.project_id || activeApprovalTask?.project
+    const targetTaskId = taskId || activeApprovalTask?.id
+    const targetSubId = submissionId || activeApprovalTask?.open_completion_submission?.id || activeApprovalTask?.submissionId || targetTaskId
+    if (!projId || !targetTaskId) return
+    setIsModalSubmitting(true)
+    setModalActionError(null)
+    try {
+      await projectsApi.decideCompletion(projId, targetTaskId, targetSubId, {
+        decision: 'REJECT',
+        reason,
+      })
+      const rec = recordTaskRejection(targetTaskId, {
+        reason,
+        rejectedBy: currentUser?.name || 'Reviewer',
+      })
+      if (rec && rec.count >= 3) {
+        setQualityRiskAlert({
+          taskName: activeApprovalTask?.name || activeApprovalTask?.title || `Task #${targetTaskId}`,
+          reworkCount: rec.count,
         })
-
-        const taskName = proj.tasks.find((t) => t.id === taskId)?.name || 'Task'
-        const newAudit = {
-          id: `audit-${Date.now()}`,
-          action: `Task-Change Request Rejected (${changeRequest.type})`,
-          actor: currentUser.name,
-          description: `Rejected ${changeRequest.type} for "${taskName}". Mandatory Reason: "${decisionReason}"`,
-          reason: decisionReason,
-          timestamp: new Date().toLocaleString(),
-        }
-
-        return {
-          ...proj,
-          tasks: updatedTasks,
-          auditEvents: [newAudit, ...(proj.auditEvents || [])],
-        }
-      }),
-    )
+      }
+      dispatchProjectNotification({
+        title: '❌ Deliverable Rejected (Rework Required)',
+        message: `Deliverable for task "${activeApprovalTask?.name || activeApprovalTask?.title || 'Task'}" was rejected: "${reason || 'Needs revisions'}".`,
+        type: 'error',
+        targetRole: 'EMPLOYEE',
+        targetUserId: activeApprovalTask?.assigneeId || activeApprovalTask?.assignee_id,
+        targetUserName: activeApprovalTask?.assignee,
+        link: `/projects/${projId}`,
+      })
+      setActiveApprovalTask(null)
+      await fetchProjectsData()
+    } catch (err) {
+      const errMsg = formatApiError(err, 'Failed to reject task completion.')
+      setModalActionError(errMsg)
+    } finally {
+      setIsModalSubmitting(false)
+    }
   }
+
+  const handleDownloadDeliverableFile = async (submissionId, fileId, originalName) => {
+    const projId = activeApprovalTask?.projectId || activeApprovalTask?.project_id || activeApprovalTask?.project
+    const targetTaskId = activeApprovalTask?.id
+    if (!projId || !targetTaskId) return
+    try {
+      await downloadDeliverable(projId, targetTaskId, submissionId, fileId, originalName)
+    } catch (err) {
+      setModalActionError(formatApiError(err, 'Failed to download deliverable file.'))
+    }
+  }
+
+  const handleApproveClosure = async (projId) => {
+    const targetId = projId || activeClosureProject?.id
+    if (!targetId) return
+    setIsModalSubmitting(true)
+    setModalActionError(null)
+    try {
+      await projectsApi.approveClosure(targetId)
+      dispatchProjectNotification({
+        title: '🏁 Project Closed',
+        message: `Project closure was approved by CEO. Project is now marked COMPLETED.`,
+        type: 'success',
+        targetRole: 'ALL',
+        link: `/projects/${targetId}`,
+      })
+      setActiveClosureProject(null)
+      await fetchProjectsData()
+    } catch (err) {
+      const errMsg = formatApiError(err, 'Failed to approve project closure.')
+      setModalActionError(errMsg)
+    } finally {
+      setIsModalSubmitting(false)
+    }
+  }
+
+  const handleRejectClosure = async (projId, reason) => {
+    const targetId = projId || activeClosureProject?.id
+    if (!targetId) return
+    setIsModalSubmitting(true)
+    setModalActionError(null)
+    try {
+      await projectsApi.rejectClosure(targetId, reason)
+      dispatchProjectNotification({
+        title: '⚠️ Project Closure Rejected',
+        message: `CEO rejected project closure: "${reason || 'Blockers must be resolved first'}".`,
+        type: 'warning',
+        targetRole: 'PM',
+        link: `/projects/${targetId}`,
+      })
+      setActiveClosureProject(null)
+      await fetchProjectsData()
+    } catch (err) {
+      const errMsg = formatApiError(err, 'Failed to reject project closure.')
+      setModalActionError(errMsg)
+    } finally {
+      setIsModalSubmitting(false)
+    }
+  }
+
+  const handleApproveTaskChange = async ({ requestId, reason } = {}) => {
+    const projId = activeChangeReviewTask?.projectId || activeChangeReviewTask?.project_id || activeChangeReviewTask?.project
+    const reqId = requestId || activeChangeReviewTask?.changeRequest?.id || activeChangeReviewTask?.open_tcr?.id
+    if (!projId || !reqId) return
+    setIsModalSubmitting(true)
+    setModalActionError(null)
+    try {
+      await projectsApi.decideChangeRequest(projId, reqId, {
+        decision: 'APPROVE',
+        reason: reason || undefined,
+      })
+      dispatchProjectNotification({
+        title: '✅ Task Change Approved',
+        message: `Change request for task "${activeChangeReviewTask?.name || activeChangeReviewTask?.title || 'Task'}" has been approved.`,
+        type: 'success',
+        targetRole: 'EMPLOYEE',
+        targetUserName: activeChangeReviewTask?.changeRequest?.requester,
+        link: `/projects/${projId}`,
+      })
+      setActiveChangeReviewTask(null)
+      await fetchProjectsData()
+    } catch (err) {
+      const errMsg = formatApiError(err, 'Failed to approve task change request.')
+      setModalActionError(errMsg)
+    } finally {
+      setIsModalSubmitting(false)
+    }
+  }
+
+  const handleRejectTaskChange = async ({ requestId, reason } = {}) => {
+    const projId = activeChangeReviewTask?.projectId || activeChangeReviewTask?.project_id || activeChangeReviewTask?.project
+    const reqId = requestId || activeChangeReviewTask?.changeRequest?.id || activeChangeReviewTask?.open_tcr?.id
+    if (!projId || !reqId) return
+    setIsModalSubmitting(true)
+    setModalActionError(null)
+    try {
+      await projectsApi.decideChangeRequest(projId, reqId, {
+        decision: 'REJECT',
+        reason,
+      })
+      dispatchProjectNotification({
+        title: '❌ Task Change Rejected',
+        message: `Change request for task "${activeChangeReviewTask?.name || activeChangeReviewTask?.title || 'Task'}" was rejected: "${reason || 'No reason provided'}".`,
+        type: 'warning',
+        targetRole: 'EMPLOYEE',
+        targetUserName: activeChangeReviewTask?.changeRequest?.requester,
+        link: `/projects/${projId}`,
+      })
+      setActiveChangeReviewTask(null)
+      await fetchProjectsData()
+    } catch (err) {
+      const errMsg = formatApiError(err, 'Failed to reject task change request.')
+      setModalActionError(errMsg)
+    } finally {
+      setIsModalSubmitting(false)
+    }
+  }
+
+  const canTLCreate = currentUser.role === 'TL' && Boolean(currentUser.can_create_projects || currentUser.canCreateProjects)
 
   return (
     <DashboardLayout>
+      {/* Loading Skeleton */}
+      {isLoading && projects.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-24 space-y-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#2563eb] border-t-transparent" />
+          <p className="text-sm font-semibold text-[#6b7280]">Loading project workspace...</p>
+        </div>
+      )}
+
+      {/* Global Error State */}
+      {error && projects.length === 0 && (
+        <div className="my-8 rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+          <p className="text-base font-bold text-red-800">Workspace Error</p>
+          <p className="mt-1 text-sm text-red-600">{error}</p>
+          <button
+            type="button"
+            onClick={fetchProjectsData}
+            className="mt-4 rounded-full bg-red-600 px-6 py-2 text-xs font-bold text-white hover:bg-red-700"
+          >
+            Retry Loading
+          </button>
+        </div>
+      )}
+
       {/* 1. EMPLOYEE DASHBOARD VIEW */}
-      {currentUser.role === 'EMPLOYEE' && (
+      {!isLoading && currentUser.role === 'EMPLOYEE' && (
         <EmployeeProjectsView
           projects={employeeProjects}
           myTasks={myTasks}
           onOpenUpdateModal={(t) => setActiveUpdateTask(t)}
+          onOpenDetailModal={(t) => setActiveDetailTask(t)}
         />
       )}
 
       {/* 2. TEAM LEADER (TL) DASHBOARD VIEW */}
-      {currentUser.role === 'TL' && (
+      {!isLoading && currentUser.role === 'TL' && (
         <TLProjectsView
           projects={enrichedProjects}
           teamReviews={teamReviews}
@@ -782,8 +805,12 @@ function Projects() {
           myTasks={myTasks}
           canCreateProject={canTLCreate}
           tlProjectRequests={tlProjectRequests}
-          onOpenCreateModal={() => setIsCreateModalOpen(true)}
+          onOpenCreateModal={() => {
+            setCreateError(null)
+            setIsCreateModalOpen(true)
+          }}
           onOpenUpdateModal={(t) => setActiveUpdateTask(t)}
+          onOpenDetailModal={(t) => setActiveDetailTask(t)}
           onOpenApprovalModal={(t) => setActiveApprovalTask(t)}
           onOpenChangeReviewModal={(t) => setActiveChangeReviewTask(t)}
           onOpenRequestModal={() => setIsTLRequestModalOpen(true)}
@@ -791,19 +818,22 @@ function Projects() {
       )}
 
       {/* 3. HR DASHBOARD VIEW */}
-      {currentUser.role === 'HR' && (
+      {!isLoading && currentUser.role === 'HR' && (
         <HRProjectsView projects={enrichedProjects} />
       )}
 
       {/* 4. CEO DASHBOARD VIEW */}
-      {currentUser.role === 'CEO' && (
+      {!isLoading && currentUser.role === 'CEO' && (
         <CEOProjectsView
           projects={enrichedProjects}
           pendingClosures={pendingClosures}
           directApprovals={directApprovals}
           tlProjectRequests={tlProjectRequests}
           tcrReviews={executiveTcrReviews}
-          onOpenCreateModal={() => setIsCreateModalOpen(true)}
+          onOpenCreateModal={() => {
+            setCreateError(null)
+            setIsCreateModalOpen(true)
+          }}
           onOpenApprovalModal={(t) => setActiveApprovalTask(t)}
           onOpenClosureModal={(p) => setActiveClosureProject(p)}
           onOpenChangeReviewModal={(t) => setActiveChangeReviewTask(t)}
@@ -812,12 +842,48 @@ function Projects() {
         />
       )}
 
+      {/* Pagination Controls */}
+      {!isLoading && totalCount > pageSize && (
+        <div className="mt-8 flex items-center justify-between border-t border-[#f1f5f9] pt-4">
+          <p className="text-xs text-[#6b7280]">
+            Showing page <span className="font-bold text-[#111827]">{currentPage}</span> of{' '}
+            <span className="font-bold text-[#111827]">{Math.ceil(totalCount / pageSize)}</span> ({totalCount} total)
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="rounded-full border border-gray-200 px-4 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              disabled={currentPage >= Math.ceil(totalCount / pageSize)}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              className="rounded-full border border-gray-200 px-4 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Shared Modals */}
       <ProjectCreateModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          if (!isCreatingProject) {
+            setIsCreateModalOpen(false)
+            setCreateError(null)
+          }
+        }}
         onCreateProject={handleCreateProject}
+        userRole={currentUser.role}
         showPmAssignment={currentUser.role === 'CEO'}
+        isSubmitting={isCreatingProject}
+        apiError={createError}
       />
 
       {/* TL Project Creation Request Modal (TL only) */}
@@ -830,36 +896,98 @@ function Projects() {
 
       <TaskWorkUpdateModal
         isOpen={Boolean(activeUpdateTask)}
-        onClose={() => setActiveUpdateTask(null)}
+        onClose={() => {
+          setActiveUpdateTask(null)
+          setModalActionError(null)
+        }}
         task={activeUpdateTask}
         onSubmitUpdate={handleWorkUpdate}
+        isSubmitting={isModalSubmitting}
+        apiError={modalActionError}
       />
 
       <TaskApprovalModal
         isOpen={Boolean(activeApprovalTask)}
-        onClose={() => setActiveApprovalTask(null)}
+        onClose={() => {
+          setActiveApprovalTask(null)
+          setModalActionError(null)
+        }}
         task={activeApprovalTask}
+        projectId={activeApprovalTask?.projectId || activeApprovalTask?.project_id}
         currentUser={currentUser}
         onApprove={handleApproveTask}
         onReject={handleRejectTask}
+        onDownloadFile={handleDownloadDeliverableFile}
+        isSubmitting={isModalSubmitting}
+        apiError={modalActionError}
       />
 
       <ProjectClosureModal
         isOpen={Boolean(activeClosureProject)}
-        onClose={() => setActiveClosureProject(null)}
+        onClose={() => {
+          setActiveClosureProject(null)
+          setModalActionError(null)
+        }}
         project={activeClosureProject}
         onApproveClosure={handleApproveClosure}
         onRejectClosure={handleRejectClosure}
+        isSubmitting={isModalSubmitting}
+        apiError={modalActionError}
       />
 
       <TaskChangeReviewModal
         isOpen={Boolean(activeChangeReviewTask)}
-        onClose={() => setActiveChangeReviewTask(null)}
+        onClose={() => {
+          setActiveChangeReviewTask(null)
+          setModalActionError(null)
+        }}
         task={activeChangeReviewTask}
         currentUser={currentUser}
         onApprove={handleApproveTaskChange}
         onReject={handleRejectTaskChange}
+        isSubmitting={isModalSubmitting}
+        apiError={modalActionError}
       />
+
+      {/* Task Full Detail View Modal */}
+      <TaskDetailModal
+        isOpen={Boolean(activeDetailTask)}
+        onClose={() => setActiveDetailTask(null)}
+        task={activeDetailTask}
+        onOpenUpdateModal={(t) => {
+          setActiveDetailTask(null)
+          setActiveUpdateTask(t)
+        }}
+      />
+
+      {/* 3-Rejection Quality Risk Notification Pop-up Modal */}
+      {qualityRiskAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-red-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-2xl text-red-600 mb-4">
+              ⚠️
+            </div>
+            <div className="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-black uppercase text-red-700 mb-2">
+              Quality Risk: {qualityRiskAlert.reworkCount} Rejections
+            </div>
+            <h3 className="text-lg font-black text-gray-900">
+              Quality Risk Threshold Reached
+            </h3>
+            <p className="mt-2 text-sm text-gray-600 font-medium">
+              Task has undergone {qualityRiskAlert.reworkCount} rejections. Schedule a sync meeting with the assignee before resubmission.
+            </p>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setQualityRiskAlert(null)}
+                className="rounded-full bg-red-600 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-red-700 transition"
+              >
+                Acknowledge &amp; Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   )
 }

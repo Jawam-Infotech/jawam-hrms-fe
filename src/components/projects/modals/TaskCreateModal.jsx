@@ -1,17 +1,28 @@
 import { useState } from 'react'
-import CapacityBadge from '../ui/CapacityBadge.jsx'
 
-function TaskCreateModal({ isOpen, onClose, projectMembers = [], onCreateTask, projectStatus = 'ACTIVE', isSolo = false }) {
+function TaskCreateModal({
+  isOpen,
+  onClose,
+  projectMembers = [],
+  onCreateTask,
+  projectStatus = 'ACTIVE',
+  isSubmitting = false,
+  apiError = null,
+}) {
   const [taskData, setTaskData] = useState({
-    name: '',
+    title: '',
     description: '',
-    priority: 'Medium',
     dueDate: '',
     assigneeId: '',
   })
   const [errors, setErrors] = useState({})
 
   if (!isOpen) return null
+
+  const activeMembers = (projectMembers || []).filter((m) => {
+    const roleUpper = String(m.role || m.projectRole || '').toUpperCase()
+    return m.is_active !== false && roleUpper !== 'CEO' && roleUpper !== 'HR'
+  })
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -22,9 +33,14 @@ function TaskCreateModal({ isOpen, onClose, projectMembers = [], onCreateTask, p
   const validate = () => {
     const newErrors = {}
     if (projectStatus !== 'ACTIVE') {
-      newErrors.general = 'First Activation is needed! Please activate the project before assigning tasks.'
+      newErrors.general = 'Project must be in ACTIVE status before tasks can be created.'
     }
-    if (!taskData.name.trim()) newErrors.name = 'Task name is required'
+    const trimmedTitle = taskData.title.trim()
+    if (!trimmedTitle) {
+      newErrors.title = 'Task title is required'
+    } else if (trimmedTitle.length > 150) {
+      newErrors.title = 'Task title cannot exceed 150 characters'
+    }
     if (!taskData.dueDate) newErrors.dueDate = 'Due date is required'
     if (!taskData.assigneeId) newErrors.assigneeId = 'Assignee must be an active project member'
     setErrors(newErrors)
@@ -33,37 +49,19 @@ function TaskCreateModal({ isOpen, onClose, projectMembers = [], onCreateTask, p
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (projectStatus !== 'ACTIVE') {
-      alert('First Activation is needed! Please activate the project before assigning tasks.')
-      return
-    }
-    if (!validate()) return
+    if (!validate() || isSubmitting) return
 
-    const selectedMember = projectMembers.find((m) => (m.id || m.name) === taskData.assigneeId)
+    const selectedMember = activeMembers.find(
+      (m) => String(m.user_id || m.id) === String(taskData.assigneeId)
+    )
 
     onCreateTask({
-      id: `task-${Date.now()}`,
-      name: taskData.name,
-      description: taskData.description,
-      priority: taskData.priority,
-      dueDate: taskData.dueDate,
-      assignee: selectedMember?.name || 'Assigned Member',
-      assigneeId: selectedMember?.id || taskData.assigneeId,
-      isIndependent: isSolo || selectedMember?.isIndependent || false,
-      progress: 0,
-      status: 'TODO',
-      reworkCount: 0,
-      createdAt: new Date().toISOString(),
+      title: taskData.title.trim(),
+      description: taskData.description.trim(),
+      assignee_id: Number(taskData.assigneeId),
+      assignee_name: selectedMember?.name || '',
+      due_date: taskData.dueDate,
     })
-
-    setTaskData({
-      name: '',
-      description: '',
-      priority: 'Medium',
-      dueDate: '',
-      assigneeId: '',
-    })
-    onClose()
   }
 
   return (
@@ -72,16 +70,23 @@ function TaskCreateModal({ isOpen, onClose, projectMembers = [], onCreateTask, p
         <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-4">
           <div>
             <h2 className="text-[20px] font-black text-[#111827]">Create Project Task</h2>
-            <p className="text-xs text-[#6b7280] mt-1">Assign tasks strictly to active members of this project</p>
+            <p className="text-xs text-[#6b7280] mt-1">E30 POST — Assign task to active project member</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-[#9ca3af] hover:bg-[#f1f5f9] hover:text-[#111827]"
+            disabled={isSubmitting}
+            className="rounded-full p-2 text-[#9ca3af] hover:bg-[#f1f5f9] hover:text-[#111827] disabled:opacity-50"
           >
             ✕
           </button>
         </div>
+
+        {apiError && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+            {apiError}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           {errors.general && (
@@ -91,27 +96,30 @@ function TaskCreateModal({ isOpen, onClose, projectMembers = [], onCreateTask, p
           )}
           <div>
             <label className="block text-[13px] font-bold text-[#111827] mb-1">
-              Task Name <span className="text-[#ef4444]">*</span>
+              Task Title <span className="text-[#ef4444]">*</span>
             </label>
             <input
               type="text"
-              name="name"
-              value={taskData.name}
+              name="title"
+              maxLength={150}
+              value={taskData.title}
               onChange={handleChange}
-              placeholder="e.g., Integrate Biometric Punch API"
-              className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none"
+              disabled={isSubmitting}
+              placeholder="e.g., Deliver OAuth authentication module"
+              className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2.5 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none"
             />
-            {errors.name && <p className="mt-1 text-xs text-[#ef4444]">{errors.name}</p>}
+            {errors.title && <p className="mt-1 text-xs text-[#ef4444]">{errors.title}</p>}
           </div>
 
           <div>
             <label className="block text-[13px] font-bold text-[#111827] mb-1">Description</label>
             <textarea
               name="description"
+              rows={3}
               value={taskData.description}
               onChange={handleChange}
-              rows={2}
-              placeholder="Task acceptance criteria and instructions..."
+              disabled={isSubmitting}
+              placeholder="Optional task scope and acceptance criteria..."
               className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none"
             />
           </div>
@@ -126,84 +134,49 @@ function TaskCreateModal({ isOpen, onClose, projectMembers = [], onCreateTask, p
                 name="dueDate"
                 value={taskData.dueDate}
                 onChange={handleChange}
+                disabled={isSubmitting}
                 className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none"
               />
               {errors.dueDate && <p className="mt-1 text-xs text-[#ef4444]">{errors.dueDate}</p>}
             </div>
 
             <div>
-              <label className="block text-[13px] font-bold text-[#111827] mb-1">Priority</label>
+              <label className="block text-[13px] font-bold text-[#111827] mb-1">
+                Assignee <span className="text-[#ef4444]">*</span>
+              </label>
               <select
-                name="priority"
-                value={taskData.priority}
+                name="assigneeId"
+                value={taskData.assigneeId}
                 onChange={handleChange}
+                disabled={isSubmitting}
                 className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none"
               >
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
+                <option value="">— Select active member —</option>
+                {activeMembers.map((m) => (
+                  <option key={m.user_id || m.id} value={m.user_id || m.id}>
+                    {m.name || `User #${m.user_id || m.id}`} ({m.role || 'Member'})
+                  </option>
+                ))}
               </select>
+              {errors.assigneeId && <p className="mt-1 text-xs text-[#ef4444]">{errors.assigneeId}</p>}
             </div>
           </div>
 
-          <div>
-            <label className="block text-[13px] font-bold text-[#111827] mb-2">
-              Assignee (Active Members) <span className="text-[#ef4444]">*</span>
-            </label>
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {projectMembers.map((member) => (
-                <label
-                  key={member.id || member.name}
-                  className={`flex items-center justify-between rounded-xl border p-2.5 cursor-pointer transition ${
-                    taskData.assigneeId === (member.id || member.name)
-                      ? 'border-[#2563eb] bg-[#eff6ff]'
-                      : 'border-[#e5e7eb] hover:bg-[#f8fafc]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <input
-                      type="radio"
-                      name="assigneeId"
-                      value={member.id || member.name}
-                      checked={taskData.assigneeId === (member.id || member.name)}
-                      onChange={handleChange}
-                      className="text-[#2563eb]"
-                    />
-                    <div>
-                      <span className="text-[13px] font-bold text-[#111827]">{member.name}</span>
-                      <span className="text-xs text-[#6b7280] ml-2">({member.projectRole || member.role || 'Member'})</span>
-                    </div>
-                  </div>
-                  <CapacityBadge
-                    activeTasks={member.activeTasks || 1}
-                    projectCount={member.projectCount || 1}
-                    showDetail={true}
-                  />
-                </label>
-              ))}
-              {projectMembers.length === 0 && (
-                <p className="py-3 text-center text-xs text-[#ef4444]">
-                  No members assigned to this project yet. Please add members first.
-                </p>
-              )}
-            </div>
-            {errors.assigneeId && <p className="mt-1 text-xs text-[#ef4444]">{errors.assigneeId}</p>}
-          </div>
-
-          <div className="mt-8 flex justify-end gap-3 border-t border-[#f1f5f9] pt-4">
+          <div className="mt-6 flex justify-end gap-3 border-t border-[#f1f5f9] pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-[#e5e7eb] px-5 py-2.5 text-[14px] font-semibold text-[#4b5563] hover:bg-[#f9fafb]"
+              disabled={isSubmitting}
+              className="rounded-full border border-[#e5e7eb] px-5 py-2.5 text-[14px] font-semibold text-[#4b5563] hover:bg-[#f9fafb] disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={projectMembers.length === 0}
-              className="rounded-full bg-[#2563eb] px-6 py-2.5 text-[14px] font-semibold text-white shadow-sm hover:bg-[#1d4ed8]"
+              disabled={isSubmitting}
+              className="rounded-full bg-[#2563eb] px-6 py-2.5 text-[14px] font-semibold text-white shadow-sm hover:bg-[#1d4ed8] disabled:opacity-50"
             >
-              Assign Task
+              {isSubmitting ? 'Creating...' : 'Create Task'}
             </button>
           </div>
         </form>

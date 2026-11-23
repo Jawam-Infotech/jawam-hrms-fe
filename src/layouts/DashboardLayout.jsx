@@ -1,9 +1,15 @@
-import { useState, useContext } from 'react'
+import { useState, useContext, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { UserContext } from '../context/UserContext'
 import { NAV_CONFIG } from '../config/navigation'
 import useNotifications from '../hooks/useNotifications.js'
 import NotificationDropdown from '../components/notifications/NotificationDropdown.jsx'
+import {
+  NOTIF_POPUP_EVENT,
+  NOTIF_STORAGE_KEY,
+  NOTIF_BC_CHANNEL,
+  isNotificationTargetingUser,
+} from '../utils/projectNotificationService.js'
 //import { UserContext } from '../context/UserContext.jsx'
 
 function DashboardLayout({ children }) {
@@ -12,6 +18,7 @@ function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [profileOpen, setProfileOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [activeToast, setActiveToast] = useState(null)
 
 const {
   notifications,
@@ -26,6 +33,67 @@ const {
   clearAll,
   isClearingAll,
 } = useNotifications()
+
+  // Listen for real-time notification popups targeted to the active user
+  useEffect(() => {
+    let timer = null
+
+    const triggerPopupForUser = (notif) => {
+      if (!notif) return
+      // Only pop up if targeted to this logged-in user
+      if (!isNotificationTargetingUser(notif, user)) return
+
+      setActiveToast(notif)
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        setActiveToast(null)
+      }, 7000)
+    }
+
+    const handleWindowPopup = (event) => {
+      triggerPopupForUser(event.detail)
+    }
+
+    let bc = null
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel(NOTIF_BC_CHANNEL)
+        bc.onmessage = (event) => {
+          triggerPopupForUser(event.data)
+        }
+      }
+    } catch (e) {
+      console.error(e)
+    }
+
+    // On mount or user change: check for any recent unread task assignment targeted to this user that hasn't popped up yet in this browser session
+    try {
+      const raw = localStorage.getItem(NOTIF_STORAGE_KEY)
+      if (raw) {
+        const stored = JSON.parse(raw)
+        const unreadTaskNotif = stored.find(
+          (n) =>
+            !n.is_read &&
+            isNotificationTargetingUser(n, user) &&
+            (n.title?.includes('Task Assigned') || n.title?.includes('New Task')) &&
+            !sessionStorage.getItem(`jawam_shown_toast_${n.id}`)
+        )
+        if (unreadTaskNotif) {
+          sessionStorage.setItem(`jawam_shown_toast_${unreadTaskNotif.id}`, 'true')
+          triggerPopupForUser(unreadTaskNotif)
+        }
+      }
+    } catch (e) {
+      console.error(e)
+    }
+
+    window.addEventListener(NOTIF_POPUP_EVENT, handleWindowPopup)
+    return () => {
+      if (bc) bc.close()
+      window.removeEventListener(NOTIF_POPUP_EVENT, handleWindowPopup)
+      if (timer) clearTimeout(timer)
+    }
+  }, [user])
 
   const menuItems = NAV_CONFIG[user.role] || []
   const location = useLocation()
@@ -195,6 +263,49 @@ const {
 
         {/* Page Content */}
         <div className="p-8 max-[760px]:p-4">{children}</div>
+
+        {/* Real-time Activity Notification Toast Popup */}
+        {activeToast && (
+          <div
+            onClick={() => {
+              if (activeToast.link) navigate(activeToast.link)
+              setActiveToast(null)
+            }}
+            className="fixed bottom-6 right-6 z-50 max-w-sm rounded-2xl bg-white p-4 shadow-2xl border border-blue-200 cursor-pointer hover:shadow-blue-100 transition animate-in slide-in-from-bottom-5 duration-200"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-lg flex-shrink-0">
+                {activeToast.type === 'success' ? '✅' : activeToast.type === 'warning' ? '⚠️' : activeToast.type === 'error' ? '❌' : '🔔'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="text-xs font-bold uppercase tracking-wider text-blue-600">
+                    {activeToast.title || 'Activity Alert'}
+                  </p>
+                  {activeToast.targetRole && activeToast.targetRole !== 'ALL' && (
+                    <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-200">
+                      Target: {activeToast.targetRole}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-xs font-semibold text-gray-900 leading-snug">
+                  {activeToast.message}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setActiveToast(null)
+                }}
+                className="text-gray-400 hover:text-gray-600 rounded-full p-1 transition"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )

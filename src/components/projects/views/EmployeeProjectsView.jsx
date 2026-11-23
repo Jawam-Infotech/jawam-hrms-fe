@@ -6,6 +6,7 @@ function EmployeeProjectsView({
   projects = [],
   myTasks = [],
   onOpenUpdateModal,
+  onOpenDetailModal,
 }) {
   const [dismissedWarnings, setDismissedWarnings] = useState(() => {
     try {
@@ -167,7 +168,14 @@ function EmployeeProjectsView({
                 return (
                 <tr key={task.id} className="hover:bg-[#f8fafc] transition-colors">
                   <td className="px-4 py-3.5">
-                    <p className="font-bold text-[#111827]">{task.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => onOpenDetailModal && onOpenDetailModal(task)}
+                      className="font-bold text-[#111827] hover:text-[#2563eb] text-left transition"
+                      title="Click to view task details"
+                    >
+                      {task.name}
+                    </button>
                     {task.description && (
                       <p className="text-xs text-[#6b7280] truncate max-w-xs">{task.description}</p>
                     )}
@@ -183,28 +191,32 @@ function EmployeeProjectsView({
                         <span>{task.blocker?.reason || task.description || 'Blocker reported'}</span>
                       </div>
                     )}
-                    {/* Active Rework Required (Only shown while currently in rework/IN_PROGRESS) */}
-                    {task.status === 'IN_PROGRESS' && task.reworkCount > 0 && task.reworkCount < 3 && (
-                      <div className="mt-1.5 rounded-lg border border-[#fed7aa] bg-[#fffbeb] p-2 text-xs text-[#9a3412]">
-                        <span className="font-bold">❌ Rejected by TL ({task.reworkCount} {task.reworkCount === 1 ? 'time' : 'times'}):</span>{' '}
-                        <span>{task.rejectionFeedback || 'Deliverable was rejected by reviewer. Progress set to 85%.'}</span>
+                    {/* Active Rework Required Banner (Shown when rejected by PM or TL) */}
+                    {task.isRejected && (
+                      <div className="mt-2 rounded-xl border border-[#fca5a5] bg-[#fff1f2] p-2.5 text-xs text-[#991b1b] shadow-xs">
+                        <div className="flex items-center gap-1.5 font-bold text-[#b91c1c]">
+                          <span>❌ Rejected by {task.rejectedBy || 'Reviewer'}:</span>
+                          {task.reworkCount > 0 && (
+                            <span className="rounded-full bg-[#fee2e2] px-2 py-0.5 text-[10px] text-[#dc2626]">
+                              Rejection #{task.reworkCount}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 font-semibold text-[#7f1d1d]">
+                          {task.rejectionFeedback
+                            ? `Reason: "${task.rejectionFeedback}"`
+                            : 'Deliverable was rejected by reviewer. Please make the requested updates and submit an updated progress.'}
+                        </p>
                       </div>
                     )}
-                    {task.status === 'IN_PROGRESS' && task.reworkCount >= 3 && (
-                      <div className="mt-1.5 rounded-lg border border-[#fca5a5] bg-[#fff1f2] p-2 text-xs text-[#991b1b]">
-                        <div className="flex items-center gap-1.5">
-                          <span className="rounded bg-[#e11d48] px-2 py-0.5 text-[10px] font-bold text-white">
-                            QUALITY RISK: {task.reworkCount} Rejections
-                          </span>
-                        </div>
+                    {task.isRejected && (task.isQualityRisk || task.quality_risk || task.reworkCount >= 3) && (
+                      <div className="mt-1.5 rounded-lg border border-[#fca5a5] bg-[#ffe4e6] p-2 text-xs text-[#991b1b]">
+                        <span className="rounded bg-[#e11d48] px-2 py-0.5 text-[10px] font-bold text-white">
+                          QUALITY RISK: {task.reworkCount || 3} Rejections
+                        </span>
                         <p className="mt-1 font-semibold text-[#be123c]">
-                          Task has undergone {task.reworkCount} rejections. Schedule a sync meeting with the assignee before resubmission.
+                          Task has undergone {task.reworkCount || 3} rejections. Schedule a sync meeting with the assignee before resubmission.
                         </p>
-                        {task.rejectionFeedback && (
-                          <p className="mt-0.5 text-[11px] text-[#7f1d1d]">
-                            Latest feedback: "{task.rejectionFeedback}"
-                          </p>
-                        )}
                       </div>
                     )}
 
@@ -228,7 +240,7 @@ function EmployeeProjectsView({
                     </div>
                   </td>
                   <td className="px-4 py-3.5">
-                    <StatusBadge status={task.status} />
+                    <StatusBadge status={task.isRejected ? 'REJECTED' : task.status} />
                   </td>
                   <td className="px-4 py-3.5 text-[#6b7280]">
                     <div className="flex items-center gap-1.5">
@@ -243,17 +255,41 @@ function EmployeeProjectsView({
                     </div>
                   </td>
                   <td className="px-4 py-3.5 text-right">
-                    {task.status !== 'COMPLETED' ? (
-                      <button
-                        type="button"
-                        onClick={() => onOpenUpdateModal(task)}
-                        className="rounded-full bg-[#eff6ff] px-4 py-1.5 text-xs font-bold text-[#2563eb] hover:bg-[#dbeafe]"
-                      >
-                        Update Progress
-                      </button>
-                    ) : (
-                      <span className="text-xs font-bold text-[#059669]">✓ Completed</span>
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                      {onOpenDetailModal && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenDetailModal(task)}
+                          className="rounded-full border border-gray-200 bg-white p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition shadow-xs"
+                          title="View Task Details"
+                        >
+                          👁️
+                        </button>
+                      )}
+                      {task.status === 'COMPLETED' ? (
+                        <span className="text-xs font-bold text-[#059669]">✓ Completed</span>
+                      ) : task.status === 'PENDING_TL_REVIEW' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-700">
+                          ⏳ Awaiting TL Review
+                        </span>
+                      ) : task.status === 'PENDING_PM_APPROVAL' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-semibold text-blue-700">
+                          ⏳ Awaiting PM Approval
+                        </span>
+                      ) : task.status === 'DIRECT_APPROVAL_REQUIRED' || task.status === 'PENDING_CEO_APPROVAL' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-semibold text-purple-700">
+                          ⏳ Direct PM Approval
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onOpenUpdateModal(task)}
+                          className="rounded-full bg-[#eff6ff] px-4 py-1.5 text-xs font-bold text-[#2563eb] hover:bg-[#dbeafe]"
+                        >
+                          Update Progress
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )

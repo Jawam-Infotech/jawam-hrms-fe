@@ -157,10 +157,15 @@ function NotificationDropdown({
                 />
 
                 <div className="min-w-0 flex-1">
+                  {notification.title && (
+                    <p className="text-[13px] font-extrabold text-[#111827] mb-0.5">
+                      {notification.title}
+                    </p>
+                  )}
                   <p
-                    className={`text-[14px] leading-5 ${
+                    className={`text-[13px] leading-snug ${
                       notification.is_read
-                        ? 'font-medium text-[#374151]'
+                        ? 'font-medium text-[#4b5563]'
                         : 'font-bold text-[#111827]'
                     }`}
                   >

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const BLOCKER_CATEGORIES = [
   'Dependencies / Upstream Deliverable',
@@ -9,7 +9,14 @@ const BLOCKER_CATEGORIES = [
   'Other Blocker',
 ]
 
-function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
+function TaskWorkUpdateModal({
+  isOpen,
+  onClose,
+  task,
+  onSubmitUpdate,
+  isSubmitting = false,
+  apiError = null,
+}) {
   const [progress, setProgress] = useState(task?.progress || 0)
   const [note, setNote] = useState('')
   const [decreaseReason, setDecreaseReason] = useState('')
@@ -21,15 +28,31 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
   const [blockerReason, setBlockerReason] = useState(task?.blocker?.reason || '')
   const [errors, setErrors] = useState({})
 
+  useEffect(() => {
+    if (task && isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProgress(task.progress || 0)
+      setNote('')
+      setDecreaseReason('')
+      setDeliverableType('LINK')
+      setDeliverableLink('')
+      setDeliverableFile(null)
+      setIsBlocked(task.status === 'BLOCKED')
+      setBlockerCategory(task.blocker?.category || BLOCKER_CATEGORIES[0])
+      setBlockerReason(task.blocker?.reason || '')
+      setErrors({})
+    }
+  }, [task, isOpen])
+
   if (!isOpen || !task) return null
 
   const isDecreasing = progress < (task.progress || 0)
   const isCompletion = progress === 100
-  const isQualityRisk = (task.reworkCount || 0) >= 3
+  const isQualityRisk = Boolean(task.isQualityRisk || task.quality_risk || (task.reworkCount || 0) >= 3)
 
   const validate = () => {
     const newErrors = {}
-    if (!note.trim()) newErrors.note = 'Work update note is required'
+    if (!note.trim()) newErrors.note = 'Work update note is required and cannot be blank'
     if (isDecreasing && !decreaseReason.trim()) {
       newErrors.decreaseReason = 'A mandatory explanation is required when progress decreases'
     }
@@ -38,9 +61,9 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
     }
     if (isCompletion && !isBlocked) {
       if (deliverableType === 'LINK' && !deliverableLink.trim()) {
-        newErrors.deliverable = '100% completion requires a valid deliverable URL (PR, Figma, Doc)'
+        newErrors.deliverable = '100% completion requires a valid deliverable URL (http/https)'
       } else if (deliverableType === 'FILE' && !deliverableFile) {
-        newErrors.deliverable = '100% completion requires uploading a proof-of-work file'
+        newErrors.deliverable = '100% completion requires uploading a deliverable file'
       }
     }
     setErrors(newErrors)
@@ -49,31 +72,45 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!validate()) return
+    if (!validate() || isSubmitting) return
 
-    const deliverable = isCompletion && !isBlocked
-      ? {
-          type: deliverableType,
-          value: deliverableType === 'LINK' ? deliverableLink : deliverableFile?.name,
-          submittedAt: new Date().toISOString(),
-        }
-      : null
+    const isMultipart = isCompletion && !isBlocked && deliverableType === 'FILE' && Boolean(deliverableFile)
 
-    onSubmitUpdate({
-      taskId: task.id,
-      oldProgress: task.progress || 0,
-      newProgress: progress,
-      note,
-      decreaseReason: isDecreasing ? decreaseReason : null,
-      deliverable,
-      isCompletion: isCompletion && !isBlocked,
-      isIndependent: task.isIndependent || false,
-      isBlocked,
-      blockerCategory: isBlocked ? blockerCategory : null,
-      blockerReason: isBlocked ? blockerReason.trim() : null,
-    })
+    if (isMultipart) {
+      const fd = new FormData()
+      fd.append('progress', progress)
+      fd.append('note', note.trim())
+      if (isDecreasing && decreaseReason.trim()) {
+        fd.append('reduction_reason', decreaseReason.trim())
+      }
+      fd.append('deliverable_files', deliverableFile)
+      if (deliverableLink.trim()) {
+        fd.append('deliverable_urls', deliverableLink.trim())
+      }
 
-    onClose()
+      onSubmitUpdate({
+        taskId: task.id,
+        payload: fd,
+        isMultipart: true,
+      })
+    } else {
+      const payload = {
+        progress,
+        note: note.trim(),
+      }
+      if (isDecreasing && decreaseReason.trim()) {
+        payload.reduction_reason = decreaseReason.trim()
+      }
+      if (isCompletion && !isBlocked && deliverableLink.trim()) {
+        payload.deliverable_urls = [deliverableLink.trim()]
+      }
+
+      onSubmitUpdate({
+        taskId: task.id,
+        payload,
+        isMultipart: false,
+      })
+    }
   }
 
   return (
@@ -82,16 +119,23 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
         <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-4">
           <div>
             <h2 className="text-[20px] font-black text-[#111827]">Submit Work Update</h2>
-            <p className="text-xs text-[#6b7280] mt-1">{task.name} ({task.project || 'Project Task'})</p>
+            <p className="text-xs text-[#6b7280] mt-1">{task.name || task.title} (Task #{task.id})</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-[#9ca3af] hover:bg-[#f1f5f9] hover:text-[#111827]"
+            disabled={isSubmitting}
+            className="rounded-full p-2 text-[#9ca3af] hover:bg-[#f1f5f9] hover:text-[#111827] disabled:opacity-50"
           >
             ✕
           </button>
         </div>
+
+        {apiError && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+            {apiError}
+          </div>
+        )}
 
         {/* Reviewer Rejection Feedback Banner */}
         {task.rejectionFeedback && (
@@ -100,7 +144,7 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
               TL / Reviewer Feedback ({task.reworkCount || 1} {task.reworkCount === 1 ? 'rejection' : 'rejections'}):
             </p>
             <p className="mt-1 text-xs font-medium text-[#78350f]">
-              "{task.rejectionFeedback}"
+              &quot;{task.rejectionFeedback}&quot;
             </p>
           </div>
         )}
@@ -136,6 +180,7 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
               step="5"
               value={progress}
               onChange={(e) => setProgress(Number(e.target.value))}
+              disabled={isSubmitting}
               className="mt-2 w-full accent-[#2563eb]"
             />
           </div>
@@ -152,6 +197,7 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
                   setDecreaseReason(e.target.value)
                   if (errors.decreaseReason) setErrors((prev) => ({ ...prev, decreaseReason: '' }))
                 }}
+                disabled={isSubmitting}
                 rows={2}
                 placeholder="Explain discovered bugs, blockers, or required rework..."
                 className="w-full rounded-[10px] border border-[#fde68a] bg-white px-3 py-2 text-[13px] text-[#111827] focus:border-[#b45309] focus:outline-none"
@@ -162,12 +208,13 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
             </div>
           )}
 
-          {/* Section 6 Blocker Reporting */}
+          {/* Blocker Reporting */}
           <div className={`rounded-xl border p-4 transition ${isBlocked ? 'border-[#fca5a5] bg-[#fff1f2]' : 'border-[#e5e7eb] bg-[#f8fafc]'}`}>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={isBlocked}
+                disabled={isSubmitting}
                 onChange={(e) => {
                   setIsBlocked(e.target.checked)
                   if (!e.target.checked && errors.blockerReason) {
@@ -189,6 +236,7 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
                   </label>
                   <select
                     value={blockerCategory}
+                    disabled={isSubmitting}
                     onChange={(e) => setBlockerCategory(e.target.value)}
                     className="w-full rounded-[10px] border border-[#fca5a5] bg-white px-3 py-2 text-xs text-[#111827] focus:border-[#dc2626] focus:outline-none"
                   >
@@ -208,8 +256,9 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
                       setBlockerReason(e.target.value)
                       if (errors.blockerReason) setErrors((prev) => ({ ...prev, blockerReason: '' }))
                     }}
+                    disabled={isSubmitting}
                     rows={2}
-                    placeholder="Describe what is preventing progress (dependencies, credentials, client clarification)..."
+                    placeholder="Describe what is preventing progress..."
                     className="w-full rounded-[10px] border border-[#fca5a5] bg-white px-3 py-2 text-xs text-[#111827] focus:border-[#dc2626] focus:outline-none"
                   />
                   {errors.blockerReason && (
@@ -231,8 +280,9 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
                 setNote(e.target.value)
                 if (errors.note) setErrors((prev) => ({ ...prev, note: '' }))
               }}
+              disabled={isSubmitting}
               rows={2}
-              placeholder="What changes or milestones were achieved today?"
+              placeholder="What changes or milestones were achieved?"
               className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[13px] text-[#111827] focus:border-[#2563eb] focus:outline-none"
             />
             {errors.note && <p className="mt-1 text-xs text-[#ef4444]">{errors.note}</p>}
@@ -253,6 +303,7 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
                       value="LINK"
                       checked={deliverableType === 'LINK'}
                       onChange={() => setDeliverableType('LINK')}
+                      disabled={isSubmitting}
                       className="text-[#10b981]"
                     />
                     URL Link
@@ -264,6 +315,7 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
                       value="FILE"
                       checked={deliverableType === 'FILE'}
                       onChange={() => setDeliverableType('FILE')}
+                      disabled={isSubmitting}
                       className="text-[#10b981]"
                     />
                     File Upload
@@ -279,26 +331,28 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
                     setDeliverableLink(e.target.value)
                     if (errors.deliverable) setErrors((prev) => ({ ...prev, deliverable: '' }))
                   }}
+                  disabled={isSubmitting}
                   placeholder="https://github.com/org/repo/pull/42 or Figma URL"
                   className="w-full rounded-[10px] border border-[#86efac] bg-white px-3 py-2 text-[13px] text-[#111827] focus:border-[#16a34a] focus:outline-none"
                 />
               ) : (
-                <input
-                  type="file"
-                  onChange={(e) => {
-                    setDeliverableFile(e.target.files[0] || null)
-                    if (errors.deliverable) setErrors((prev) => ({ ...prev, deliverable: '' }))
-                  }}
-                  className="w-full rounded-[10px] border border-[#86efac] bg-white p-2 text-xs text-[#374151]"
-                />
+                <div>
+                  <input
+                    type="file"
+                    onChange={(e) => {
+                      setDeliverableFile(e.target.files[0] || null)
+                      if (errors.deliverable) setErrors((prev) => ({ ...prev, deliverable: '' }))
+                    }}
+                    disabled={isSubmitting}
+                    className="w-full rounded-[10px] border border-[#86efac] bg-white p-2 text-xs text-[#374151]"
+                  />
+                  <p className="mt-1 text-[11px] text-gray-500">Max 10MB per file. Allowed: PDF, DOCX, XLSX, PNG, JPG.</p>
+                </div>
               )}
 
               {errors.deliverable && (
                 <p className="mt-1.5 text-xs text-[#dc2626] font-medium">{errors.deliverable}</p>
               )}
-              <p className="mt-1.5 text-[11px] text-[#15803d]">
-                Notice: 100% does not auto-complete the task; it requests review from {task.isIndependent ? 'PM/CEO directly' : 'your Team Leader'}.
-              </p>
             </div>
           )}
 
@@ -306,33 +360,24 @@ function TaskWorkUpdateModal({ isOpen, onClose, task, onSubmitUpdate }) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-[#e5e7eb] px-5 py-2 text-[14px] font-semibold text-[#4b5563] hover:bg-[#f9fafb]"
+              disabled={isSubmitting}
+              className="rounded-full border border-[#e5e7eb] px-5 py-2 text-[14px] font-semibold text-[#4b5563] hover:bg-[#f9fafb] disabled:opacity-50"
             >
               Cancel
             </button>
-            {(() => {
-              const hasArtifact = deliverableType === 'LINK'
-                ? Boolean(deliverableLink.trim())
-                : Boolean(deliverableFile)
-              const isSubmitDisabled = isCompletion && !isBlocked && !hasArtifact
-
-              return (
-                <button
-                  type="submit"
-                  disabled={isSubmitDisabled}
-                  title={isSubmitDisabled ? 'Section 7.2 Gate: 100% submission strictly requires a deliverable URL or file artifact' : ''}
-                  className={`rounded-full px-6 py-2 text-[14px] font-semibold text-white shadow-sm transition ${
-                    isSubmitDisabled
-                      ? 'cursor-not-allowed bg-[#9ca3af]'
-                      : isCompletion
-                        ? 'bg-[#10b981] hover:bg-[#059669]'
-                        : 'bg-[#2563eb] hover:bg-[#1d4ed8]'
-                  }`}
-                >
-                  {isCompletion ? 'Submit for Approval (100%)' : 'Save Progress Update'}
-                </button>
-              )
-            })()}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`rounded-full px-6 py-2 text-[14px] font-semibold text-white shadow-sm transition disabled:opacity-50 ${
+                isCompletion ? 'bg-[#10b981] hover:bg-[#059669]' : 'bg-[#2563eb] hover:bg-[#1d4ed8]'
+              }`}
+            >
+              {isSubmitting
+                ? 'Recording...'
+                : isCompletion
+                  ? 'Submit for Approval (100%)'
+                  : 'Save Progress Update'}
+            </button>
           </div>
         </form>
       </div>

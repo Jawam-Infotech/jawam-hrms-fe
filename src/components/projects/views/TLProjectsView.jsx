@@ -11,6 +11,7 @@ function TLProjectsView({
   tlProjectRequests = [],
   onOpenCreateModal,
   onOpenUpdateModal,
+  onOpenDetailModal,
   onOpenApprovalModal,
   onOpenChangeReviewModal,
   onOpenRequestModal,
@@ -226,8 +227,8 @@ function TLProjectsView({
         <div className="rounded-[24px] border border-[#fef3c7] bg-[#fffbeb] p-6 shadow-sm">
           <div className="flex items-center justify-between pb-4 border-b border-[#fde68a]">
             <div>
-              <h2 className="text-[18px] font-black text-[#92400e]">Team Deliverables Awaiting TL Review</h2>
-              <p className="text-xs text-[#b45309]">Review proof-of-work before recommending to Project Manager for final sign-off</p>
+              <h2 className="text-[18px] font-black text-[#92400e]">Deliverables Awaiting Your Review</h2>
+              <p className="text-xs text-[#b45309]">Review team member proof-of-work and deliverable submissions requiring your sign-off</p>
             </div>
             <span className="rounded-full bg-[#fef3c7] px-3 py-1 text-xs font-bold text-[#b45309] border border-[#fde68a]">
               {teamReviews.length} To Review
@@ -252,12 +253,14 @@ function TLProjectsView({
                     <td className="py-3 text-[#4b5563]">{t.projectTitle}</td>
                     <td className="py-3 font-bold text-[#111827]">{t.assignee}</td>
                     <td className="py-3">
-                      {t.deliverable ? (
+                      {(t.deliverable || t.open_completion_submission?.deliverable_urls?.length || t.open_completion_submission?.deliverable_files?.length || t.deliverable_urls?.length || t.deliverable_files?.length) ? (
                         <span className="rounded-full bg-[#ecfdf5] px-2.5 py-0.5 text-xs font-semibold text-[#059669]">
-                          ✓ {t.deliverable.type === 'LINK' ? 'URL Attached' : 'File Attached'}
+                          ✓ Deliverable Attached
                         </span>
                       ) : (
-                        <span className="text-xs text-[#9ca3af]">No proof</span>
+                        <span className="rounded-full bg-[#fffbeb] border border-[#fde68a] px-2.5 py-0.5 text-xs font-semibold text-[#92400e]">
+                          Pending Review
+                        </span>
                       )}
                     </td>
                     <td className="py-3 text-right">
@@ -333,22 +336,47 @@ function TLProjectsView({
               <tbody className="divide-y divide-[#f1f5f9]">
                 {myTasks.map((task) => (
                   <tr key={task.id} className="hover:bg-[#f8fafc]">
-                    <td className="px-4 py-3 font-bold text-[#111827]">{task.name}</td>
+                    <td className="px-4 py-3">
+                      <p
+                        onClick={() => onOpenDetailModal?.(task)}
+                        className={`font-bold text-[#111827] ${onOpenDetailModal ? 'cursor-pointer hover:text-[#2563eb] transition' : ''}`}
+                        title="Click to view full details"
+                      >
+                        {task.name}
+                      </p>
+                      {task.isRejected && (
+                        <p className="mt-1 text-xs text-[#dc2626] font-semibold">
+                          ❌ Rejected: {task.rejectionFeedback || 'Rework requested'}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-[#4b5563]">{task.projectTitle}</td>
                     <td className="px-4 py-3 font-semibold text-[#111827]">{task.progress || 0}%</td>
-                    <td className="px-4 py-3"><StatusBadge status={task.status} /></td>
+                    <td className="px-4 py-3"><StatusBadge status={task.isRejected ? 'REJECTED' : task.status} /></td>
                     <td className="px-4 py-3 text-right">
-                      {task.status !== 'COMPLETED' ? (
-                        <button
-                          type="button"
-                          onClick={() => onOpenUpdateModal(task)}
-                          className="rounded-full bg-[#eff6ff] px-3.5 py-1 text-xs font-bold text-[#2563eb] hover:bg-[#dbeafe]"
-                        >
-                          Update Progress
-                        </button>
-                      ) : (
-                        <span className="text-xs font-bold text-[#059669]">✓ Completed</span>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {onOpenDetailModal && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenDetailModal(task)}
+                            className="rounded-full border border-gray-200 bg-white p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition shadow-xs"
+                            title="View Task Details"
+                          >
+                            👁️
+                          </button>
+                        )}
+                        {task.status !== 'COMPLETED' ? (
+                          <button
+                            type="button"
+                            onClick={() => onOpenUpdateModal(task)}
+                            className="rounded-full bg-[#eff6ff] px-3.5 py-1 text-xs font-bold text-[#2563eb] hover:bg-[#dbeafe]"
+                          >
+                            Update Progress
+                          </button>
+                        ) : (
+                          <span className="text-xs font-bold text-[#059669]">✓ Completed</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

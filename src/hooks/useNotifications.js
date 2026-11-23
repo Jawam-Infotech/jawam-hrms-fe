@@ -7,6 +7,12 @@ import {
   deleteNotification,
   clearAllNotifications,
 } from '../services/notificationService.js'
+import {
+  isNotificationTargetingUser,
+  NOTIF_STORAGE_KEY,
+  NOTIF_POPUP_EVENT,
+  NOTIF_BC_CHANNEL,
+} from '../utils/projectNotificationService.js'
 
 function useNotifications() {
   const [notifications, setNotifications] = useState([])
@@ -36,11 +42,23 @@ function useNotifications() {
           ? notificationResponse
           : []
 
-      // Integrate local custom notifications (e.g. CEO approvals)
+      // Integrate local custom notifications (filtered for target user or role)
       let customNotifs = []
       try {
-        const stored = localStorage.getItem('jawam_custom_notifications_v1')
-        if (stored) customNotifs = JSON.parse(stored)
+        const stored = localStorage.getItem(NOTIF_STORAGE_KEY)
+        if (stored) {
+          const allCustom = JSON.parse(stored)
+          // Get current logged-in user profile from storage
+          let currentUser = null
+          try {
+            const rawUser = localStorage.getItem('jawamhr_user') || localStorage.getItem('user')
+            if (rawUser) currentUser = JSON.parse(rawUser)
+          } catch {
+            currentUser = null
+          }
+
+          customNotifs = allCustom.filter((n) => isNotificationTargetingUser(n, currentUser))
+        }
       } catch (e) {
         console.error('Error loading custom notifications', e)
       }
@@ -188,16 +206,30 @@ function useNotifications() {
     void loadInitialNotifications()
   }, [loadNotifications])
 
-  // Sync across tabs/windows
+  // Sync across tabs/windows and internal custom events
   useEffect(() => {
     const handleSync = () => {
       loadNotifications()
     }
+
+    let bc = null
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel(NOTIF_BC_CHANNEL)
+        bc.onmessage = handleSync
+      }
+    } catch (e) {
+      console.error(e)
+    }
+
     window.addEventListener('storage', handleSync)
     window.addEventListener('focus', handleSync)
+    window.addEventListener(NOTIF_POPUP_EVENT, handleSync)
     return () => {
+      if (bc) bc.close()
       window.removeEventListener('storage', handleSync)
       window.removeEventListener('focus', handleSync)
+      window.removeEventListener(NOTIF_POPUP_EVENT, handleSync)
     }
   }, [loadNotifications])
 

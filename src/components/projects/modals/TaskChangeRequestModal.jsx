@@ -4,11 +4,12 @@ function TaskChangeRequestModal({
   isOpen,
   onClose,
   task,
-  currentUser,
   projectMembers = [],
   onSubmitRequest,
+  isSubmitting = false,
+  apiError = null,
 }) {
-  const [requestType, setRequestType] = useState('DEADLINE_EXTENSION')
+  const [operation, setOperation] = useState('EXTEND_DEADLINE')
   const [newDueDate, setNewDueDate] = useState('')
   const [newAssigneeId, setNewAssigneeId] = useState('')
   const [reason, setReason] = useState('')
@@ -16,26 +17,35 @@ function TaskChangeRequestModal({
 
   if (!isOpen || !task) return null
 
-  const hasPendingRequest = Boolean(task.changeRequest)
-  const eligibleMembers = projectMembers.filter(
-    (m) => m.name !== task.assignee && m.id !== task.assigneeId,
+  const hasPendingRequest = Boolean(task.changeRequest || task.open_tcr)
+  const eligibleMembers = (projectMembers || []).filter(
+    (m) =>
+      String(m.user_id || m.id) !== String(task.assignee_id || task.assigneeId) &&
+      m.role !== 'HR' &&
+      m.is_active !== false
   )
 
   const validate = () => {
     if (hasPendingRequest) {
-      setError('A task-change request is already pending on this task. Multiple concurrent requests are blocked.')
+      setError('A Task-Change Request is already pending on this task. Multiple concurrent requests are blocked (Revision 3.6).')
       return false
     }
     if (!reason.trim()) {
-      setError('A mandatory reason is required for any task-change request.')
+      setError('A mandatory reason is required for any Task-Change Request.')
       return false
     }
-    if (requestType === 'DEADLINE_EXTENSION' && !newDueDate) {
-      setError('Please select a new requested due date.')
-      return false
+    if (operation === 'EXTEND_DEADLINE') {
+      if (!newDueDate) {
+        setError('Please select a new requested due date.')
+        return false
+      }
+      if (task.due_date && newDueDate <= task.due_date) {
+        setError('New due date must be later than the current due date.')
+        return false
+      }
     }
-    if (requestType === 'REASSIGNMENT' && !newAssigneeId) {
-      setError('Please select a replacement assignee.')
+    if (operation === 'REASSIGN' && !newAssigneeId) {
+      setError('Please select a replacement assignee from active members.')
       return false
     }
     setError('')
@@ -44,22 +54,23 @@ function TaskChangeRequestModal({
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!validate()) return
+    if (!validate() || isSubmitting) return
+
+    const payload = {
+      operation,
+      reason: reason.trim(),
+    }
+    if (operation === 'EXTEND_DEADLINE') {
+      payload.new_due_date = newDueDate
+    }
+    if (operation === 'REASSIGN') {
+      payload.new_assignee_id = Number(newAssigneeId)
+    }
 
     onSubmitRequest({
       taskId: task.id,
-      taskName: task.name,
-      requestType,
-      requestedChange: {
-        dueDate: requestType === 'DEADLINE_EXTENSION' ? newDueDate : null,
-        newAssignee: requestType === 'REASSIGNMENT' ? newAssigneeId : null,
-      },
-      reason: reason.trim(),
-      requester: currentUser?.name || 'Assigned Member',
-      submittedAt: new Date().toISOString(),
+      payload,
     })
-
-    onClose()
   }
 
   return (
@@ -68,42 +79,49 @@ function TaskChangeRequestModal({
         <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-4">
           <div>
             <h2 className="text-[20px] font-black text-[#111827]">Task-Change Request</h2>
-            <p className="text-xs text-[#6b7280] mt-1">{task.name}</p>
+            <p className="text-xs text-[#6b7280] mt-1">E22 POST — Request deadline extension, task deletion, or reassignment</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-[#9ca3af] hover:bg-[#f1f5f9] hover:text-[#111827]"
+            disabled={isSubmitting}
+            className="rounded-full p-2 text-[#9ca3af] hover:bg-[#f1f5f9] hover:text-[#111827] disabled:opacity-50"
           >
             ✕
           </button>
         </div>
 
-        {/* Concurrency Protection Warning Banner (Section 8.1) */}
+        {apiError && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+            {apiError}
+          </div>
+        )}
+
         {hasPendingRequest && (
           <div className="mt-4 rounded-xl border border-[#fed7aa] bg-[#fffbeb] p-3 text-xs text-[#b45309]">
-            <p className="font-bold">Concurrency Protection (Section 8.1):</p>
+            <p className="font-bold">Concurrency Protection (Revision 3.6, Decision 3):</p>
             <p className="mt-0.5">
-              This task already has a pending change request under review. Duplicate or simultaneous change requests are blocked until the current request is resolved.
+              This task already has a pending change request under review. Simultaneous change requests are blocked until resolved.
             </p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           <div>
-            <label className="block text-[13px] font-bold text-[#111827] mb-1">Request Type</label>
+            <label className="block text-[13px] font-bold text-[#111827] mb-1">Request Operation</label>
             <select
-              value={requestType}
-              onChange={(e) => setRequestType(e.target.value)}
+              value={operation}
+              onChange={(e) => setOperation(e.target.value)}
+              disabled={isSubmitting || hasPendingRequest}
               className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none"
             >
-              <option value="DEADLINE_EXTENSION">Request Due Date Extension</option>
-              <option value="TASK_DELETION">Request Task Cancellation / Deletion</option>
-              <option value="REASSIGNMENT">Request Assignee Reassignment</option>
+              <option value="EXTEND_DEADLINE">Extend Deadline</option>
+              <option value="DELETE_TASK">Delete / Cancel Task</option>
+              <option value="REASSIGN">Reassign Task</option>
             </select>
           </div>
 
-          {requestType === 'DEADLINE_EXTENSION' && (
+          {operation === 'EXTEND_DEADLINE' && (
             <div>
               <label className="block text-[13px] font-bold text-[#111827] mb-1">
                 New Requested Due Date <span className="text-[#ef4444]">*</span>
@@ -112,79 +130,71 @@ function TaskChangeRequestModal({
                 type="date"
                 value={newDueDate}
                 onChange={(e) => setNewDueDate(e.target.value)}
+                disabled={isSubmitting || hasPendingRequest}
                 className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none"
               />
-              <p className="text-[11px] text-[#6b7280] mt-1">Current due date: {task.dueDate || 'None'}</p>
+              <p className="mt-1 text-[11px] text-[#6b7280]">Current due date: {task.due_date || task.dueDate || 'TBD'}</p>
             </div>
           )}
 
-          {requestType === 'REASSIGNMENT' && (
+          {operation === 'REASSIGN' && (
             <div>
               <label className="block text-[13px] font-bold text-[#111827] mb-1">
-                Replacement Assignee <span className="text-[#ef4444]">*</span>
+                New Assignee (Active Project Member) <span className="text-[#ef4444]">*</span>
               </label>
               <select
                 value={newAssigneeId}
                 onChange={(e) => setNewAssigneeId(e.target.value)}
+                disabled={isSubmitting || hasPendingRequest}
                 className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none"
               >
-                <option value="">Select an active member</option>
+                <option value="">— Select replacement assignee —</option>
                 {eligibleMembers.map((m) => (
-                  <option key={m.id || m.name} value={m.name}>
-                    {m.name} ({m.role || 'Member'})
+                  <option key={m.user_id || m.id} value={m.user_id || m.id}>
+                    {m.name || `User #${m.user_id || m.id}`} ({m.role || 'Member'})
                   </option>
                 ))}
               </select>
-              <p className="text-[11px] text-[#6b7280] mt-1">Current assignee: {task.assignee}</p>
             </div>
           )}
 
-          {requestType === 'TASK_DELETION' && (
-            <div className="rounded-xl border border-[#fee2e2] bg-[#fff1f2] p-3 text-xs text-[#9f1239]">
-              <p className="font-bold">Task Cancellation Request</p>
-              <p className="mt-0.5">
-                If approved, the task will be marked CANCELLED and excluded from the project progress denominator.
-              </p>
+          {operation === 'DELETE_TASK' && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+              Approval will cancel the task, exclude it from the project denominator, and close any pending completion reviews (M1).
             </div>
           )}
 
           <div>
             <label className="block text-[13px] font-bold text-[#111827] mb-1">
-              Justification / Reason <span className="text-[#ef4444]">*</span>
+              Mandatory Reason <span className="text-[#ef4444]">*</span>
             </label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              disabled={isSubmitting || hasPendingRequest}
               rows={3}
-              placeholder="Why is this change necessary? Detail impediments or scope adjustments..."
-              className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[13px] text-[#111827] focus:border-[#2563eb] focus:outline-none"
+              placeholder="Explain the necessity for this change request..."
+              className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none"
             />
           </div>
 
-          {error && <p className="text-xs text-[#dc2626] font-medium">{error}</p>}
+          {error && <p className="text-xs text-red-600 font-medium">{error}</p>}
 
-          <div className="rounded-xl bg-[#f8fafc] p-3 text-[11px] text-[#6b7280]">
-            Notice: Change requests route to TL & PM (for team members) or directly to CEO (for independent contributors). HR is excluded from reviewing task modifications.
-          </div>
-
-          <div className="mt-8 flex justify-end gap-3 border-t border-[#f1f5f9] pt-4">
+          <div className="mt-6 flex justify-end gap-3 border-t border-[#f1f5f9] pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-[#e5e7eb] px-5 py-2 text-[14px] font-semibold text-[#4b5563] hover:bg-[#f9fafb]"
+              disabled={isSubmitting}
+              className="rounded-full border border-[#e5e7eb] px-5 py-2 text-[14px] font-semibold text-[#4b5563] hover:bg-[#f9fafb] disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={hasPendingRequest}
-              className={`rounded-full px-6 py-2 text-[14px] font-semibold text-white shadow-sm transition ${
-                hasPendingRequest
-                  ? 'cursor-not-allowed bg-[#9ca3af]'
-                  : 'bg-[#2563eb] hover:bg-[#1d4ed8]'
-              }`}
+              disabled={isSubmitting || hasPendingRequest}
+              className="rounded-full bg-[#2563eb] px-6 py-2 text-[14px] font-semibold text-white shadow-sm hover:bg-[#1d4ed8] disabled:opacity-50"
             >
-              {hasPendingRequest ? 'Pending Request Exists' : 'Submit Request'}
+              {isSubmitting ? 'Submitting...' : 'Submit Request'}
             </button>
           </div>
         </form>

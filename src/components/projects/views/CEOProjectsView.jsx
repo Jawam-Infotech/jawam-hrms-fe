@@ -154,7 +154,7 @@ function CEOProjectsView({
                         <td className="py-3 text-[#4b5563]">{t.projectTitle}</td>
                         <td className="py-3 font-bold text-[#111827]">{t.assignee}</td>
                         <td className="py-3">
-                          <StatusBadge status={t.status} />
+                          <StatusBadge status={t.isRejected ? 'REJECTED' : t.status} />
                         </td>
                         <td className="py-3 text-right">
                           <button

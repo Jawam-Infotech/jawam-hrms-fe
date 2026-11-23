@@ -4,12 +4,14 @@ function ProjectTaskTable({
   tasks = [],
   currentUser,
   isPM = false,
+  isSolo = false,
   onOpenUpdateModal,
+  onOpenDetailModal,
   onOpenApprovalModal,
   onOpenChangeRequestModal,
   onOpenChangeReviewModal,
-  onOpenReopenModal,
   onOpenCancelModal,
+  onSetStatus,
 }) {
   const isPendingReview = (status) => [
     'PENDING_TL_REVIEW',
@@ -36,23 +38,32 @@ function ProjectTaskTable({
         </thead>
         <tbody className="divide-y divide-[#f1f5f9]">
           {tasks.map((task) => {
+            const taskTitle = task.title || task.name || `Task #${task.id}`
+            const taskAssigneeId = task.assignee_id || task.assigneeId
+            const taskAssigneeName = task.assignee_name || task.assignee || (taskAssigneeId ? `User #${taskAssigneeId}` : 'Unassigned')
+            const taskDueDate = task.due_date || task.dueDate || ''
+            const pendingTcr = task.changeRequest || task.open_tcr || null
+
             const isAssignee = currentUser && (
-              currentUser.id === task.assigneeId ||
-              currentUser.name?.trim().toLowerCase() === task.assignee?.trim().toLowerCase()
+              String(currentUser.id) === String(taskAssigneeId) ||
+              currentUser.name?.trim().toLowerCase() === taskAssigneeName?.trim().toLowerCase()
             )
-            const canReview = isPendingReview(task.status) && (isCEO || isPM || isTL) && !isAssignee
-            const canReviewTCR = Boolean(task.changeRequest) && (isCEO || isPM || isTL) && currentUser?.name?.toLowerCase() !== task.changeRequest.requester?.toLowerCase()
+            const isDirectApproval = task.status === 'DIRECT_APPROVAL_REQUIRED' || task.status === 'PENDING_CEO_APPROVAL'
+            const canReview = isPendingReview(task.status) && !isAssignee && (
+              isDirectApproval ? isCEO : (isCEO || isPM || isTL)
+            )
+            const canReviewTCR = Boolean(pendingTcr) && (isCEO || isPM || isTL) && currentUser?.name?.toLowerCase() !== (pendingTcr.requester || pendingTcr.requested_by_name)?.toLowerCase()
 
             const isOverdue = (() => {
-              if (!task.dueDate || task.status === 'COMPLETED' || task.status === 'CANCELLED') return false
+              if (!taskDueDate || task.status === 'COMPLETED' || task.status === 'CANCELLED') return false
               let due
-              if (task.dueDate.includes('/')) {
-                const parts = task.dueDate.split('/')
+              if (taskDueDate.includes('/')) {
+                const parts = taskDueDate.split('/')
                 if (parts.length === 3) {
                   due = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]), 23, 59, 59)
                 }
-              } else if (task.dueDate.includes('-')) {
-                due = new Date(task.dueDate)
+              } else if (taskDueDate.includes('-')) {
+                due = new Date(taskDueDate)
                 due.setHours(23, 59, 59, 999)
               }
               return due && !isNaN(due.getTime()) && due.getTime() < Date.now()
@@ -61,7 +72,13 @@ function ProjectTaskTable({
             return (
               <tr key={task.id} className="hover:bg-[#f8fafc] transition-colors">
                 <td className="px-4 py-4">
-                  <p className="font-bold text-[#111827]">{task.name}</p>
+                  <p
+                    onClick={() => onOpenDetailModal?.(task)}
+                    className={`font-bold text-[#111827] ${onOpenDetailModal ? 'cursor-pointer hover:text-[#2563eb] transition' : ''}`}
+                    title="Click to view task details"
+                  >
+                    {taskTitle}
+                  </p>
                   {task.description && (
                     <p className="text-xs text-[#6b7280] truncate max-w-xs">{task.description}</p>
                   )}
@@ -71,38 +88,38 @@ function ProjectTaskTable({
                       <span>{task.blocker?.reason || task.description || 'Blocker recorded'}</span>
                     </div>
                   )}
-                  {task.changeRequest && (
+                  {pendingTcr && (
                     <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg border border-[#fed7aa] bg-[#fffbeb] px-2 py-0.5 text-[11px] text-[#b45309]">
                       <span className="font-bold">📝 TCR Pending:</span>
                       <span>
-                        {task.changeRequest.type === 'DEADLINE_EXTENSION'
+                        {pendingTcr.operation === 'EXTEND_DEADLINE' || pendingTcr.type === 'DEADLINE_EXTENSION'
                           ? 'Deadline Extension'
-                          : task.changeRequest.type === 'TASK_DELETION'
-                            ? 'Task Deletion'
-                            : 'Reassignment'}
+                          : pendingTcr.operation === 'REASSIGN' || pendingTcr.type === 'REASSIGNMENT'
+                            ? 'Reassignment'
+                            : 'Cancellation'}
                       </span>
-                      <StatusBadge status={task.changeRequest.status} className="!text-[10px] !py-0 !px-1.5" />
+                      <StatusBadge status={pendingTcr.status || 'PENDING'} className="!text-[10px] !py-0 !px-1.5" />
                     </div>
                   )}
-                  {task.status === 'IN_PROGRESS' && task.reworkCount > 0 && task.reworkCount < 3 && (
-                    <div className="mt-1.5 rounded-lg border border-[#fed7aa] bg-[#fffbeb] p-2 text-xs text-[#9a3412]">
-                      <span className="font-bold">❌ Rejected ({task.reworkCount} {task.reworkCount === 1 ? 'time' : 'times'}):</span>{' '}
-                      <span>{task.rejectionFeedback || 'Rework requested by reviewer. Progress set to 85%.'}</span>
-                    </div>
-                  )}
-                  {task.status === 'IN_PROGRESS' && task.reworkCount >= 3 && (
+                  {task.isRejected && !(task.isQualityRisk || task.quality_risk || task.reworkCount >= 3) && (
                     <div className="mt-1.5 rounded-lg border border-[#fca5a5] bg-[#fff1f2] p-2 text-xs text-[#991b1b]">
+                      <span className="font-bold">❌ Rejected ({task.reworkCount || 1} {task.reworkCount === 1 ? 'time' : 'times'}):</span>{' '}
+                      <span>{task.rejectionFeedback || 'Rework requested by reviewer.'}</span>
+                    </div>
+                  )}
+                  {task.isRejected && (task.isQualityRisk || task.quality_risk || task.reworkCount >= 3) && (
+                    <div className="mt-1.5 rounded-lg border border-[#fca5a5] bg-[#ffe4e6] p-2 text-xs text-[#991b1b]">
                       <div className="flex items-center gap-1.5">
                         <span className="rounded bg-[#e11d48] px-2 py-0.5 text-[10px] font-bold text-white">
-                          QUALITY RISK: {task.reworkCount} Rejections
+                          QUALITY RISK: {task.reworkCount || 3} Rejections
                         </span>
                       </div>
                       <p className="mt-1 font-semibold text-[#be123c]">
-                        Task has undergone {task.reworkCount} rejections. Schedule a sync meeting with the assignee before resubmission.
+                        Task has undergone {task.reworkCount || 3} rejections. Schedule a sync meeting with the assignee before resubmission.
                       </p>
                       {task.rejectionFeedback && (
                         <p className="mt-0.5 text-[11px] text-[#7f1d1d]">
-                          Latest feedback: "{task.rejectionFeedback}"
+                          Latest feedback: &quot;{task.rejectionFeedback}&quot;
                         </p>
                       )}
                     </div>
@@ -114,14 +131,14 @@ function ProjectTaskTable({
                   )}
                   {isOverdue && (
                     <div className="mt-1.5 rounded-lg border border-[#fca5a5] bg-[#fff1f2] p-2 text-xs text-[#991b1b]">
-                      <span className="font-bold">⏰ Overdue Alert:</span> Due date passed ({task.dueDate}). Task remains incomplete.
+                      <span className="font-bold">⏰ Overdue Alert:</span> Due date passed ({taskDueDate}). Task remains incomplete.
                     </div>
                   )}
                 </td>
 
                 <td className="px-4 py-4">
                   <p className="font-semibold text-[#111827]">
-                    {task.assignee} {isAssignee && <span className="text-[#2563eb] text-xs font-normal">(You)</span>}
+                    {taskAssigneeName} {isAssignee && <span className="text-[#2563eb] text-xs font-normal">(You)</span>}
                   </p>
                   <span className="text-[11px] text-[#6b7280]">
                     {task.isIndependent ? 'Independent Contributor' : 'Team Member'}
@@ -141,13 +158,13 @@ function ProjectTaskTable({
                 </td>
 
                 <td className="px-4 py-4">
-                  <StatusBadge status={task.status} />
+                  <StatusBadge status={task.isRejected ? 'REJECTED' : task.status} isSolo={isSolo} />
                 </td>
 
                 <td className="px-4 py-4 text-[#374151]">
                   <div className="flex items-center gap-1.5">
                     <span className={isOverdue ? 'font-bold text-[#dc2626]' : ''}>
-                      {task.dueDate || 'No date'}
+                      {taskDueDate || 'No date'}
                     </span>
                     {isOverdue && (
                       <span className="rounded-full border border-[#fca5a5] bg-[#fff1f2] px-2 py-0.5 text-[10px] font-bold text-[#dc2626]">
@@ -159,12 +176,56 @@ function ProjectTaskTable({
 
                 <td className="px-4 py-4 text-right">
                   {currentUser?.role === 'HR' ? (
-                    <span className="text-xs font-semibold text-[#9ca3af] bg-[#f8fafc] px-3 py-1 rounded-full border border-[#e5e7eb]">
-                      Read-Only
-                    </span>
+                    <div className="flex items-center justify-end gap-2">
+                      {onOpenDetailModal && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenDetailModal(task)}
+                          className="rounded-full border border-gray-200 bg-white p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition shadow-xs"
+                          title="View Task Details"
+                        >
+                          👁️
+                        </button>
+                      )}
+                      <span className="text-xs font-semibold text-[#9ca3af] bg-[#f8fafc] px-3 py-1 rounded-full border border-[#e5e7eb]">
+                        Read-Only
+                      </span>
+                    </div>
                   ) : (
                     <div className="flex items-center justify-end gap-2">
-                      {/* Work Update Button: Only for the assignee working on the task (CEO only reviews, reopens, or cancels) */}
+                      {onOpenDetailModal && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenDetailModal(task)}
+                          className="rounded-full border border-gray-200 bg-white p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition shadow-xs"
+                          title="View Task Details"
+                        >
+                          👁️
+                        </button>
+                      )}
+                      {/* E33 POST: Status toggle TODO <-> IN_PROGRESS for CEO and PM */}
+                      {(isCEO || isPM) && task.status === 'TODO' && onSetStatus && (
+                        <button
+                          type="button"
+                          onClick={() => onSetStatus(task.id, 'IN_PROGRESS')}
+                          className="rounded-full bg-[#eff6ff] px-2.5 py-1 text-xs font-semibold text-[#2563eb] hover:bg-[#dbeafe]"
+                          title="E33 POST: Mark task IN_PROGRESS"
+                        >
+                          Start Task
+                        </button>
+                      )}
+                      {(isCEO || isPM) && task.status === 'IN_PROGRESS' && onSetStatus && (
+                        <button
+                          type="button"
+                          onClick={() => onSetStatus(task.id, 'TODO')}
+                          className="rounded-full bg-[#f8fafc] border border-[#e2e8f0] px-2.5 py-1 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]"
+                          title="E33 POST: Mark task TODO"
+                        >
+                          Set to TODO
+                        </button>
+                      )}
+
+                      {/* Work Update Button: Only for the assignee working on the task */}
                       {!isCEO && isAssignee && task.status !== 'COMPLETED' && task.status !== 'CANCELLED' && onOpenUpdateModal && (
                         <button
                           type="button"
@@ -183,18 +244,6 @@ function ProjectTaskTable({
                           className="rounded-full bg-[#ecfdf5] px-3 py-1.5 text-xs font-bold text-[#059669] hover:bg-[#d1fae5]"
                         >
                           Review
-                        </button>
-                      )}
-
-                      {/* Reopen Completed Task Button: Authorized for CEO & PM */}
-                      {task.status === 'COMPLETED' && (isCEO || isPM) && onOpenReopenModal && (
-                        <button
-                          type="button"
-                          onClick={() => onOpenReopenModal(task)}
-                          className="rounded-full bg-[#fef3c7] px-3 py-1.5 text-xs font-bold text-[#b45309] hover:bg-[#fde68a]"
-                          title="Reopen task to TODO with recorded reason"
-                        >
-                          Reopen Task
                         </button>
                       )}
 
@@ -226,20 +275,20 @@ function ProjectTaskTable({
                       {!isCEO && isAssignee && task.status !== 'COMPLETED' && task.status !== 'CANCELLED' && onOpenChangeRequestModal && (
                         <button
                           type="button"
-                          disabled={Boolean(task.changeRequest)}
+                          disabled={Boolean(pendingTcr)}
                           onClick={() => onOpenChangeRequestModal(task)}
                           className={`rounded-full px-2.5 py-1.5 text-xs font-medium transition ${
-                            task.changeRequest
+                            pendingTcr
                               ? 'cursor-not-allowed border border-[#e5e7eb] bg-[#f3f4f6] text-[#9ca3af]'
                               : 'border border-[#e5e7eb] text-[#4b5563] hover:bg-[#f1f5f9]'
                           }`}
                           title={
-                            task.changeRequest
+                            pendingTcr
                               ? 'A change request is already pending review (Concurrency Protection)'
                               : 'Request deadline extension, reassignment, or deletion'
                           }
                         >
-                          {task.changeRequest ? 'TCR Pending' : 'TCR'}
+                          {pendingTcr ? 'TCR Pending' : 'TCR'}
                         </button>
                       )}
                     </div>
