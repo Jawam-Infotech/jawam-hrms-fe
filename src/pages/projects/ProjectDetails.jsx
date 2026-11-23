@@ -6,7 +6,6 @@ import StatusBadge from '../../components/ui/StatusBadge.jsx'
 import ProjectProgressBar from '../../components/projects/ui/ProjectProgressBar.jsx'
 import ProjectTaskTable from '../../components/projects/tables/ProjectTaskTable.jsx'
 import ProjectMembersTable from '../../components/projects/tables/ProjectMembersTable.jsx'
-import ProjectAuditTimeline from '../../components/projects/ui/ProjectAuditTimeline.jsx'
 import AccessRestricted from '../../components/employees/AccessRestricted.jsx'
 
 // Modals
@@ -33,7 +32,6 @@ import { formatApiError } from '../../utils/formatApiError.js'
 import { downloadDeliverable } from '../../utils/downloadDeliverable.js'
 import { getTaskRejection, recordTaskRejection, clearTaskRejection } from '../../utils/taskRejectionStorage.js'
 import { dispatchProjectNotification } from '../../utils/projectNotificationService.js'
-import { getRemovedMembers, recordRemovedMember, clearRemovedMember } from '../../utils/projectMemberStorage.js'
 
 function ProjectDetails() {
   const navigate = useNavigate()
@@ -44,6 +42,7 @@ function ProjectDetails() {
   const [project, setProject] = useState(null)
   const [members, setMembers] = useState([])
   const [tasks, setTasks] = useState([])
+  const [allProjectTasks, setAllProjectTasks] = useState([]) // Complete, unfiltered task dataset across all pages
   const [cancellationRequest, setCancellationRequest] = useState(null)
   const [closureBlockers, setClosureBlockers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -76,90 +75,87 @@ function ProjectDetails() {
   const [activeChangeTask, setActiveChangeTask] = useState(null)
   const [activeChangeReviewTask, setActiveChangeReviewTask] = useState(null)
   const [activeCancelTask, setActiveCancelTask] = useState(null)
-  const [qualityRiskAlert, setQualityRiskAlert] = useState(null)
 
   // Current user role evaluation
   const currentUser = useMemo(() => user || { role: 'EMPLOYEE' }, [user])
   const isCEO = currentUser.role === 'CEO'
   const isHR = currentUser.role === 'HR'
-  const isTL = currentUser.role === 'TL'
 
   const isSolo = project?.staffing_mode === 'SOLO' || project?.staffingMode === 'SOLO'
+
+  // Specifically checks if current user is the designated PM of this project
+  const isActualPM = useMemo(() => {
+    if (!project || !currentUser?.id) return false
+    if (project.current_pm_id && String(currentUser.id) === String(project.current_pm_id)) return true
+    if (project.primaryPmId && String(currentUser.id) === String(project.primaryPmId)) return true
+    const currentMember = (members || []).find((m) => String(m.user_id || m.id) === String(currentUser.id))
+    if (currentMember?.is_current_pm) return true
+    return false
+  }, [project, currentUser, members])
+
+  // General PM authority (CEO or Actual PM)
   const isCurrentPM = useMemo(() => {
     if (isCEO) return true
     if (isHR) return false
-    if (!project) return false
-    if (project.current_pm_id && String(currentUser.id) === String(project.current_pm_id)) return true
-    if (project.primaryPm && (
-      currentUser.name?.toLowerCase() === project.primaryPm?.toLowerCase() ||
-      String(currentUser.id) === String(project.primaryPmId)
-    )) return true
-    return false
-  }, [project, currentUser, isCEO, isHR])
+    return isActualPM
+  }, [isCEO, isHR, isActualPM])
 
-  // Centralized data loader
+  // Centralized data loader with multi-page pagination support
   const loadProjectWorkspace = useCallback(async (opts = {}) => {
     if (!projectId) return
     if (opts.initial) setIsLoading(true)
     setError(null)
 
     try {
-      const projPromise = projectsApi.getProjectDetail(projectId)
-      const membersPromise = projectsApi.getMembers(projectId, {
-        include_inactive: showInactiveMembers,
-        page_size: 100,
-      })
-      const tasksPromise = projectsApi
-        .getTasks(projectId, {
-          status: taskStatusFilter || undefined,
-          assignee_id: taskAssigneeFilter || undefined,
-          page_size: 100,
-        })
-        .catch(async (tErr) => {
-          if (taskStatusFilter || taskAssigneeFilter) {
-            setTaskStatusFilter('')
-            setTaskAssigneeFilter('')
-            return projectsApi.getTasks(projectId, { page_size: 100 })
-          }
-          throw tErr
-        })
+      // Helper to fetch all pages for complete datasets
+      const fetchAllPages = async (fetcher, initialParams = {}) => {
+        let page = 1
+        let results = []
+        while (true) {
+          const res = await fetcher({ ...initialParams, page, page_size: 100 })
+          const data = res?.data ?? res
+          if (Array.isArray(data)) return data
+          const items = data?.results || []
+          results = results.concat(items)
+          if (!data?.next || results.length >= (data?.count || 0) || items.length === 0) break
+          page += 1
+        }
+        return results
+      }
 
-      const [projRes, membersRes, tasksRes] = await Promise.all([
+      const projPromise = projectsApi.getProjectDetail(projectId)
+      const membersPromise = fetchAllPages(
+        (params) => projectsApi.getMembers(projectId, params),
+        { include_inactive: showInactiveMembers }
+      )
+      const filteredTasksPromise = fetchAllPages(
+        (params) => projectsApi.getTasks(projectId, params),
+        { status: taskStatusFilter || undefined, assignee_id: taskAssigneeFilter || undefined }
+      ).catch(async (tErr) => {
+        if (taskStatusFilter || taskAssigneeFilter) {
+          setTaskStatusFilter('')
+          setTaskAssigneeFilter('')
+          return fetchAllPages((params) => projectsApi.getTasks(projectId, params))
+        }
+        throw tErr
+      })
+      const allTasksPromise = fetchAllPages((params) => projectsApi.getTasks(projectId, params))
+
+      const [projRes, rawMembersList, tasksData, completeTasksData] = await Promise.all([
         projPromise,
         membersPromise,
-        tasksPromise,
+        filteredTasksPromise,
+        allTasksPromise,
       ])
 
       const projData = projRes?.data || projRes
-      const rawMembers = membersRes?.data ?? membersRes
-      const rawMembersList = Array.isArray(rawMembers)
-        ? rawMembers
-        : (rawMembers?.results || [])
-
-      // Filter out permanently removed/deleted members for this project
-      const removedIds = new Set(
-        getRemovedMembers(projectId).map((id) => String(id).toLowerCase().trim())
-      )
 
       // Deduplicate members per user: prioritize active status and Primary PM designation
+      // Backend membership state is the single authoritative source of truth
       const uniqueMemberMap = new Map()
       rawMembersList.forEach((m) => {
+        if (m.is_removed || m.status === 'REMOVED') return
         const uid = String(m.user_id || m.id || m.name || '').toLowerCase().trim()
-        const rawUserId = String(m.user_id || '').toLowerCase().trim()
-        const rawId = String(m.id || '').toLowerCase().trim()
-        const rawName = String(m.name || '').toLowerCase().trim()
-
-        // Exclude permanently removed members
-        if (
-          removedIds.has(uid) ||
-          (rawUserId && removedIds.has(rawUserId)) ||
-          (rawId && removedIds.has(rawId)) ||
-          (rawName && removedIds.has(rawName)) ||
-          m.is_removed ||
-          m.status === 'REMOVED'
-        ) {
-          return
-        }
 
         if (!uniqueMemberMap.has(uid)) {
           uniqueMemberMap.set(uid, m)
@@ -174,14 +170,10 @@ function ProjectDetails() {
       })
       const membersData = Array.from(uniqueMemberMap.values())
 
-      const rawTasks = tasksRes?.data ?? tasksRes
-      const tasksData = Array.isArray(rawTasks)
-        ? rawTasks
-        : (rawTasks?.results || [])
-
       setProject(projData)
       setMembers(membersData)
       setTasks(tasksData)
+      setAllProjectTasks(completeTasksData)
 
       // E27 GET: Read pending cancellation request (readable by CEO and current PM)
       try {
@@ -292,6 +284,12 @@ function ProjectDetails() {
     if (cancellationRequest.id && cancellationRequest.status === 'PENDING') return cancellationRequest
     return null
   }, [cancellationRequest])
+
+  const hasPendingCancellation = Boolean(
+    pendingCancelReq ||
+    project?.cancellation_request?.status === 'PENDING' ||
+    project?.cancellation_pending
+  )
 
   // ==========================================
   // ACTION HANDLERS
@@ -526,10 +524,6 @@ function ProjectDetails() {
       const rawId = typeof memberData === 'object' ? (memberData.user_id || memberData.userId || memberData.id) : memberData
       const userId = Number(String(rawId).replace(/[^0-9]/g, '')) || rawId
       await projectsApi.addMember(projectId, { user_id: userId })
-      clearRemovedMember(projectId, userId)
-      if (typeof memberData === 'object' && memberData.name) {
-        clearRemovedMember(projectId, memberData.name)
-      }
       setIsMemberModalOpen(false)
       const memberName = typeof memberData === 'object' ? (memberData.name || `Member #${userId}`) : `Member #${userId}`
       dispatchProjectNotification({
@@ -560,8 +554,6 @@ function ProjectDetails() {
     setActionError(null)
     try {
       await projectsApi.addMember(projectId, { user_id: userId })
-      clearRemovedMember(projectId, userId)
-      if (member.name) clearRemovedMember(projectId, member.name)
       dispatchProjectNotification({
         title: '👤 Member Activated',
         message: `${member?.name || 'Member'} was activated in project "${project?.name || project?.title}".`,
@@ -611,15 +603,6 @@ function ProjectDetails() {
           decisions: payload?.decisions || [],
         }
         await projectsApi.removeMember(projectId, userId, removePayload)
-
-        // Permanently record removal so the member immediately disappears from the roster
-        recordRemovedMember(projectId, userId)
-        if (activeMemberAction?.member?.name) {
-          recordRemovedMember(projectId, activeMemberAction.member.name)
-        }
-        if (activeMemberAction?.member?.id) {
-          recordRemovedMember(projectId, activeMemberAction.member.id)
-        }
 
         // Update local state immediately so row disappears right away
         setMembers((prev) =>
@@ -775,10 +758,22 @@ function ProjectDetails() {
 
   // E21 POST: Approve completion
   const handleApproveTask = async ({ taskId, submissionId, reason }) => {
+    const targetSubId =
+      submissionId ||
+      activeApprovalTask?.submissionId ||
+      activeApprovalTask?.item_id ||
+      activeApprovalTask?.submission_id ||
+      activeApprovalTask?.open_completion_submission?.id
+
+    if (!targetSubId) {
+      setActionError('Cannot process decision: Active completion submission ID is missing. Task ID fallback is prohibited by backend contract.')
+      return
+    }
+
     setIsActionSubmitting(true)
     setActionError(null)
     try {
-      await projectsApi.decideCompletion(projectId, taskId, submissionId, {
+      await projectsApi.decideCompletion(projectId, taskId, targetSubId, {
         decision: 'APPROVE',
         reason: reason || undefined,
       })
@@ -803,23 +798,29 @@ function ProjectDetails() {
 
   // E21 POST: Reject completion
   const handleRejectTask = async ({ taskId, submissionId, reason }) => {
+    const targetSubId =
+      submissionId ||
+      activeApprovalTask?.submissionId ||
+      activeApprovalTask?.item_id ||
+      activeApprovalTask?.submission_id ||
+      activeApprovalTask?.open_completion_submission?.id
+
+    if (!targetSubId) {
+      setActionError('Cannot process decision: Active completion submission ID is missing. Task ID fallback is prohibited by backend contract.')
+      return
+    }
+
     setIsActionSubmitting(true)
     setActionError(null)
     try {
-      await projectsApi.decideCompletion(projectId, taskId, submissionId, {
+      await projectsApi.decideCompletion(projectId, taskId, targetSubId, {
         decision: 'REJECT',
         reason,
       })
-      const rec = recordTaskRejection(taskId, {
+      recordTaskRejection(taskId, {
         reason,
         rejectedBy: currentUser?.name || 'Reviewer',
       })
-      if (rec && rec.count >= 3) {
-        setQualityRiskAlert({
-          taskName: activeApprovalTask?.name || activeApprovalTask?.title || `Task #${taskId}`,
-          reworkCount: rec.count,
-        })
-      }
       dispatchProjectNotification({
         title: '❌ Deliverable Rejected (Rework Required)',
         message: `Deliverable for task "${activeApprovalTask?.name || activeApprovalTask?.title || 'Task'}" was rejected: "${reason || 'Needs revisions'}".`,
@@ -1148,34 +1149,51 @@ function ProjectDetails() {
             {/* Lifecycle Action Buttons */}
             <div className="flex flex-wrap items-center gap-3">
               {/* PLANNED: Activate & Cancel */}
-              {project.status === 'PLANNED' && (isCurrentPM || isCEO || isTL) && (
+              {project.status === 'PLANNED' && (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => setIsActivationModalOpen(true)}
-                    disabled={isActionSubmitting}
-                    className="rounded-full bg-[#10b981] px-5 py-2 text-[14px] font-bold text-white shadow hover:bg-[#059669] disabled:opacity-50"
-                  >
-                    🚀 Activate Project
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCancelModalMode(isSolo ? 'SOLO_CANCEL' : 'TEAM_REQUEST')
-                      setIsCancelModalOpen(true)
-                    }}
-                    disabled={isActionSubmitting}
-                    className="rounded-full border border-[#fca5a5] bg-white px-4 py-2 text-[14px] font-bold text-[#dc2626] hover:bg-[#fef2f2] disabled:opacity-50"
-                  >
-                    ✕ Cancel Project
-                  </button>
+                  {(isCEO || isActualPM) && !hasPendingCancellation && (
+                    <button
+                      type="button"
+                      onClick={() => setIsActivationModalOpen(true)}
+                      disabled={isActionSubmitting}
+                      className="rounded-full bg-[#10b981] px-5 py-2 text-[14px] font-bold text-white shadow hover:bg-[#059669] disabled:opacity-50"
+                    >
+                      🚀 Activate Project
+                    </button>
+                  )}
+                  {isSolo && isCEO && !hasPendingCancellation && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCancelModalMode('SOLO_CANCEL')
+                        setIsCancelModalOpen(true)
+                      }}
+                      disabled={isActionSubmitting}
+                      className="rounded-full border border-[#fca5a5] bg-white px-4 py-2 text-[14px] font-bold text-[#dc2626] hover:bg-[#fef2f2] disabled:opacity-50"
+                    >
+                      ✕ Cancel Project
+                    </button>
+                  )}
+                  {!isSolo && isActualPM && !hasPendingCancellation && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCancelModalMode('TEAM_REQUEST')
+                        setIsCancelModalOpen(true)
+                      }}
+                      disabled={isActionSubmitting}
+                      className="rounded-full border border-[#fca5a5] bg-white px-4 py-2 text-[14px] font-bold text-[#dc2626] hover:bg-[#fef2f2] disabled:opacity-50"
+                    >
+                      ✕ Request Cancellation
+                    </button>
+                  )}
                 </>
               )}
 
               {/* ACTIVE: Hold, Closure Request, Cancel */}
-              {project.status === 'ACTIVE' && (isCurrentPM || isCEO) && (
+              {project.status === 'ACTIVE' && (
                 <>
-                  {isCurrentPM && !isCEO && (
+                  {isActualPM && !isCEO && !hasPendingCancellation && (
                     <button
                       type="button"
                       onClick={() => setIsClosureModalOpen(true)}
@@ -1185,50 +1203,84 @@ function ProjectDetails() {
                       Request Project Closure
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setIsHoldModalOpen(true)}
-                    disabled={isActionSubmitting}
-                    className="rounded-full border border-[#f59e0b] bg-[#fffbeb] px-4 py-2 text-[14px] font-bold text-[#b45309] hover:bg-[#fef3c7] disabled:opacity-50"
-                  >
-                    ⏸ Put On Hold
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCancelModalMode(isSolo ? 'SOLO_CANCEL' : 'TEAM_REQUEST')
-                      setIsCancelModalOpen(true)
-                    }}
-                    disabled={isActionSubmitting}
-                    className="rounded-full border border-[#fca5a5] bg-white px-4 py-2 text-[14px] font-bold text-[#dc2626] hover:bg-[#fef2f2] disabled:opacity-50"
-                  >
-                    ✕ Cancel Project
-                  </button>
+                  {(isCEO || isActualPM) && !hasPendingCancellation && (
+                    <button
+                      type="button"
+                      onClick={() => setIsHoldModalOpen(true)}
+                      disabled={isActionSubmitting}
+                      className="rounded-full border border-[#f59e0b] bg-[#fffbeb] px-4 py-2 text-[14px] font-bold text-[#b45309] hover:bg-[#fef3c7] disabled:opacity-50"
+                    >
+                      ⏸ Put On Hold
+                    </button>
+                  )}
+                  {isSolo && isCEO && !hasPendingCancellation && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCancelModalMode('SOLO_CANCEL')
+                        setIsCancelModalOpen(true)
+                      }}
+                      disabled={isActionSubmitting}
+                      className="rounded-full border border-[#fca5a5] bg-white px-4 py-2 text-[14px] font-bold text-[#dc2626] hover:bg-[#fef2f2] disabled:opacity-50"
+                    >
+                      ✕ Cancel Project
+                    </button>
+                  )}
+                  {!isSolo && isActualPM && !hasPendingCancellation && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCancelModalMode('TEAM_REQUEST')
+                        setIsCancelModalOpen(true)
+                      }}
+                      disabled={isActionSubmitting}
+                      className="rounded-full border border-[#fca5a5] bg-white px-4 py-2 text-[14px] font-bold text-[#dc2626] hover:bg-[#fef2f2] disabled:opacity-50"
+                    >
+                      ✕ Request Cancellation
+                    </button>
+                  )}
                 </>
               )}
 
               {/* ON_HOLD: Resume & Cancel */}
-              {project.status === 'ON_HOLD' && (isCurrentPM || isCEO) && (
+              {project.status === 'ON_HOLD' && (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => setIsActivationModalOpen(true)}
-                    disabled={isActionSubmitting}
-                    className="rounded-full bg-[#10b981] px-5 py-2 text-[14px] font-bold text-white shadow hover:bg-[#059669] disabled:opacity-50"
-                  >
-                    ▶ Resume Project
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCancelModalMode(isSolo ? 'SOLO_CANCEL' : 'TEAM_REQUEST')
-                      setIsCancelModalOpen(true)
-                    }}
-                    disabled={isActionSubmitting}
-                    className="rounded-full border border-[#fca5a5] bg-white px-4 py-2 text-[14px] font-bold text-[#dc2626] hover:bg-[#fef2f2] disabled:opacity-50"
-                  >
-                    ✕ Cancel Project
-                  </button>
+                  {(isCEO || isActualPM) && !hasPendingCancellation && (
+                    <button
+                      type="button"
+                      onClick={() => setIsActivationModalOpen(true)}
+                      disabled={isActionSubmitting}
+                      className="rounded-full bg-[#10b981] px-5 py-2 text-[14px] font-bold text-white shadow hover:bg-[#059669] disabled:opacity-50"
+                    >
+                      ▶ Resume Project
+                    </button>
+                  )}
+                  {isSolo && isCEO && !hasPendingCancellation && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCancelModalMode('SOLO_CANCEL')
+                        setIsCancelModalOpen(true)
+                      }}
+                      disabled={isActionSubmitting}
+                      className="rounded-full border border-[#fca5a5] bg-white px-4 py-2 text-[14px] font-bold text-[#dc2626] hover:bg-[#fef2f2] disabled:opacity-50"
+                    >
+                      ✕ Cancel Project
+                    </button>
+                  )}
+                  {!isSolo && isActualPM && !hasPendingCancellation && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCancelModalMode('TEAM_REQUEST')
+                        setIsCancelModalOpen(true)
+                      }}
+                      disabled={isActionSubmitting}
+                      className="rounded-full border border-[#fca5a5] bg-white px-4 py-2 text-[14px] font-bold text-[#dc2626] hover:bg-[#fef2f2] disabled:opacity-50"
+                    >
+                      ✕ Request Cancellation
+                    </button>
+                  )}
                 </>
               )}
 
@@ -1399,7 +1451,7 @@ function ProjectDetails() {
 
             {/* Contextual Action Buttons */}
             <div>
-              {activeTab === 'TASKS' && (isCEO || isCurrentPM || isTL) && (
+              {activeTab === 'TASKS' && (isCEO || isActualPM) && (
                 project.status === 'ACTIVE' ? (
                   <button
                     type="button"
@@ -1420,7 +1472,7 @@ function ProjectDetails() {
                 ) : null
               )}
 
-              {activeTab === 'MEMBERS' && (isCEO || isCurrentPM || isTL) && !isClosedProject && (
+              {activeTab === 'MEMBERS' && (isCEO || isActualPM) && !isClosedProject && (
                 <div className="flex items-center gap-2">
                   {isCEO && (
                     <button
@@ -1561,7 +1613,7 @@ function ProjectDetails() {
                       onChange={(e) => setShowInactiveMembers(e.target.checked)}
                       className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span>Include Deactivated / Former Members (E05 include_inactive)</span>
+                    <span>Include Deactivated / Former Members</span>
                   </label>
                   <span className="text-xs text-gray-500">
                     Total: {members.length} member{members.length === 1 ? '' : 's'}
@@ -1595,7 +1647,7 @@ function ProjectDetails() {
                     setIsReplacePmModalOpen(true)
                   }}
                   isCEO={isCEO}
-                  canManage={(isCEO || isCurrentPM || isTL) && !isClosedProject}
+                  canManage={(isCEO || isActualPM) && !isClosedProject}
                   projectStatus={project.status}
                 />
               </div>
@@ -1603,14 +1655,12 @@ function ProjectDetails() {
 
             {/* AUDIT TAB */}
             {activeTab === 'AUDIT' && (
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4 text-xs text-[#475569]">
-                  <p className="font-bold text-[#0f172a]">Immutable Governance Audit Log</p>
-                  <p className="mt-0.5">
-                    All administrative decisions, PM designations, member additions/removals, work updates, and completion reviews are permanently recorded with authenticated actors and timestamps.
-                  </p>
-                </div>
-                <ProjectAuditTimeline events={project.auditEvents || []} />
+              <div className="rounded-2xl border border-[#e2e8f0] bg-white p-8 text-center shadow-xs">
+                <span className="text-4xl">📋</span>
+                <h3 className="mt-3 text-base font-bold text-[#0f172a]">Audit Timeline Not Available</h3>
+                <p className="mt-1 text-xs text-[#64748b] max-w-md mx-auto">
+                  Backend audit read API is not exposed for this project. Administrative and governance decisions are permanently maintained in system-level audit logs.
+                </p>
               </div>
             )}
           </div>
@@ -1664,7 +1714,7 @@ function ProjectDetails() {
         actionType={activeMemberAction?.actionType || 'REMOVE'}
         member={activeMemberAction?.member}
         projectMembers={members}
-        incompleteTasks={enrichedTasks.filter(
+        incompleteTasks={allProjectTasks.filter(
           (t) =>
             String(t.assignee_id || t.assigneeId) === String(activeMemberAction?.member?.user_id || activeMemberAction?.member?.id) &&
             !['COMPLETED', 'CANCELLED'].includes(t.status)
@@ -1817,34 +1867,7 @@ function ProjectDetails() {
         }}
       />
 
-      {/* 3-Rejection Quality Risk Notification Pop-up Modal */}
-      {qualityRiskAlert && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-red-200 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-2xl text-red-600 mb-4">
-              ⚠️
-            </div>
-            <div className="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-black uppercase text-red-700 mb-2">
-              Quality Risk: {qualityRiskAlert.reworkCount} Rejections
-            </div>
-            <h3 className="text-lg font-black text-gray-900">
-              Quality Risk Threshold Reached
-            </h3>
-            <p className="mt-2 text-sm text-gray-600 font-medium">
-              Task has undergone {qualityRiskAlert.reworkCount} rejections. Schedule a sync meeting with the assignee before resubmission.
-            </p>
-            <div className="mt-6 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setQualityRiskAlert(null)}
-                className="rounded-full bg-red-600 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-red-700 transition"
-              >
-                Acknowledge &amp; Dismiss
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </DashboardLayout>
   )
 }

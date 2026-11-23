@@ -1,14 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getEmployees } from '../../../services/employeeService.js'
-
-const DEFAULT_CANDIDATES = [
-  { id: 2, user_id: 2, name: 'Shivani k', role: 'Team Leader', designation: 'Team Lead' },
-  { id: 3, user_id: 3, name: 'Kanishk Prashad', role: 'Frontend Developer', designation: 'Frontend Developer' },
-  { id: 4, user_id: 4, name: 'Aarav Sharma', role: 'UI/UX Designer', designation: 'UI/UX Designer' },
-  { id: 5, user_id: 5, name: 'Priya Verma', role: 'Frontend Developer', designation: 'Frontend Developer' },
-  { id: 6, user_id: 6, name: 'Rahul Patel', role: 'Backend Engineer', designation: 'Backend Engineer' },
-  { id: 7, user_id: 7, name: 'Brijesh Bisht', role: 'Backend Engineer', designation: 'Backend Engineer' },
-]
 
 function ProjectCreateModal({
   isOpen,
@@ -30,37 +21,36 @@ function ProjectCreateModal({
     assignedPmName: '',
   })
   const [candidates, setCandidates] = useState([])
+  const [isLoadingPm, setIsLoadingPm] = useState(false)
+  const [pmFetchError, setPmFetchError] = useState(null)
   const [errors, setErrors] = useState({})
+
+  const loadCandidates = useCallback(async () => {
+    setIsLoadingPm(true)
+    setPmFetchError(null)
+    try {
+      const res = await getEmployees()
+      const list = Array.isArray(res) ? res : (res?.employees || res?.data || res?.results || [])
+      const eligible = list.filter((e) => {
+        const roleUpper = String(e.role || e.designation || '').toUpperCase()
+        return roleUpper !== 'HR' && roleUpper !== 'CEO'
+      })
+      setCandidates(eligible)
+    } catch (err) {
+      console.error('Failed to load candidate employees for PM assignment:', err)
+      setPmFetchError('Failed to load employee list. Please check your network connection and retry.')
+      setCandidates([])
+    } finally {
+      setIsLoadingPm(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (isOpen) {
-      getEmployees()
-        .then((res) => {
-          const list = Array.isArray(res) ? res : (res?.employees || res?.data || res?.results || [])
-          const pool = [...list]
-          DEFAULT_CANDIDATES.forEach((def) => {
-            const alreadyIn = pool.some(
-              (p) =>
-                String(p.user_id || p.id) === String(def.user_id || def.id) ||
-                String(p.name || '').toLowerCase() === def.name.toLowerCase()
-            )
-            if (!alreadyIn) pool.push(def)
-          })
-          const eligible = pool.filter((e) => {
-            const roleUpper = String(e.role || e.designation || '').toUpperCase()
-            return roleUpper !== 'HR' && roleUpper !== 'CEO'
-          })
-          setCandidates(eligible)
-        })
-        .catch(() => {
-          const eligible = DEFAULT_CANDIDATES.filter((e) => {
-            const roleUpper = String(e.role || e.designation || '').toUpperCase()
-            return roleUpper !== 'HR' && roleUpper !== 'CEO'
-          })
-          setCandidates(eligible)
-        })
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void loadCandidates()
     }
-  }, [isOpen])
+  }, [isOpen, loadCandidates])
 
   if (!isOpen) return null
 
@@ -266,28 +256,46 @@ function ProjectCreateModal({
                   : 'Assign Initial Project Manager'}{' '}
                 <span className="text-[#6b7280] font-normal">(optional — can also be assigned in project details)</span>
               </label>
-              <select
-                value={formData.assignedPmId}
-                onChange={handlePmChange}
-                disabled={isSubmitting}
-                className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2.5 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none disabled:bg-gray-50"
-              >
-                <option value="">
-                  {formData.staffingMode === 'SOLO'
-                    ? '— Select Solo Contributor —'
-                    : '— No PM yet (assign later via Add Member) —'}
-                </option>
-                {candidates.map((pm) => {
-                  const id = pm.user_id || pm.id
-                  const name = pm.name || `${pm.first_name || ''} ${pm.last_name || ''}`.trim() || `User #${id}`
-                  const role = pm.designation || pm.role || 'Contributor'
-                  return (
-                    <option key={id} value={id}>
-                      {name} — {role}
-                    </option>
-                  )
-                })}
-              </select>
+              {pmFetchError ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center">
+                  <p className="text-xs text-red-700">{pmFetchError}</p>
+                  <button
+                    type="button"
+                    onClick={loadCandidates}
+                    className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white shadow hover:bg-red-700"
+                  >
+                    ↻ Retry Loading
+                  </button>
+                </div>
+              ) : isLoadingPm ? (
+                <div className="w-full rounded-[12px] border border-gray-200 bg-gray-50 px-4 py-2.5 text-xs text-gray-500">
+                  <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mr-2" />
+                  Loading candidate employees...
+                </div>
+              ) : (
+                <select
+                  value={formData.assignedPmId}
+                  onChange={handlePmChange}
+                  disabled={isSubmitting}
+                  className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2.5 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none disabled:bg-gray-50"
+                >
+                  <option value="">
+                    {formData.staffingMode === 'SOLO'
+                      ? '— Select Solo Contributor —'
+                      : '— No PM yet (assign later via Add Member) —'}
+                  </option>
+                  {candidates.map((pm) => {
+                    const id = pm.user_id || pm.id
+                    const name = pm.name || `${pm.first_name || ''} ${pm.last_name || ''}`.trim() || `User #${id}`
+                    const role = pm.designation || pm.role || 'Contributor'
+                    return (
+                      <option key={id} value={id}>
+                        {name} — {role}
+                      </option>
+                    )
+                  })}
+                </select>
+              )}
               {formData.assignedPmName && (
                 <p className="mt-1 text-[11px] text-[#059669] font-medium">
                   {formData.staffingMode === 'SOLO'

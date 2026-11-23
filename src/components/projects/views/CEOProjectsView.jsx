@@ -12,10 +12,16 @@ function CEOProjectsView({
   onOpenApprovalModal,
   onOpenClosureModal,
   onOpenChangeReviewModal,
+  onApproveProjectRequest,
+  onRejectProjectRequest,
+  onReturnProjectRequest,
   onGrantTLPermission,
   onDenyTLRequest,
 }) {
   const [filter, setFilter] = useState('ALL')
+  const [decisionModal, setDecisionModal] = useState(null) // { reqId, type: 'RETURN' | 'REJECT', reqName }
+  const [decisionReason, setDecisionReason] = useState('')
+  const [decisionError, setDecisionError] = useState('')
 
   const filteredProjects = projects.filter((p) => {
     if (filter === 'ALL') return true
@@ -179,7 +185,7 @@ function CEOProjectsView({
               <div className="flex items-center justify-between pb-3 border-b border-[#ddd6fe]">
                 <div>
                   <h2 className="text-[18px] font-black text-[#4c1d95]">TL Project Creation Requests</h2>
-                  <p className="text-xs text-[#6d28d9]">Team leaders requesting permission to initiate a new project — review justification before granting.</p>
+                  <p className="text-xs text-[#6d28d9]">Team leaders requesting new project approvals. Evaluate business justification and proposed timeline before deciding.</p>
                 </div>
                 <span className="rounded-full bg-[#ede9fe] px-3 py-1 text-xs font-bold text-[#6d28d9] border border-[#ddd6fe]">
                   {tlProjectRequests.length} Pending
@@ -191,33 +197,73 @@ function CEOProjectsView({
                   <div key={req.id} className="rounded-2xl bg-white border border-[#ddd6fe]/60 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[15px] font-bold text-[#111827]">{req.projectName}</p>
-                        <p className="text-xs text-[#6b7280] mt-0.5">
-                          Requested by: <span className="font-semibold text-[#111827]">{req.requestedBy}</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-[15px] font-bold text-[#111827]">{req.name || req.projectName || req.project_name}</p>
+                          <span className="rounded-full bg-[#eff6ff] text-[#1d4ed8] border border-[#bfdbfe] px-2 py-0.5 text-[11px] font-bold">
+                            {req.staffing_mode === 'SOLO' || req.staffingMode === 'SOLO' ? 'Solo / Independent' : 'Standard Team'}
+                          </span>
+                          <span className="rounded-full bg-gray-100 text-gray-700 px-2 py-0.5 text-[11px] font-bold">
+                            Priority: {req.priority || 'Medium'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#6b7280] mt-1">
+                          Requested by: <span className="font-semibold text-[#111827]">{req.requested_by_name || req.requestedBy || (req.user_id ? `User #${req.user_id}` : 'Team Leader')}</span>
                           <span className="mx-1.5">•</span>
-                          {req.staffingMode === 'TEAM' ? 'Standard Team' : 'Solo / Independent'}
-                          <span className="mx-1.5">•</span>
-                          Priority: {req.priority}
+                          Proposed Timeline: <span className="font-semibold text-[#111827]">{req.proposed_start_date || 'TBD'} to {req.proposed_target_end_date || 'TBD'}</span>
                         </p>
-                        <p className="mt-1.5 text-xs text-[#374151]">
-                          <span className="font-semibold text-[#4c1d95]">Justification:</span> {req.justification}
+                        <p className="mt-2 text-xs text-[#374151] bg-[#f8fafc] p-2.5 rounded-xl border border-gray-100">
+                          <span className="font-semibold text-[#4c1d95]">Business Justification:</span> {req.justification}
                         </p>
+                        {req.description && (
+                          <p className="mt-1 text-xs text-[#4b5563]">
+                            <span className="font-semibold">Description:</span> {req.description}
+                          </p>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-shrink-0 self-center">
                         <button
                           type="button"
-                          onClick={() => onDenyTLRequest(req.id)}
-                          className="rounded-full border border-[#fca5a5] bg-white px-4 py-1.5 text-xs font-bold text-[#dc2626] hover:bg-[#fef2f2]"
+                          onClick={() => {
+                            setDecisionModal({
+                              reqId: req.id,
+                              type: 'REJECT',
+                              reqName: req.name || req.projectName || 'Project Request',
+                            })
+                            setDecisionReason('')
+                            setDecisionError('')
+                          }}
+                          className="rounded-full border border-[#fca5a5] bg-white px-3 py-1.5 text-xs font-bold text-[#dc2626] hover:bg-[#fef2f2] transition"
                         >
-                          Deny
+                          Reject
                         </button>
                         <button
                           type="button"
-                          onClick={() => onGrantTLPermission(req)}
-                          className="rounded-full bg-[#7c3aed] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#6d28d9] shadow-sm flex items-center gap-1.5"
+                          onClick={() => {
+                            setDecisionModal({
+                              reqId: req.id,
+                              type: 'RETURN',
+                              reqName: req.name || req.projectName || 'Project Request',
+                            })
+                            setDecisionReason('')
+                            setDecisionError('')
+                          }}
+                          className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition"
                         >
-                          <span>✓</span> Accept &amp; Create Project
+                          Return for Clarification
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onApproveProjectRequest) {
+                              onApproveProjectRequest(req.id)
+                            } else if (onGrantTLPermission) {
+                              onGrantTLPermission(req)
+                            }
+                          }}
+                          className="rounded-full bg-[#10b981] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#059669] shadow-sm flex items-center gap-1.5 transition"
+                        >
+                          <span>✓</span> Approve Request
                         </button>
                       </div>
                     </div>
@@ -351,6 +397,96 @@ function CEOProjectsView({
           )}
         </div>
       </div>
+      {/* Decision Modal for Return for Clarification or Rejection */}
+      {decisionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[28px] bg-white p-7 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
+              <div>
+                <h3 className="text-[18px] font-black text-[#111827]">
+                  {decisionModal.type === 'RETURN' ? 'Return for Clarification' : 'Reject Project Request'}
+                </h3>
+                <p className="text-xs text-[#6b7280] mt-0.5">{decisionModal.reqName}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDecisionModal(null)}
+                className="rounded-full p-1.5 text-[#9ca3af] hover:bg-[#f1f5f9] hover:text-[#111827]"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              <p className="text-xs text-[#4b5563]">
+                {decisionModal.type === 'RETURN'
+                  ? 'Provide specific feedback or clarification questions for the Team Leader so they can adjust proposed dates or scope and resubmit.'
+                  : 'Please state the official executive reason for declining this project proposal.'}
+              </p>
+
+              <div>
+                <label className="block text-[13px] font-bold text-[#111827] mb-1">
+                  {decisionModal.type === 'RETURN' ? 'Clarification Required' : 'Rejection Reason'}{' '}
+                  <span className="text-[#ef4444]">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={decisionReason}
+                  onChange={(e) => {
+                    setDecisionReason(e.target.value)
+                    setDecisionError('')
+                  }}
+                  placeholder={
+                    decisionModal.type === 'RETURN'
+                      ? 'e.g., Please shift proposed start date by 2 weeks and elaborate on backend engineering dependencies.'
+                      : 'e.g., Priority deferred to Q3 planning cycle.'
+                  }
+                  className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2.5 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none"
+                />
+                {decisionError && <p className="mt-1 text-xs text-[#ef4444]">{decisionError}</p>}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-[#f1f5f9]">
+                <button
+                  type="button"
+                  onClick={() => setDecisionModal(null)}
+                  className="rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!decisionReason.trim()) {
+                      setDecisionError('Reason is required.')
+                      return
+                    }
+                    if (decisionModal.type === 'RETURN') {
+                      if (onReturnProjectRequest) {
+                        onReturnProjectRequest(decisionModal.reqId, decisionReason.trim())
+                      }
+                    } else {
+                      if (onRejectProjectRequest) {
+                        onRejectProjectRequest(decisionModal.reqId, decisionReason.trim())
+                      } else if (onDenyTLRequest) {
+                        onDenyTLRequest(decisionModal.reqId)
+                      }
+                    }
+                    setDecisionModal(null)
+                  }}
+                  className={`rounded-full px-5 py-2 text-xs font-bold text-white shadow transition ${
+                    decisionModal.type === 'RETURN'
+                      ? 'bg-amber-600 hover:bg-amber-700'
+                      : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                >
+                  {decisionModal.type === 'RETURN' ? 'Send for Clarification' : 'Confirm Rejection'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

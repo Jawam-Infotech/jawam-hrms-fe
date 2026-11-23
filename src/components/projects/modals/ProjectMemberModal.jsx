@@ -1,16 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import CapacityBadge from '../ui/CapacityBadge.jsx'
 import { getEmployees } from '../../../services/employeeService.js'
-
-// Active company employees pool
-const DEFAULT_CANDIDATES = [
-  { id: 2, user_id: 2, name: 'Shivani k', role: 'Team Leader', designation: 'Team Lead', email: 'shivani@jawam.com', activeTasks: 2, projectCount: 2 },
-  { id: 3, user_id: 3, name: 'Kanishk Prashad', role: 'Frontend Developer', designation: 'Frontend Developer', email: 'kanishk@jawam.com', activeTasks: 2, projectCount: 1 },
-  { id: 4, user_id: 4, name: 'Aarav Sharma', role: 'UI/UX Designer', designation: 'UI/UX Designer', email: 'aarav@jawam.com', activeTasks: 1, projectCount: 1 },
-  { id: 5, user_id: 5, name: 'Priya Verma', role: 'Frontend Developer', designation: 'Frontend Developer', email: 'priya@jawam.com', activeTasks: 4, projectCount: 2 },
-  { id: 6, user_id: 6, name: 'Rahul Patel', role: 'Backend Engineer', designation: 'Backend Engineer', email: 'rahul@jawam.com', activeTasks: 8, projectCount: 3 },
-  { id: 7, user_id: 7, name: 'Brijesh Bisht', role: 'Backend Engineer', designation: 'Backend Engineer', email: 'brijesh@jawam.com', activeTasks: 2, projectCount: 1 },
-]
 
 function ProjectMemberModal({
   isOpen,
@@ -26,69 +16,54 @@ function ProjectMemberModal({
   const [selectedCandidateId, setSelectedCandidateId] = useState('')
   const [memberRole, setMemberRole] = useState(isSolo ? 'INDEPENDENT' : 'TEAM_MEMBER')
   const [isLoading, setIsLoading] = useState(false)
+  const [fetchError, setFetchError] = useState(null)
   const [error, setError] = useState('')
+
+  const loadEmployeeCandidates = useCallback(async () => {
+    setIsLoading(true)
+    setFetchError(null)
+
+    const existingSet = new Set(
+      existingMemberIds.map((id) => String(id).toLowerCase().trim())
+    )
+
+    try {
+      const res = await getEmployees()
+      const apiList = Array.isArray(res) ? res : (res?.employees || res?.data || res?.results || [])
+
+      // Silently exclude CEO and HR users, and already added members
+      const eligible = apiList.filter((e) => {
+        const rawId = String(e.user_id || e.id || '').trim().toLowerCase()
+        const name = String(e.name || '').trim().toLowerCase()
+        const roleUpper = String(e.role || e.designation || '').trim().toUpperCase()
+
+        // CEO and HR cannot be added to projects
+        if (roleUpper === 'CEO' || roleUpper === 'HR') return false
+
+        // Do not show members who are already in the project
+        if (existingSet.has(rawId) || existingSet.has(name)) return false
+
+        return true
+      })
+
+      setCandidates(eligible)
+    } catch (err) {
+      console.error('Failed to load employee directory:', err)
+      setFetchError('Failed to load employee directory. Please check your network connection and retry.')
+      setCandidates([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [existingMemberIds])
 
   useEffect(() => {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setError('')
       setSelectedCandidateId('')
-      setIsLoading(true)
-
-      const existingSet = new Set(
-        existingMemberIds.map((id) => String(id).toLowerCase().trim())
-      )
-
-      getEmployees()
-        .then((res) => {
-          const apiList = Array.isArray(res) ? res : (res?.employees || res?.data || res?.results || [])
-          const pool = [...apiList]
-
-          // Merge default company roster so active employees are always available
-          DEFAULT_CANDIDATES.forEach((def) => {
-            const alreadyInPool = pool.some(
-              (p) =>
-                String(p.user_id || p.id) === String(def.user_id || def.id) ||
-                String(p.name || '').trim().toLowerCase() === def.name.toLowerCase()
-            )
-            if (!alreadyInPool) pool.push(def)
-          })
-
-          // Silently exclude CEO and HR users, and already added members
-          const eligible = pool.filter((e) => {
-            const rawId = String(e.user_id || e.id || '').trim().toLowerCase()
-            const name = String(e.name || '').trim().toLowerCase()
-            const roleUpper = String(e.role || e.designation || '').trim().toUpperCase()
-
-            // CEO and HR cannot be added to projects
-            if (roleUpper === 'CEO' || roleUpper === 'HR') return false
-
-            // Do not show members who are already in the project
-            if (existingSet.has(rawId) || existingSet.has(name)) return false
-
-            return true
-          })
-
-          setCandidates(eligible)
-        })
-        .catch(() => {
-          const eligible = DEFAULT_CANDIDATES.filter((e) => {
-            const rawId = String(e.user_id || e.id || '').trim().toLowerCase()
-            const name = String(e.name || '').trim().toLowerCase()
-            const roleUpper = String(e.role || '').trim().toUpperCase()
-
-            if (roleUpper === 'CEO' || roleUpper === 'HR') return false
-            if (existingSet.has(rawId) || existingSet.has(name)) return false
-
-            return true
-          })
-          setCandidates(eligible)
-        })
-        .finally(() => {
-          setIsLoading(false)
-        })
+      void loadEmployeeCandidates()
     }
-  }, [isOpen, existingMemberIds])
+  }, [isOpen, loadEmployeeCandidates])
 
   if (!isOpen) return null
 
@@ -174,7 +149,18 @@ function ProjectMemberModal({
               Select Employee <span className="text-[#ef4444]">*</span>
             </label>
 
-            {isLoading ? (
+            {fetchError ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-center">
+                <p className="text-xs font-semibold text-red-700">{fetchError}</p>
+                <button
+                  type="button"
+                  onClick={loadEmployeeCandidates}
+                  className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-red-600 px-4 py-1.5 text-xs font-bold text-white shadow hover:bg-red-700 transition"
+                >
+                  ↻ Retry Loading Employees
+                </button>
+              </div>
+            ) : isLoading ? (
               <div className="py-6 text-center text-xs text-gray-500">
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mr-2" />
                 Loading employee directory...

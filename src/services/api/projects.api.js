@@ -1,5 +1,5 @@
 import api from './axios.js'
-import { PROJECT_ENDPOINTS } from './endpoints.js'
+import { PROJECT_ENDPOINTS, PROJECT_REQUEST_ENDPOINTS } from './endpoints.js'
 
 export const projectsApi = {
   // === E01: Project List (GET) & Project Create (POST) ===
@@ -177,6 +177,31 @@ export const projectsApi = {
   // === E35: Approval Queue (GET) ===
   getApprovalQueue: (params = {}) =>
     api.get(PROJECT_ENDPOINTS.approvalQueue, { params }),
+
+  // === Project Creation Requests (/project-requests/) ===
+  getProjectRequests: (params = {}) =>
+    api.get(PROJECT_REQUEST_ENDPOINTS.requests, { params }),
+
+  createProjectRequest: (payload) =>
+    api.post(PROJECT_REQUEST_ENDPOINTS.requests, payload),
+
+  getProjectRequestDetail: (id) =>
+    api.get(PROJECT_REQUEST_ENDPOINTS.requestById(id)),
+
+  updateProjectRequest: (id, payload) =>
+    api.patch(PROJECT_REQUEST_ENDPOINTS.requestById(id), payload),
+
+  approveProjectRequest: (id, payload = {}) =>
+    api.post(PROJECT_REQUEST_ENDPOINTS.approve(id), payload),
+
+  rejectProjectRequest: (id, reason = '') =>
+    api.post(PROJECT_REQUEST_ENDPOINTS.reject(id), { reason }),
+
+  withdrawProjectRequest: (id, reason = '') =>
+    api.post(PROJECT_REQUEST_ENDPOINTS.withdraw(id), { reason }),
+
+  returnProjectRequest: (id, reason = '') =>
+    api.post(PROJECT_REQUEST_ENDPOINTS.returnForClarification(id), { reason }),
 }
 
 export default projectsApi

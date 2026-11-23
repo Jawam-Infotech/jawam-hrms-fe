@@ -21,7 +21,6 @@ function ProjectTaskTable({
   ].includes(status)
 
   const isCEO = currentUser?.role === 'CEO'
-  const isTL = currentUser?.role === 'TL'
 
   return (
     <div className="overflow-x-auto">
@@ -44,15 +43,20 @@ function ProjectTaskTable({
             const taskDueDate = task.due_date || task.dueDate || ''
             const pendingTcr = task.changeRequest || task.open_tcr || null
 
-            const isAssignee = currentUser && (
-              String(currentUser.id) === String(taskAssigneeId) ||
-              currentUser.name?.trim().toLowerCase() === taskAssigneeName?.trim().toLowerCase()
+            const isAssignee = Boolean(
+              currentUser?.id && taskAssigneeId && String(currentUser.id) === String(taskAssigneeId)
             )
             const isDirectApproval = isSolo && (task.status === 'DIRECT_APPROVAL_REQUIRED' || task.status === 'PENDING_CEO_APPROVAL')
             const canReview = isPendingReview(task.status) && !isAssignee && (
-              isDirectApproval ? isCEO : (isCEO || isPM || isTL)
+              isDirectApproval ? isCEO : (isCEO || isPM)
             )
-            const canReviewTCR = Boolean(pendingTcr) && (isCEO || isPM || isTL) && currentUser?.name?.toLowerCase() !== (pendingTcr.requester || pendingTcr.requested_by_name)?.toLowerCase()
+            const tcrRequesterId = pendingTcr?.requester_id || pendingTcr?.requested_by || pendingTcr?.requesterId
+            const isTcrRequester = Boolean(
+              currentUser?.id && tcrRequesterId
+                ? String(currentUser.id) === String(tcrRequesterId)
+                : currentUser?.name && pendingTcr && currentUser.name.toLowerCase() === (pendingTcr.requester || pendingTcr.requested_by_name)?.toLowerCase()
+            )
+            const canReviewTCR = Boolean(pendingTcr) && (isCEO || isPM) && !isTcrRequester
 
             const isOverdue = (() => {
               if (!taskDueDate || task.status === 'COMPLETED' || task.status === 'CANCELLED') return false

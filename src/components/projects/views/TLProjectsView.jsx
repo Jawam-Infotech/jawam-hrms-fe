@@ -7,37 +7,24 @@ function TLProjectsView({
   teamReviews = [],
   tcrReviews = [],
   myTasks = [],
-  canCreateProject = false,
   tlProjectRequests = [],
-  onOpenCreateModal,
   onOpenUpdateModal,
   onOpenDetailModal,
   onOpenApprovalModal,
   onOpenChangeReviewModal,
   onOpenRequestModal,
+  onWithdrawRequest,
 }) {
   const [filter, setFilter] = useState('ALL')
-  const [approvedBanner, setApprovedBanner] = useState(() => {
-    try {
-      const saved = localStorage.getItem('jawam_tl_latest_approved_project_v1')
-      return saved ? JSON.parse(saved) : null
-    } catch {
-      return null
-    }
-  })
-
-  const pendingRequest = (tlProjectRequests || []).find(
-    (r) => r.status === 'PENDING_CEO_APPROVAL'
+  const pendingRequests = (tlProjectRequests || []).filter(
+    (r) => ['PENDING', 'PENDING_CEO_APPROVAL', 'SUBMITTED'].includes(String(r.status || '').toUpperCase())
   )
-
-  const handleDismissApprovedBanner = () => {
-    setApprovedBanner(null)
-    try {
-      localStorage.removeItem('jawam_tl_latest_approved_project_v1')
-    } catch (e) {
-      console.error(e)
-    }
-  }
+  const returnedRequests = (tlProjectRequests || []).filter(
+    (r) => ['RETURNED', 'CHANGES_REQUESTED', 'NEEDS_CLARIFICATION'].includes(String(r.status || '').toUpperCase())
+  )
+  const approvedRequests = (tlProjectRequests || []).filter(
+    (r) => String(r.status || '').toUpperCase() === 'APPROVED'
+  )
 
   const filteredProjects = projects.filter((p) => {
     if (filter === 'ALL') return true
@@ -56,38 +43,89 @@ function TLProjectsView({
         </div>
 
         <div className="flex items-center gap-3">
-          {canCreateProject ? (
-            <button
-              type="button"
-              onClick={onOpenCreateModal}
-              className="rounded-full bg-[#2563eb] px-6 py-2.5 text-[14px] font-bold text-white shadow hover:bg-[#1d4ed8]"
-            >
-              + Create Project (Permitted)
-            </button>
-          ) : pendingRequest ? (
-            <button
-              type="button"
-              disabled
-              className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-[14px] font-bold text-amber-800 cursor-not-allowed shadow-xs"
-              title={`Project request for "${pendingRequest.projectName}" is pending CEO approval`}
-            >
-              <span>⏳</span> Project Request Sent
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onOpenRequestModal}
-              className="inline-flex items-center gap-2 rounded-full border border-[#7c3aed] bg-[#f5f3ff] px-5 py-2.5 text-[14px] font-bold text-[#7c3aed] hover:bg-[#ede9fe]"
-            >
-              📋 Request Project Creation
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => onOpenRequestModal()}
+            className="inline-flex items-center gap-2 rounded-full border border-[#7c3aed] bg-[#f5f3ff] px-5 py-2.5 text-[14px] font-bold text-[#7c3aed] hover:bg-[#ede9fe] transition shadow-xs"
+          >
+            📋 Request Project Creation
+          </button>
         </div>
       </div>
 
-      {/* 1. Approved Project Alert Banner */}
-      {approvedBanner && (
-        <div className="flex items-center justify-between rounded-2xl border border-emerald-300 bg-emerald-50/95 p-4 shadow-sm">
+      {/* 1. Returned for Clarification Alert Banners */}
+      {returnedRequests.map((req) => (
+        <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-xl flex-shrink-0">
+              ⚠️
+            </div>
+            <div>
+              <p className="text-[15px] font-bold text-amber-950">
+                Project Request Returned for Clarification: &ldquo;{req.name || req.projectName}&rdquo;
+              </p>
+              <p className="text-xs text-amber-800 mt-0.5">
+                CEO Note: {req.return_reason || req.rejection_reason || req.clarification_note || 'Please review proposed dates and scope details before resubmitting.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-center">
+            {onWithdrawRequest && (
+              <button
+                type="button"
+                onClick={() => onWithdrawRequest(req.id)}
+                className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition"
+              >
+                Withdraw
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onOpenRequestModal(req)}
+              className="rounded-full bg-amber-600 px-4 py-1.5 text-xs font-bold text-white shadow hover:bg-amber-700 transition"
+            >
+              Edit &amp; Resubmit
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {/* 2. Pending Requests Alert Banners */}
+      {pendingRequests.map((req) => (
+        <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50/80 p-4 shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-xl flex-shrink-0">
+              ⏳
+            </div>
+            <div>
+              <p className="text-[14px] font-bold text-blue-950">
+                Project Request Submitted: &ldquo;{req.name || req.projectName}&rdquo;
+              </p>
+              <p className="text-xs text-blue-800 mt-0.5">
+                Proposed Timeline: {req.proposed_start_date || 'TBD'} to {req.proposed_target_end_date || 'TBD'} • Awaiting CEO decision.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-center">
+            <span className="rounded-full bg-blue-200 px-3 py-1 text-xs font-bold text-blue-900 border border-blue-300">
+              Pending CEO Decision
+            </span>
+            {onWithdrawRequest && (
+              <button
+                type="button"
+                onClick={() => onWithdrawRequest(req.id)}
+                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition"
+              >
+                Withdraw
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* 3. Approved Project Requests Banners */}
+      {approvedRequests.slice(0, 1).map((req) => (
+        <div key={req.id} className="flex items-center justify-between rounded-2xl border border-emerald-300 bg-emerald-50/95 p-4 shadow-sm">
           <div className="flex items-center gap-3.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-xl flex-shrink-0">
               🎉
@@ -97,42 +135,15 @@ function TLProjectsView({
                 Project Request Approved by CEO!
               </p>
               <p className="text-xs text-emerald-800 mt-0.5">
-                CEO Gaurav Pandey accepted your request for <strong className="font-bold">"{approvedBanner.projectName}"</strong>. It has been created and is active in your team workspace below!
+                CEO approved your request for <strong className="font-bold">&ldquo;{req.name || req.projectName}&rdquo;</strong>.
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleDismissApprovedBanner}
-            className="rounded-full p-1.5 text-emerald-700 hover:bg-emerald-100 transition"
-            title="Dismiss notification"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {/* 2. Pending Request Alert Banner */}
-      {pendingRequest && (
-        <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-xl flex-shrink-0">
-              ⏳
-            </div>
-            <div>
-              <p className="text-[14px] font-bold text-amber-950">
-                Project Request Sent: "{pendingRequest.projectName}"
-              </p>
-              <p className="text-xs text-amber-800 mt-0.5">
-                Your request has been submitted to CEO Gaurav Pandey for review and approval.
-              </p>
-            </div>
-          </div>
-          <span className="rounded-full bg-amber-200/80 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-300">
-            Pending CEO Decision
+          <span className="rounded-full bg-emerald-200 px-3 py-1 text-xs font-bold text-emerald-900 border border-emerald-300">
+            Approved
           </span>
         </div>
-      )}
+      ))}
 
 
       {/* KPI Metrics */}

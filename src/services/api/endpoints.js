@@ -280,6 +280,15 @@ export const PROJECT_ENDPOINTS = {
   approvalQueue: 'approvals/',
 }
 
+export const PROJECT_REQUEST_ENDPOINTS = {
+  requests: 'project-requests/',
+  requestById: (id) => `project-requests/${id}/`,
+  approve: (id) => `project-requests/${id}/approve/`,
+  reject: (id) => `project-requests/${id}/reject/`,
+  withdraw: (id) => `project-requests/${id}/withdraw/`,
+  returnForClarification: (id) => `project-requests/${id}/return/`,
+}
+
 export {
   AUTH_ENDPOINTS,
   EMPLOYEE_ENDPOINTS,

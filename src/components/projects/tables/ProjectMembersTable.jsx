@@ -33,12 +33,13 @@ function ProjectMembersTable({
 
   const getActiveTasksForMember = (member) => {
     const memberId = String(member.user_id || member.id || '')
-    const memberName = String(member.name || '').toLowerCase()
 
     return (tasks || []).filter((t) => {
-      const matchId = String(t.assignee_id || t.assigneeId || '') === memberId
-      const matchName = String(t.assignee || '').toLowerCase() === memberName
-      return (matchId || matchName) && !['COMPLETED', 'CANCELLED'].includes(t.status)
+      const taskAssigneeId = String(t.assignee_id || t.assigneeId || '')
+      const match = memberId && taskAssigneeId
+        ? taskAssigneeId === memberId
+        : String(t.assignee || '').toLowerCase() === String(member.name || '').toLowerCase()
+      return match && !['COMPLETED', 'CANCELLED'].includes(t.status)
     }).length
   }
 

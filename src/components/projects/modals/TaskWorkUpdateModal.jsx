@@ -1,13 +1,8 @@
 import { useState, useEffect } from 'react'
 
-const BLOCKER_CATEGORIES = [
-  'Dependencies / Upstream Deliverable',
-  'Technical / Architectural Roadblock',
-  'Access / Credentials / Permissions',
-  'Client Clarification / Requirements Scope',
-  'Environment / Infrastructure Issue',
-  'Other Blocker',
-]
+const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.zip', '.tar.gz', '.png', '.jpg', '.jpeg', '.txt']
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
+const MAX_FILES = 5
 
 function TaskWorkUpdateModal({
   isOpen,
@@ -22,10 +17,7 @@ function TaskWorkUpdateModal({
   const [decreaseReason, setDecreaseReason] = useState('')
   const [deliverableType, setDeliverableType] = useState('LINK') // 'LINK' or 'FILE'
   const [deliverableLink, setDeliverableLink] = useState('')
-  const [deliverableFile, setDeliverableFile] = useState(null)
-  const [isBlocked, setIsBlocked] = useState(task?.status === 'BLOCKED')
-  const [blockerCategory, setBlockerCategory] = useState(task?.blocker?.category || BLOCKER_CATEGORIES[0])
-  const [blockerReason, setBlockerReason] = useState(task?.blocker?.reason || '')
+  const [deliverableFiles, setDeliverableFiles] = useState([])
   const [errors, setErrors] = useState({})
 
   useEffect(() => {
@@ -36,10 +28,7 @@ function TaskWorkUpdateModal({
       setDecreaseReason('')
       setDeliverableType('LINK')
       setDeliverableLink('')
-      setDeliverableFile(null)
-      setIsBlocked(task.status === 'BLOCKED')
-      setBlockerCategory(task.blocker?.category || BLOCKER_CATEGORIES[0])
-      setBlockerReason(task.blocker?.reason || '')
+      setDeliverableFiles([])
       setErrors({})
     }
   }, [task, isOpen])
@@ -50,20 +39,42 @@ function TaskWorkUpdateModal({
   const isCompletion = progress === 100
   const isQualityRisk = Boolean(task.isQualityRisk || task.quality_risk || (task.reworkCount || 0) >= 3)
 
+  const handleFileChange = (e) => {
+    const selected = Array.from(e.target.files || [])
+    if (selected.length > MAX_FILES) {
+      setErrors((prev) => ({ ...prev, deliverable: `Maximum ${MAX_FILES} files allowed per deliverable submission.` }))
+      return
+    }
+    for (const f of selected) {
+      if (f.size > MAX_FILE_SIZE_BYTES) {
+        setErrors((prev) => ({ ...prev, deliverable: `File "${f.name}" exceeds the 10MB maximum size limit.` }))
+        return
+      }
+      const ext = '.' + f.name.split('.').pop().toLowerCase()
+      const isAllowed = ALLOWED_EXTENSIONS.some((allowed) => f.name.toLowerCase().endsWith(allowed))
+      if (!isAllowed) {
+        setErrors((prev) => ({
+          ...prev,
+          deliverable: `File type "${ext}" is not supported. Allowed extensions: ${ALLOWED_EXTENSIONS.join(', ')}`,
+        }))
+        return
+      }
+    }
+    setDeliverableFiles(selected)
+    setErrors((prev) => ({ ...prev, deliverable: '' }))
+  }
+
   const validate = () => {
     const newErrors = {}
     if (!note.trim()) newErrors.note = 'Work update note is required and cannot be blank'
     if (isDecreasing && !decreaseReason.trim()) {
       newErrors.decreaseReason = 'A mandatory explanation is required when progress decreases'
     }
-    if (isBlocked && !blockerReason.trim()) {
-      newErrors.blockerReason = 'A recorded explanation is required when work is blocked'
-    }
-    if (isCompletion && !isBlocked) {
+    if (isCompletion) {
       if (deliverableType === 'LINK' && !deliverableLink.trim()) {
         newErrors.deliverable = '100% completion requires a valid deliverable URL (http/https)'
-      } else if (deliverableType === 'FILE' && !deliverableFile) {
-        newErrors.deliverable = '100% completion requires uploading a deliverable file'
+      } else if (deliverableType === 'FILE' && (!deliverableFiles || deliverableFiles.length === 0)) {
+        newErrors.deliverable = '100% completion requires uploading at least one deliverable file'
       }
     }
     setErrors(newErrors)
@@ -74,7 +85,7 @@ function TaskWorkUpdateModal({
     e.preventDefault()
     if (!validate() || isSubmitting) return
 
-    const isMultipart = isCompletion && !isBlocked && deliverableType === 'FILE' && Boolean(deliverableFile)
+    const isMultipart = isCompletion && deliverableType === 'FILE' && deliverableFiles.length > 0
 
     if (isMultipart) {
       const fd = new FormData()
@@ -83,7 +94,9 @@ function TaskWorkUpdateModal({
       if (isDecreasing && decreaseReason.trim()) {
         fd.append('reduction_reason', decreaseReason.trim())
       }
-      fd.append('deliverable_files', deliverableFile)
+      deliverableFiles.forEach((file) => {
+        fd.append('deliverable_files', file)
+      })
       if (deliverableLink.trim()) {
         fd.append('deliverable_urls', deliverableLink.trim())
       }
@@ -101,7 +114,7 @@ function TaskWorkUpdateModal({
       if (isDecreasing && decreaseReason.trim()) {
         payload.reduction_reason = decreaseReason.trim()
       }
-      if (isCompletion && !isBlocked && deliverableLink.trim()) {
+      if (isCompletion && deliverableLink.trim()) {
         payload.deliverable_urls = [deliverableLink.trim()]
       }
 
@@ -208,67 +221,6 @@ function TaskWorkUpdateModal({
             </div>
           )}
 
-          {/* Blocker Reporting */}
-          <div className={`rounded-xl border p-4 transition ${isBlocked ? 'border-[#fca5a5] bg-[#fff1f2]' : 'border-[#e5e7eb] bg-[#f8fafc]'}`}>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isBlocked}
-                disabled={isSubmitting}
-                onChange={(e) => {
-                  setIsBlocked(e.target.checked)
-                  if (!e.target.checked && errors.blockerReason) {
-                    setErrors((prev) => ({ ...prev, blockerReason: '' }))
-                  }
-                }}
-                className="h-4 w-4 rounded text-[#dc2626] focus:ring-[#dc2626]"
-              />
-              <span className="text-[13px] font-bold text-[#111827]">
-                Work is Blocked (Cannot proceed)
-              </span>
-            </label>
-
-            {isBlocked && (
-              <div className="mt-3 space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-[#991b1b] mb-1">
-                    Blocker Category <span className="text-[#dc2626]">*</span>
-                  </label>
-                  <select
-                    value={blockerCategory}
-                    disabled={isSubmitting}
-                    onChange={(e) => setBlockerCategory(e.target.value)}
-                    className="w-full rounded-[10px] border border-[#fca5a5] bg-white px-3 py-2 text-xs text-[#111827] focus:border-[#dc2626] focus:outline-none"
-                  >
-                    {BLOCKER_CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#991b1b] mb-1">
-                    Blocker Explanation <span className="text-[#dc2626]">*</span>
-                  </label>
-                  <textarea
-                    value={blockerReason}
-                    onChange={(e) => {
-                      setBlockerReason(e.target.value)
-                      if (errors.blockerReason) setErrors((prev) => ({ ...prev, blockerReason: '' }))
-                    }}
-                    disabled={isSubmitting}
-                    rows={2}
-                    placeholder="Describe what is preventing progress..."
-                    className="w-full rounded-[10px] border border-[#fca5a5] bg-white px-3 py-2 text-xs text-[#111827] focus:border-[#dc2626] focus:outline-none"
-                  />
-                  {errors.blockerReason && (
-                    <p className="mt-1 text-xs text-[#dc2626] font-medium">{errors.blockerReason}</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Regular Work Update Note */}
           <div>
             <label className="block text-[13px] font-bold text-[#111827] mb-1">
@@ -339,14 +291,25 @@ function TaskWorkUpdateModal({
                 <div>
                   <input
                     type="file"
-                    onChange={(e) => {
-                      setDeliverableFile(e.target.files[0] || null)
-                      if (errors.deliverable) setErrors((prev) => ({ ...prev, deliverable: '' }))
-                    }}
+                    multiple
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.tar.gz,.png,.jpg,.jpeg,.txt"
+                    onChange={handleFileChange}
                     disabled={isSubmitting}
                     className="w-full rounded-[10px] border border-[#86efac] bg-white p-2 text-xs text-[#374151]"
                   />
-                  <p className="mt-1 text-[11px] text-gray-500">Max 10MB per file. Allowed: PDF, DOCX, XLSX, PNG, JPG.</p>
+                  <div className="mt-1.5 flex flex-col gap-0.5 text-[11px] text-[#4b5563]">
+                    <p>
+                      <strong>Constraints:</strong> Max 5 files • Max 10MB per file
+                    </p>
+                    <p className="text-[10px] text-gray-400">
+                      Supported: PDF, DOC/DOCX, XLS/XLSX, ZIP, TAR.GZ, PNG, JPG, TXT
+                    </p>
+                    {deliverableFiles.length > 0 && (
+                      <p className="text-[#15803d] font-semibold mt-1">
+                        ✓ {deliverableFiles.length} file{deliverableFiles.length > 1 ? 's' : ''} selected ({deliverableFiles.map((f) => f.name).join(', ')})
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
