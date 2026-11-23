@@ -63,10 +63,7 @@ function StatusBadge({ status, isSolo = false, className = '' }) {
     normalized === 'direct approval required' ||
     normalized === 'direct approval pending' ||
     normalized === 'direct pm/tl approval' ||
-    normalized === 'direct pm approval'
-  ) {
-    label = 'Direct PM Approval'
-  } else if (
+    normalized === 'direct pm approval' ||
     normalized === 'awaiting pm approval' ||
     normalized === 'pending_pm_approval' ||
     normalized === 'awaiting pm sign-off'

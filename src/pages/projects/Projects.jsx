@@ -196,6 +196,7 @@ function Projects() {
           primaryPmId: p.primaryPmId,
           teamLead: p.teamLead,
           members: p.members,
+          isIndependent: p.staffingMode === 'SOLO',
           reworkCount,
           rework_count: reworkCount,
           rejection_count: reworkCount,

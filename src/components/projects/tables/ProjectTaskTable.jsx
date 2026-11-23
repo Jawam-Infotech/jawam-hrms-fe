@@ -48,7 +48,7 @@ function ProjectTaskTable({
               String(currentUser.id) === String(taskAssigneeId) ||
               currentUser.name?.trim().toLowerCase() === taskAssigneeName?.trim().toLowerCase()
             )
-            const isDirectApproval = task.status === 'DIRECT_APPROVAL_REQUIRED' || task.status === 'PENDING_CEO_APPROVAL'
+            const isDirectApproval = isSolo && (task.status === 'DIRECT_APPROVAL_REQUIRED' || task.status === 'PENDING_CEO_APPROVAL')
             const canReview = isPendingReview(task.status) && !isAssignee && (
               isDirectApproval ? isCEO : (isCEO || isPM || isTL)
             )

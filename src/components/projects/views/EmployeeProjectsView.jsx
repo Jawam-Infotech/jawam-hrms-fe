@@ -240,7 +240,7 @@ function EmployeeProjectsView({
                     </div>
                   </td>
                   <td className="px-4 py-3.5">
-                    <StatusBadge status={task.isRejected ? 'REJECTED' : task.status} />
+                    <StatusBadge status={task.isRejected ? 'REJECTED' : task.status} isSolo={Boolean(task.isIndependent)} />
                   </td>
                   <td className="px-4 py-3.5 text-[#6b7280]">
                     <div className="flex items-center gap-1.5">
