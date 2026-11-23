@@ -1732,6 +1732,7 @@ function ProjectDetails() {
         task={activeApprovalTask}
         projectId={projectId}
         currentUser={currentUser}
+        isSolo={isSolo}
         onApprove={handleApproveTask}
         onReject={handleRejectTask}
         onDownloadFile={handleDownloadDeliverableFile}

@@ -916,6 +916,7 @@ function Projects() {
         task={activeApprovalTask}
         projectId={activeApprovalTask?.projectId || activeApprovalTask?.project_id}
         currentUser={currentUser}
+        isSolo={Boolean(activeApprovalTask?.isIndependent)}
         onApprove={handleApproveTask}
         onReject={handleRejectTask}
         onDownloadFile={handleDownloadDeliverableFile}

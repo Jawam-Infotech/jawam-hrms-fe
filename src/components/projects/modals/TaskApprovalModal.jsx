@@ -7,6 +7,7 @@ function TaskApprovalModal({
   task,
   projectId = null,
   currentUser,
+  isSolo = false,
   onApprove,
   onReject,
   onDownloadFile,
@@ -104,7 +105,8 @@ function TaskApprovalModal({
     currentUser.email === task.assigneeEmail
   )
 
-  const isDirectApproval = task.status === 'DIRECT_APPROVAL_REQUIRED' || task.status === 'PENDING_CEO_APPROVAL'
+  const isSoloTask = Boolean(isSolo) || Boolean(task.isIndependent)
+  const isDirectApproval = isSoloTask && (task.status === 'DIRECT_APPROVAL_REQUIRED' || task.status === 'PENDING_CEO_APPROVAL')
   const isDirectNonCeo = isDirectApproval && currentUser?.role !== 'CEO'
   const submission = submissionData || task.open_completion_submission || task.submission || null
   const submissionId = submission?.id || submission?.submission_id || task.submissionId || null
