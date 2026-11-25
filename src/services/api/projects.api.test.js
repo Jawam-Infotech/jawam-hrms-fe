@@ -29,11 +29,58 @@ describe('projectsApi (E01 to E35)', () => {
     expect(api.post).toHaveBeenCalledWith('projects/', payload)
   })
 
-  // E02: TL creation permission toggle
-  it('E02 POST: setCreationPermission calls projects/creation-permissions/{userId}/', async () => {
-    api.post.mockResolvedValueOnce({ data: { can_create: true } })
-    await projectsApi.setCreationPermission(5, true)
-    expect(api.post).toHaveBeenCalledWith('projects/creation-permissions/5/', { can_create: true })
+  // Project Creation Requests (P1 audit fixes)
+  it('Project Requests: createProjectRequest sends mapped payload to project-requests/', async () => {
+    api.post.mockResolvedValueOnce({ data: { id: 5 } })
+    const payload = {
+      name: 'Pilot Project',
+      description: 'Pilot test description',
+      business_justification: 'Critical client deliverable',
+      proposed_start_date: '2026-12-01',
+      proposed_end_date: '2026-12-31',
+      priority: 'High',
+    }
+    await projectsApi.createProjectRequest(payload)
+    expect(api.post).toHaveBeenCalledWith('project-requests/', {
+      name: 'Pilot Project',
+      description: 'Pilot test description',
+      proposed_start_date: '2026-12-01',
+      proposed_end_date: '2026-12-31',
+      business_justification: 'Critical client deliverable',
+      priority: 'High',
+    })
+  })
+
+  it('Project Requests: returnProjectRequest sends { note } payload', async () => {
+    api.post.mockResolvedValueOnce({ data: { id: 5, status: 'RETURNED' } })
+    await projectsApi.returnProjectRequest(5, { note: 'Elaborate timeline' })
+    expect(api.post).toHaveBeenCalledWith('project-requests/5/return/', { note: 'Elaborate timeline' })
+
+    // Also supports passing string directly
+    api.post.mockResolvedValueOnce({ data: { id: 5, status: 'RETURNED' } })
+    await projectsApi.returnProjectRequest(5, 'String note')
+    expect(api.post).toHaveBeenCalledWith('project-requests/5/return/', { note: 'String note' })
+  })
+
+  it('Project Requests: resubmitProjectRequest calls dedicated POST project-requests/{id}/resubmit/', async () => {
+    api.post.mockResolvedValueOnce({ data: { id: 5, status: 'PENDING' } })
+    const resubmitPayload = {
+      name: 'Pilot Project v2',
+      description: 'Updated scope description',
+      business_justification: 'Updated justification',
+      proposed_start_date: '2026-12-05',
+      proposed_end_date: '2027-01-15',
+      priority: 'High',
+    }
+    await projectsApi.resubmitProjectRequest(5, resubmitPayload)
+    expect(api.post).toHaveBeenCalledWith('project-requests/5/resubmit/', {
+      name: 'Pilot Project v2',
+      description: 'Updated scope description',
+      proposed_start_date: '2026-12-05',
+      proposed_end_date: '2027-01-15',
+      business_justification: 'Updated justification',
+      priority: 'High',
+    })
   })
 
   // E03: Project detail & PATCH

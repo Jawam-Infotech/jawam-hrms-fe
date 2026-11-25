@@ -238,7 +238,6 @@ export const HOLIDAY_ENDPOINTS = {
 export const PROJECT_ENDPOINTS = {
   projects: 'projects/',
   projectById: (projectId) => `projects/${projectId}/`,
-  creationPermissions: (userId) => `projects/creation-permissions/${userId}/`,
   primaryPm: (projectId) => `projects/${projectId}/primary-pm/`,
   members: (projectId) => `projects/${projectId}/members/`,
   memberRemove: (projectId, userId) => `projects/${projectId}/members/${userId}/remove/`,
@@ -287,6 +286,7 @@ export const PROJECT_REQUEST_ENDPOINTS = {
   reject: (id) => `project-requests/${id}/reject/`,
   withdraw: (id) => `project-requests/${id}/withdraw/`,
   returnForClarification: (id) => `project-requests/${id}/return/`,
+  resubmit: (id) => `project-requests/${id}/resubmit/`,
 }
 
 export {

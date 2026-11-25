@@ -8,8 +8,6 @@ import {
   clearAllNotifications,
 } from '../services/notificationService.js'
 import {
-  isNotificationTargetingUser,
-  NOTIF_STORAGE_KEY,
   NOTIF_POPUP_EVENT,
   NOTIF_BC_CHANNEL,
 } from '../utils/projectNotificationService.js'
@@ -42,29 +40,7 @@ function useNotifications() {
           ? notificationResponse
           : []
 
-      // Integrate local custom notifications (filtered for target user or role)
-      let customNotifs = []
-      try {
-        const stored = localStorage.getItem(NOTIF_STORAGE_KEY)
-        if (stored) {
-          const allCustom = JSON.parse(stored)
-          // Get current logged-in user profile from storage
-          let currentUser = null
-          try {
-            const rawUser = localStorage.getItem('jawamhr_user') || localStorage.getItem('user')
-            if (rawUser) currentUser = JSON.parse(rawUser)
-          } catch {
-            currentUser = null
-          }
-
-          customNotifs = allCustom.filter((n) => isNotificationTargetingUser(n, currentUser))
-        }
-      } catch (e) {
-        console.error('Error loading custom notifications', e)
-      }
-
-      const merged = [...customNotifs, ...notificationResults]
-      setNotifications(merged)
+      setNotifications(notificationResults)
 
       const apiCount =
         typeof unreadResponse === 'number'
@@ -75,8 +51,7 @@ function useNotifications() {
               0
             )
 
-      const customUnread = customNotifs.filter((n) => !n.is_read).length
-      setUnreadCount((Number.isFinite(apiCount) ? apiCount : 0) + customUnread)
+      setUnreadCount(Number.isFinite(apiCount) ? apiCount : 0)
     } catch (err) {
       console.error(
         'Failed to load notifications:',

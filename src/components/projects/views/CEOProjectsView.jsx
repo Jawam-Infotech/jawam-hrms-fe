@@ -199,9 +199,6 @@ function CEOProjectsView({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-[15px] font-bold text-[#111827]">{req.name || req.projectName || req.project_name}</p>
-                          <span className="rounded-full bg-[#eff6ff] text-[#1d4ed8] border border-[#bfdbfe] px-2 py-0.5 text-[11px] font-bold">
-                            {req.staffing_mode === 'SOLO' || req.staffingMode === 'SOLO' ? 'Solo / Independent' : 'Standard Team'}
-                          </span>
                           <span className="rounded-full bg-gray-100 text-gray-700 px-2 py-0.5 text-[11px] font-bold">
                             Priority: {req.priority || 'Medium'}
                           </span>
@@ -209,10 +206,10 @@ function CEOProjectsView({
                         <p className="text-xs text-[#6b7280] mt-1">
                           Requested by: <span className="font-semibold text-[#111827]">{req.requested_by_name || req.requestedBy || (req.user_id ? `User #${req.user_id}` : 'Team Leader')}</span>
                           <span className="mx-1.5">•</span>
-                          Proposed Timeline: <span className="font-semibold text-[#111827]">{req.proposed_start_date || 'TBD'} to {req.proposed_target_end_date || 'TBD'}</span>
+                          Proposed Timeline: <span className="font-semibold text-[#111827]">{req.proposed_start_date || 'TBD'} to {req.proposed_end_date || req.proposed_target_end_date || 'TBD'}</span>
                         </p>
                         <p className="mt-2 text-xs text-[#374151] bg-[#f8fafc] p-2.5 rounded-xl border border-gray-100">
-                          <span className="font-semibold text-[#4c1d95]">Business Justification:</span> {req.justification}
+                          <span className="font-semibold text-[#4c1d95]">Business Justification:</span> {req.business_justification || req.justification}
                         </p>
                         {req.description && (
                           <p className="mt-1 text-xs text-[#4b5563]">
@@ -463,7 +460,7 @@ function CEOProjectsView({
                     }
                     if (decisionModal.type === 'RETURN') {
                       if (onReturnProjectRequest) {
-                        onReturnProjectRequest(decisionModal.reqId, decisionReason.trim())
+                        onReturnProjectRequest(decisionModal.reqId, { note: decisionReason.trim() })
                       }
                     } else {
                       if (onRejectProjectRequest) {

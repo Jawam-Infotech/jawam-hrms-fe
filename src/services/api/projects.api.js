@@ -9,10 +9,6 @@ export const projectsApi = {
   createProject: (payload) =>
     api.post(PROJECT_ENDPOINTS.projects, payload),
 
-  // === E02: TL Creation Permission (POST) ===
-  setCreationPermission: (userId, canCreate) =>
-    api.post(PROJECT_ENDPOINTS.creationPermissions(userId), { can_create: canCreate }),
-
   // === E03: Project Detail (GET) & Metadata Edit (PATCH) ===
   getProjectDetail: (projectId) =>
     api.get(PROJECT_ENDPOINTS.projectById(projectId)),
@@ -182,14 +178,29 @@ export const projectsApi = {
   getProjectRequests: (params = {}) =>
     api.get(PROJECT_REQUEST_ENDPOINTS.requests, { params }),
 
-  createProjectRequest: (payload) =>
-    api.post(PROJECT_REQUEST_ENDPOINTS.requests, payload),
+  createProjectRequest: (payload) => {
+    const data = {
+      ...payload,
+      business_justification: payload.business_justification || payload.justification,
+      proposed_end_date: payload.proposed_end_date || payload.proposed_target_end_date,
+    }
+    return api.post(PROJECT_REQUEST_ENDPOINTS.requests, data)
+  },
 
   getProjectRequestDetail: (id) =>
     api.get(PROJECT_REQUEST_ENDPOINTS.requestById(id)),
 
   updateProjectRequest: (id, payload) =>
     api.patch(PROJECT_REQUEST_ENDPOINTS.requestById(id), payload),
+
+  resubmitProjectRequest: (id, payload) => {
+    const data = {
+      ...payload,
+      business_justification: payload.business_justification || payload.justification,
+      proposed_end_date: payload.proposed_end_date || payload.proposed_target_end_date,
+    }
+    return api.post(PROJECT_REQUEST_ENDPOINTS.resubmit(id), data)
+  },
 
   approveProjectRequest: (id, payload = {}) =>
     api.post(PROJECT_REQUEST_ENDPOINTS.approve(id), payload),
@@ -200,8 +211,10 @@ export const projectsApi = {
   withdrawProjectRequest: (id, reason = '') =>
     api.post(PROJECT_REQUEST_ENDPOINTS.withdraw(id), { reason }),
 
-  returnProjectRequest: (id, reason = '') =>
-    api.post(PROJECT_REQUEST_ENDPOINTS.returnForClarification(id), { reason }),
+  returnProjectRequest: (id, note = '') => {
+    const noteText = typeof note === 'object' ? (note.note || note.reason || '') : note
+    return api.post(PROJECT_REQUEST_ENDPOINTS.returnForClarification(id), { note: noteText })
+  },
 }
 
 export default projectsApi

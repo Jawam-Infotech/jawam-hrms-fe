@@ -18,7 +18,6 @@ import TaskDetailModal from '../../components/projects/modals/TaskDetailModal.js
 import { projectsApi } from '../../services/api/index.js'
 import formatApiError from '../../utils/formatApiError.js'
 import downloadDeliverable from '../../utils/downloadDeliverable.js'
-import { getTaskRejection, recordTaskRejection, clearTaskRejection } from '../../utils/taskRejectionStorage.js'
 import { dispatchProjectNotification } from '../../utils/projectNotificationService.js'
 
 function Projects() {
@@ -64,11 +63,28 @@ function Projects() {
   const fetchProjectsData = useCallback(async () => {
     setIsLoading(true)
     setError(null)
+
+    // Helper to fetch all pages for listing endpoints
+    const fetchAllPages = async (fetcher, initialParams = {}) => {
+      let page = 1
+      let results = []
+      while (true) {
+        const res = await fetcher({ ...initialParams, page, page_size: 100 })
+        const data = res?.data ?? res
+        if (Array.isArray(data)) return data
+        const items = data?.results || []
+        results = results.concat(items)
+        if (!data?.next || results.length >= (data?.count || 0) || items.length === 0) break
+        page += 1
+      }
+      return results
+    }
+
     try {
       const [projectsRes, queueRes, requestsRes] = await Promise.allSettled([
         projectsApi.getProjects({ page: currentPage, page_size: pageSize }),
-        projectsApi.getApprovalQueue({ page_size: 50 }),
-        projectsApi.getProjectRequests({ page_size: 50 }),
+        fetchAllPages((params) => projectsApi.getApprovalQueue(params)),
+        fetchAllPages((params) => projectsApi.getProjectRequests(params)),
       ])
 
       if (projectsRes.status === 'fulfilled') {
@@ -77,18 +93,16 @@ function Projects() {
 
         // Concurrently fetch tasks and members for each project so task metrics and PM roles are populated
         const [tasksResults, membersResults] = await Promise.all([
-          Promise.allSettled(rawList.map((p) => projectsApi.getTasks(p.id, { page_size: 100 }))),
-          Promise.allSettled(rawList.map((p) => projectsApi.getMembers(p.id, { page_size: 100, include_inactive: false }))),
+          Promise.allSettled(rawList.map((p) => fetchAllPages((params) => projectsApi.getTasks(p.id, params)))),
+          Promise.allSettled(rawList.map((p) => fetchAllPages((params) => projectsApi.getMembers(p.id, { ...params, include_inactive: false })))),
         ])
 
         const projectsWithDetails = rawList.map((p, idx) => {
           const tRes = tasksResults[idx]
-          const tData = tRes?.status === 'fulfilled' ? tRes.value.data : []
-          const taskList = Array.isArray(tData) ? tData : (tData?.results || [])
+          const taskList = tRes?.status === 'fulfilled' ? tRes.value : []
 
           const mRes = membersResults[idx]
-          const mData = mRes?.status === 'fulfilled' ? mRes.value.data : []
-          const memberList = Array.isArray(mData) ? mData : (mData?.results || [])
+          const memberList = mRes?.status === 'fulfilled' ? mRes.value : []
 
           const primaryPmMember = memberList.find((m) => m.is_current_pm || m.isPm)
 
@@ -97,7 +111,7 @@ function Projects() {
             tasks: taskList,
             members: memberList,
             primaryPm: primaryPmMember ? (primaryPmMember.name || primaryPmMember.full_name) : p.primaryPm,
-            primaryPmId: primaryPmMember ? (primaryPmMember.user_id || primaryPmMember.id) : p.primaryPmId,
+            primaryPmId: primaryPmMember ? (primaryPmMember.user_id || primaryPmMember.id) : (p.primary_pm_id || p.primaryPmId),
           }
         })
 
@@ -109,8 +123,7 @@ function Projects() {
       }
 
       if (queueRes.status === 'fulfilled') {
-        const qData = queueRes.value.data
-        const qItems = Array.isArray(qData) ? qData : (qData?.results || [])
+        const qItems = Array.isArray(queueRes.value) ? queueRes.value : (queueRes.value?.results || [])
         const normalizedQueue = qItems.map((item) => ({
           ...item,
           id: item.task_id || item.id,
@@ -127,14 +140,15 @@ function Projects() {
         }))
         setApprovalQueue(normalizedQueue)
       } else {
+        console.warn('Could not load approvals queue:', queueRes.reason)
         setApprovalQueue([])
       }
 
       if (requestsRes.status === 'fulfilled') {
-        const rData = requestsRes.value.data
-        const rItems = Array.isArray(rData) ? rData : (rData?.results || [])
+        const rItems = Array.isArray(requestsRes.value) ? requestsRes.value : (requestsRes.value?.results || [])
         setProjectRequests(rItems)
       } else {
+        console.warn('Could not load project creation requests:', requestsRes.reason)
         setProjectRequests([])
       }
     } catch (err) {
@@ -189,11 +203,10 @@ function Projects() {
           : (t.assignee?.name || t.assignee_name || (t.assignee_id ? `User #${t.assignee_id}` : 'Unassigned'))
         const assigneeId = t.assignee_id || t.assigneeId || (typeof t.assignee === 'object' ? t.assignee?.id : (typeof t.assignee === 'number' ? t.assignee : undefined))
 
-        const localRej = getTaskRejection(t.id)
-        const reworkCount = Number(t.rejection_count ?? t.rework_count ?? t.reworkCount ?? (localRej ? (localRej.count || 1) : 0))
-        const rawFeedback = t.rejection_feedback || t.rejection_reason || t.latest_rejection_reason || t.rework_reason || localRej?.reason || ''
+        const reworkCount = Number(t.rejection_count ?? t.rework_count ?? t.reworkCount ?? 0)
+        const rawFeedback = t.rejection_feedback || t.latest_rejection_reason || t.rejection_reason || t.rework_reason || ''
         const isQualityRisk = Boolean(t.quality_risk || reworkCount >= 3)
-        const isRejected = (t.status === 'IN_PROGRESS' || t.status === 'REJECTED') && (reworkCount > 0 || Boolean(rawFeedback) || Boolean(localRej))
+        const isRejected = (t.status === 'IN_PROGRESS' || t.status === 'REJECTED') && (reworkCount > 0 || Boolean(rawFeedback))
         const rejectionFeedback = rawFeedback || (isRejected ? 'Deliverable was rejected by reviewer. Please make the requested updates and resubmit.' : '')
 
         list.push({
@@ -210,6 +223,7 @@ function Projects() {
           primaryPm: p.primaryPm,
           primaryPmId: p.primaryPmId,
           teamLead: p.teamLead,
+          teamLeadId: p.team_lead_id || p.teamLeadId,
           members: p.members,
           isIndependent: p.staffingMode === 'SOLO',
           reworkCount,
@@ -221,7 +235,7 @@ function Projects() {
           rejection_feedback: rejectionFeedback,
           isRejected,
           displayStatus: isRejected ? 'REJECTED' : t.status,
-          rejectedBy: localRej?.rejectedBy || 'Reviewer',
+          rejectedBy: t.latest_rejected_by || t.rejected_by || 'Reviewer',
         })
       })
     })
@@ -232,9 +246,13 @@ function Projects() {
   const allTCRs = useMemo(() => {
     return allTasks.filter(
       (t) =>
-        t.changeRequest &&
-        t.changeRequest.status &&
-        !['APPROVED', 'REJECTED'].includes(t.changeRequest.status),
+        Boolean(
+          t.has_pending_change_request ||
+          (t.open_change_request && !['APPROVED', 'REJECTED'].includes(t.open_change_request.status)) ||
+          (t.pending_change_request && !['APPROVED', 'REJECTED'].includes(t.pending_change_request.status)) ||
+          (t.changeRequest && t.changeRequest.status && !['APPROVED', 'REJECTED'].includes(t.changeRequest.status)) ||
+          (t.open_tcr && t.open_tcr.status && !['APPROVED', 'REJECTED'].includes(t.open_tcr.status))
+        )
     )
   }, [allTasks])
 
@@ -243,12 +261,20 @@ function Projects() {
     const queueTCRs = approvalQueue.filter((item) => item.type === 'CHANGE' && item.stage === 'TL')
     if (queueTCRs.length > 0) return queueTCRs
 
+    const curId = currentUser?.id ? String(currentUser.id) : ''
     return allTCRs.filter((t) => {
-      const status = t.changeRequest?.status
+      const cr = t.open_change_request || t.pending_change_request || t.changeRequest || t.open_tcr || {}
+      const status = cr.status || (t.has_pending_change_request ? 'PENDING_TL_REVIEW' : null)
       if (status !== 'PENDING_TL_REVIEW') return false
-      if (t.changeRequest?.requester === currentUser.name) return false
+
+      // Prevent self-review (assignee or requester cannot review)
+      const requesterId = String(cr.requester_id || cr.requested_by || t.assignee_id || '')
+      if (curId && requesterId && curId === requesterId) return false
+
       if (currentUser.role === 'TL') {
-        return !t.teamLead || t.teamLead === currentUser.name || (t.members || []).some((m) => m.name === currentUser.name)
+        const isProjectTL = !t.teamLeadId || String(t.teamLeadId) === curId
+        const isProjectMember = (t.members || []).some((m) => String(m.user_id || m.id) === curId)
+        return isProjectTL || isProjectMember
       }
       return true
     })
@@ -259,11 +285,16 @@ function Projects() {
     const queueTCRs = approvalQueue.filter((item) => item.type === 'CHANGE' && (item.stage === 'PM' || item.stage === 'DIRECT'))
     if (queueTCRs.length > 0) return queueTCRs
 
+    const curId = currentUser?.id ? String(currentUser.id) : ''
     return allTCRs.filter((t) => {
-      const status = t.changeRequest?.status
+      const cr = t.open_change_request || t.pending_change_request || t.changeRequest || t.open_tcr || {}
+      const status = cr.status || (t.has_pending_change_request ? 'PENDING_PM_APPROVAL' : null)
       if (!status) return false
       if (currentUser.role === 'CEO') return true
-      if (t.primaryPm === currentUser.name) {
+
+      const isProjectPM = (t.primaryPmId && String(t.primaryPmId) === curId) ||
+        (t.members || []).some((m) => m.is_current_pm && String(m.user_id || m.id) === curId)
+      if (isProjectPM) {
         return ['PENDING_PM_APPROVAL', 'DIRECT_APPROVAL_REQUIRED', 'PENDING_CEO_APPROVAL'].includes(status)
       }
       return false
@@ -272,18 +303,15 @@ function Projects() {
 
   // Role-scoped data filters
   const employeeProjects = useMemo(() => {
+    const curId = currentUser?.id ? String(currentUser.id) : ''
     return enrichedProjects.filter((p) => {
       if (!p.members || p.members.length === 0) return true
-      return p.members.some(
-        (m) =>
-          String(m.name || '').toLowerCase() === String(currentUser.name || '').toLowerCase() ||
-          String(m.id || m.user_id) === String(currentUser.id)
-      )
+      return p.members.some((m) => curId && String(m.id || m.user_id) === curId)
     })
   }, [enrichedProjects, currentUser])
 
   const myTasks = useMemo(() => {
-    const curId = currentUser.id ? String(currentUser.id) : ''
+    const curId = currentUser?.id ? String(currentUser.id) : ''
     if (!curId) return []
 
     return allTasks.filter((t) => {
@@ -304,8 +332,7 @@ function Projects() {
       'PENDING_CEO_APPROVAL',
     ]
 
-    const curId = String(currentUser.id || '')
-    const curName = String(currentUser.name || '').trim().toLowerCase()
+    const curId = String(currentUser?.id || '')
 
     return allTasks.filter((t) => {
       const statusUpper = String(t.status || '').trim().toUpperCase()
@@ -313,9 +340,7 @@ function Projects() {
       if (!pendingReviewStatuses.includes(statusUpper)) return false
 
       // Enforce zero self-approval: cannot review own tasks
-      const isAssignee =
-        (curId && String(t.assignee_id || t.assigneeId || '') === curId) ||
-        (curName && String(t.assignee || '').trim().toLowerCase() === curName)
+      const isAssignee = Boolean(curId && String(t.assignee_id || t.assigneeId || '') === curId)
       if (isAssignee) return false
 
       return true
@@ -410,15 +435,14 @@ function Projects() {
         project_name: requestData.name,
         description: requestData.description,
         proposed_start_date: requestData.proposed_start_date,
-        proposed_target_end_date: requestData.proposed_target_end_date,
+        proposed_end_date: requestData.proposed_end_date || requestData.proposed_target_end_date,
         priority: requestData.priority || 'Medium',
-        staffing_mode: requestData.staffing_mode || 'TEAM',
-        justification: requestData.justification,
+        business_justification: requestData.business_justification || requestData.justification,
       }
 
       if (requestData.requestId) {
-        // Edit/resubmit returned request
-        await projectsApi.updateProjectRequest(requestData.requestId, payload)
+        // Resubmit returned request via dedicated POST /project-requests/:id/resubmit/
+        await projectsApi.resubmitProjectRequest(requestData.requestId, payload)
         dispatchProjectNotification({
           title: '📋 Project Request Resubmitted',
           message: `Your updated proposal for "${requestData.name}" has been resubmitted for CEO review.`,
@@ -483,12 +507,15 @@ function Projects() {
   }
 
   // CEO returns request for clarification (/project-requests/:id/return/)
-  const handleReturnProjectRequest = async (requestId, reason) => {
+  const handleReturnProjectRequest = async (requestId, reasonOrPayload) => {
     try {
-      await projectsApi.returnProjectRequest(requestId, reason)
+      const note = typeof reasonOrPayload === 'string'
+        ? reasonOrPayload
+        : (reasonOrPayload?.note || reasonOrPayload?.reason || '')
+      await projectsApi.returnProjectRequest(requestId, { note })
       dispatchProjectNotification({
         title: '⚠️ Project Request Clarification Required',
-        message: `CEO returned your proposal for clarification: "${reason}".`,
+        message: `CEO returned your proposal for clarification: "${note}".`,
         type: 'info',
         targetRole: 'TL',
         link: '/projects',
@@ -521,7 +548,6 @@ function Projects() {
     setModalActionError(null)
     try {
       await projectsApi.recordWorkUpdate(projId, targetTaskId, payload, isMultipart)
-      clearTaskRejection(targetTaskId)
 
       const rawProgress = isMultipart && typeof payload?.get === 'function'
         ? payload.get('progress')
@@ -588,7 +614,6 @@ function Projects() {
         decision: 'APPROVE',
         reason: reason || undefined,
       })
-      clearTaskRejection(targetTaskId)
       dispatchProjectNotification({
         title: '✅ Deliverable Approved',
         message: `Deliverable for task "${activeApprovalTask?.name || activeApprovalTask?.title || 'Task'}" was approved by ${currentUser?.name || 'Reviewer'}.`,
@@ -630,10 +655,6 @@ function Projects() {
       await projectsApi.decideCompletion(projId, targetTaskId, targetSubId, {
         decision: 'REJECT',
         reason,
-      })
-      recordTaskRejection(targetTaskId, {
-        reason,
-        rejectedBy: currentUser?.name || 'Reviewer',
       })
       dispatchProjectNotification({
         title: '❌ Deliverable Rejected (Rework Required)',

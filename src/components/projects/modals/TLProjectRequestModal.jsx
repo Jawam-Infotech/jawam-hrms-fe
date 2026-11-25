@@ -14,7 +14,6 @@ function TLProjectRequestModal({
     proposedStartDate: '',
     proposedTargetEndDate: '',
     priority: 'Medium',
-    staffingMode: 'TEAM',
     justification: '',
   })
   const [errors, setErrors] = useState({})
@@ -27,10 +26,9 @@ function TLProjectRequestModal({
           projectName: initialData.name || initialData.projectName || initialData.project_name || '',
           description: initialData.description || '',
           proposedStartDate: initialData.proposed_start_date || initialData.proposedStartDate || '',
-          proposedTargetEndDate: initialData.proposed_target_end_date || initialData.proposedTargetEndDate || '',
+          proposedTargetEndDate: initialData.proposed_end_date || initialData.proposed_target_end_date || initialData.proposedTargetEndDate || '',
           priority: initialData.priority || 'Medium',
-          staffingMode: initialData.staffing_mode || initialData.staffingMode || 'TEAM',
-          justification: initialData.justification || '',
+          justification: initialData.business_justification || initialData.justification || '',
         })
       } else {
         setFormData({
@@ -39,7 +37,6 @@ function TLProjectRequestModal({
           proposedStartDate: '',
           proposedTargetEndDate: '',
           priority: 'Medium',
-          staffingMode: 'TEAM',
           justification: '',
         })
       }
@@ -85,6 +82,8 @@ function TLProjectRequestModal({
     return Object.keys(newErrors).length === 0
   }
 
+  const isEditing = Boolean(initialData?.id)
+
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!validate() || isSubmitting) return
@@ -93,15 +92,13 @@ function TLProjectRequestModal({
       project_name: formData.projectName.trim(),
       description: formData.description.trim(),
       proposed_start_date: formData.proposedStartDate,
-      proposed_target_end_date: formData.proposedTargetEndDate,
+      proposed_end_date: formData.proposedTargetEndDate,
       priority: formData.priority,
-      staffing_mode: formData.staffingMode,
-      justification: formData.justification.trim(),
+      business_justification: formData.justification.trim(),
       requestId: initialData?.id || null,
+      isResubmit: isEditing,
     })
   }
-
-  const isEditing = Boolean(initialData?.id)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
@@ -210,34 +207,19 @@ function TLProjectRequestModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-[13px] font-bold text-[#111827] mb-1">Priority</label>
-              <select
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none disabled:bg-gray-50"
-              >
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[13px] font-bold text-[#111827] mb-1">Staffing Mode</label>
-              <select
-                name="staffingMode"
-                value={formData.staffingMode}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none disabled:bg-gray-50"
-              >
-                <option value="TEAM">Standard Team</option>
-                <option value="SOLO">Solo / Independent</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-[13px] font-bold text-[#111827] mb-1">Priority</label>
+            <select
+              name="priority"
+              value={formData.priority}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none disabled:bg-gray-50"
+            >
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
           </div>
 
           <div>

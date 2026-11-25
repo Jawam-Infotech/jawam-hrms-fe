@@ -98,18 +98,7 @@ export function dispatchProjectNotification({
     is_read: false,
   }
 
-  // 1. Persist to shared custom notifications for the bell tray
-  try {
-    const raw = localStorage.getItem(NOTIF_STORAGE_KEY)
-    const existing = raw ? JSON.parse(raw) : []
-    // Keep latest 100 notifications
-    const updated = [newNotif, ...existing].slice(0, 100)
-    localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(updated))
-  } catch (err) {
-    console.error('Failed to save project notification:', err)
-  }
-
-  // 2. Dispatch custom event for real-time in-app toast popup in the current window
+  // 1. Dispatch custom event for real-time in-app toast popup in the current window
   try {
     const event = new CustomEvent(NOTIF_POPUP_EVENT, { detail: newNotif })
     window.dispatchEvent(event)

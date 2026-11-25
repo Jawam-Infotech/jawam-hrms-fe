@@ -13,13 +13,6 @@ function ProjectTaskTable({
   onOpenCancelModal,
   onSetStatus,
 }) {
-  const isPendingReview = (status) => [
-    'PENDING_TL_REVIEW',
-    'PENDING_PM_APPROVAL',
-    'DIRECT_APPROVAL_REQUIRED',
-    'PENDING_CEO_APPROVAL',
-  ].includes(status)
-
   const isCEO = currentUser?.role === 'CEO'
 
   return (
@@ -41,22 +34,42 @@ function ProjectTaskTable({
             const taskAssigneeId = task.assignee_id || task.assigneeId
             const taskAssigneeName = task.assignee_name || task.assignee || (taskAssigneeId ? `User #${taskAssigneeId}` : 'Unassigned')
             const taskDueDate = task.due_date || task.dueDate || ''
-            const pendingTcr = task.changeRequest || task.open_tcr || null
+            const isTL = currentUser?.role === 'TL'
+
+            const hasPendingTcr = Boolean(
+              task.has_pending_change_request ||
+              task.pending_change_request ||
+              task.open_change_request ||
+              task.changeRequest ||
+              task.open_tcr
+            )
+            const pendingTcr = (typeof task.open_change_request === 'object' && task.open_change_request) ||
+              (typeof task.pending_change_request === 'object' && task.pending_change_request) ||
+              (typeof task.changeRequest === 'object' && task.changeRequest) ||
+              (typeof task.open_tcr === 'object' && task.open_tcr) ||
+              (hasPendingTcr ? { status: 'PENDING' } : null)
 
             const isAssignee = Boolean(
               currentUser?.id && taskAssigneeId && String(currentUser.id) === String(taskAssigneeId)
             )
-            const isDirectApproval = isSolo && (task.status === 'DIRECT_APPROVAL_REQUIRED' || task.status === 'PENDING_CEO_APPROVAL')
-            const canReview = isPendingReview(task.status) && !isAssignee && (
-              isDirectApproval ? isCEO : (isCEO || isPM)
+
+            // Review gating strictly following backend permission rules:
+            // 1. Stage 1 PENDING_TL_REVIEW: TL or PM (and CEO), never the task assignee
+            // 2. Stage 2 PENDING_PM_APPROVAL: PM or CEO, never the task assignee
+            // 3. Direct/Solo DIRECT_APPROVAL_REQUIRED / PENDING_CEO_APPROVAL: CEO only, never the task assignee
+            const canReview = !isAssignee && (
+              (task.status === 'PENDING_TL_REVIEW' && (isTL || isPM || isCEO)) ||
+              (task.status === 'PENDING_PM_APPROVAL' && (isPM || isCEO)) ||
+              ((task.status === 'DIRECT_APPROVAL_REQUIRED' || task.status === 'PENDING_CEO_APPROVAL') && isCEO)
             )
+
             const tcrRequesterId = pendingTcr?.requester_id || pendingTcr?.requested_by || pendingTcr?.requesterId
             const isTcrRequester = Boolean(
               currentUser?.id && tcrRequesterId
                 ? String(currentUser.id) === String(tcrRequesterId)
-                : currentUser?.name && pendingTcr && currentUser.name.toLowerCase() === (pendingTcr.requester || pendingTcr.requested_by_name)?.toLowerCase()
+                : currentUser?.id && isAssignee
             )
-            const canReviewTCR = Boolean(pendingTcr) && (isCEO || isPM) && !isTcrRequester
+            const canReviewTCR = hasPendingTcr && (isCEO || isPM || isTL) && !isTcrRequester && !isAssignee
 
             const isOverdue = (() => {
               if (!taskDueDate || task.status === 'COMPLETED' || task.status === 'CANCELLED') return false
@@ -92,17 +105,19 @@ function ProjectTaskTable({
                       <span>{task.blocker?.reason || task.description || 'Blocker recorded'}</span>
                     </div>
                   )}
-                  {pendingTcr && (
+                  {hasPendingTcr && (
                     <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg border border-[#fed7aa] bg-[#fffbeb] px-2 py-0.5 text-[11px] text-[#b45309]">
                       <span className="font-bold">📝 TCR Pending:</span>
                       <span>
-                        {pendingTcr.operation === 'EXTEND_DEADLINE' || pendingTcr.type === 'DEADLINE_EXTENSION'
+                        {pendingTcr?.operation === 'EXTEND_DEADLINE' || pendingTcr?.type === 'DEADLINE_EXTENSION'
                           ? 'Deadline Extension'
-                          : pendingTcr.operation === 'REASSIGN' || pendingTcr.type === 'REASSIGNMENT'
+                          : pendingTcr?.operation === 'REASSIGN' || pendingTcr?.type === 'REASSIGNMENT'
                             ? 'Reassignment'
-                            : 'Cancellation'}
+                            : pendingTcr?.type === 'TASK_DELETION'
+                              ? 'Task Deletion'
+                              : 'Change Request'}
                       </span>
-                      <StatusBadge status={pendingTcr.status || 'PENDING'} className="!text-[10px] !py-0 !px-1.5" />
+                      <StatusBadge status={pendingTcr?.status || 'PENDING'} className="!text-[10px] !py-0 !px-1.5" />
                     </div>
                   )}
                   {task.isRejected && !(task.isQualityRisk || task.quality_risk || task.reworkCount >= 3) && (
@@ -279,20 +294,20 @@ function ProjectTaskTable({
                       {!isCEO && isAssignee && task.status !== 'COMPLETED' && task.status !== 'CANCELLED' && onOpenChangeRequestModal && (
                         <button
                           type="button"
-                          disabled={Boolean(pendingTcr)}
+                          disabled={hasPendingTcr}
                           onClick={() => onOpenChangeRequestModal(task)}
                           className={`rounded-full px-2.5 py-1.5 text-xs font-medium transition ${
-                            pendingTcr
+                            hasPendingTcr
                               ? 'cursor-not-allowed border border-[#e5e7eb] bg-[#f3f4f6] text-[#9ca3af]'
                               : 'border border-[#e5e7eb] text-[#4b5563] hover:bg-[#f1f5f9]'
                           }`}
                           title={
-                            pendingTcr
+                            hasPendingTcr
                               ? 'A change request is already pending review (Concurrency Protection)'
                               : 'Request deadline extension, reassignment, or deletion'
                           }
                         >
-                          {pendingTcr ? 'TCR Pending' : 'TCR'}
+                          {hasPendingTcr ? 'TCR Pending' : 'TCR'}
                         </button>
                       )}
                     </div>

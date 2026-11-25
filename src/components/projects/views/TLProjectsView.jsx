@@ -65,7 +65,7 @@ function TLProjectsView({
                 Project Request Returned for Clarification: &ldquo;{req.name || req.projectName}&rdquo;
               </p>
               <p className="text-xs text-amber-800 mt-0.5">
-                CEO Note: {req.return_reason || req.rejection_reason || req.clarification_note || 'Please review proposed dates and scope details before resubmitting.'}
+                CEO Note: {req.note || req.clarification_note || req.return_reason || req.rejection_reason || 'Please review proposed dates and scope details before resubmitting.'}
               </p>
             </div>
           </div>
@@ -102,7 +102,7 @@ function TLProjectsView({
                 Project Request Submitted: &ldquo;{req.name || req.projectName}&rdquo;
               </p>
               <p className="text-xs text-blue-800 mt-0.5">
-                Proposed Timeline: {req.proposed_start_date || 'TBD'} to {req.proposed_target_end_date || 'TBD'} • Awaiting CEO decision.
+                Proposed Timeline: {req.proposed_start_date || 'TBD'} to {req.proposed_end_date || req.proposed_target_end_date || 'TBD'} • Awaiting CEO decision.
               </p>
             </div>
           </div>

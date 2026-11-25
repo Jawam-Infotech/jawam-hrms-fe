@@ -30,7 +30,6 @@ import TaskDetailModal from '../../components/projects/modals/TaskDetailModal.js
 import { projectsApi } from '../../services/api/projects.api.js'
 import { formatApiError } from '../../utils/formatApiError.js'
 import { downloadDeliverable } from '../../utils/downloadDeliverable.js'
-import { getTaskRejection, recordTaskRejection, clearTaskRejection } from '../../utils/taskRejectionStorage.js'
 import { dispatchProjectNotification } from '../../utils/projectNotificationService.js'
 
 function ProjectDetails() {
@@ -180,7 +179,10 @@ function ProjectDetails() {
         const cancelRes = await projectsApi.getCancellationRequest(projectId)
         const cData = cancelRes?.data || cancelRes
         setCancellationRequest(cData || null)
-      } catch {
+      } catch (err) {
+        if (err?.response && err.response.status !== 404) {
+          console.warn('Failed to load cancellation request:', err)
+        }
         setCancellationRequest(null)
       }
 
@@ -190,7 +192,10 @@ function ProjectDetails() {
           const blockersRes = await projectsApi.getClosureBlockers(projectId)
           const bData = blockersRes?.data || blockersRes
           setClosureBlockers(bData?.blockers || [])
-        } catch {
+        } catch (err) {
+          if (err?.response && err.response.status !== 404) {
+            console.warn('Failed to load closure blockers:', err)
+          }
           setClosureBlockers([])
         }
       } else {
@@ -219,11 +224,10 @@ function ProjectDetails() {
     const taskList = Array.isArray(tasks) ? tasks : []
     return taskList.map((t) => {
       const m = memberMap.get(String(t.assignee_id || t.assigneeId))
-      const localRej = getTaskRejection(t.id)
-      const reworkCount = Number(t.rejection_count ?? t.rework_count ?? t.reworkCount ?? (localRej ? (localRej.count || 1) : 0))
-      const rawFeedback = t.rejection_feedback || t.rejection_reason || t.latest_rejection_reason || t.rework_reason || localRej?.reason || ''
+      const reworkCount = Number(t.rejection_count ?? t.rework_count ?? t.reworkCount ?? 0)
+      const rawFeedback = t.rejection_feedback || t.latest_rejection_reason || t.rejection_reason || t.rework_reason || ''
       const isQualityRisk = Boolean(t.quality_risk || reworkCount >= 3)
-      const isRejected = (t.status === 'IN_PROGRESS' || t.status === 'REJECTED') && (reworkCount > 0 || Boolean(rawFeedback) || Boolean(localRej))
+      const isRejected = (t.status === 'IN_PROGRESS' || t.status === 'REJECTED') && (reworkCount > 0 || Boolean(rawFeedback))
       const rejectionFeedback = rawFeedback || (isRejected ? 'Deliverable was rejected by reviewer. Please make the requested updates and resubmit.' : '')
 
       return {
@@ -242,7 +246,7 @@ function ProjectDetails() {
         rejection_feedback: rejectionFeedback,
         isRejected,
         displayStatus: isRejected ? 'REJECTED' : t.status,
-        rejectedBy: localRej?.rejectedBy || 'Reviewer',
+        rejectedBy: t.latest_rejected_by || t.rejected_by || 'Reviewer',
       }
     })
   }, [tasks, members, isSolo])
@@ -271,9 +275,9 @@ function ProjectDetails() {
   const isMember = useMemo(() => {
     if (isCEO || isHR) return true
     if (!members || members.length === 0) return true
+    const curId = currentUser?.id ? String(currentUser.id) : ''
     return members.some((m) =>
-      String(m.user_id || m.id) === String(currentUser.id) ||
-      m.name?.trim().toLowerCase() === currentUser.name?.trim().toLowerCase()
+      Boolean(curId && String(m.user_id || m.id) === curId)
     )
   }, [isCEO, isHR, members, currentUser])
 
@@ -704,7 +708,6 @@ function ProjectDetails() {
     setActionError(null)
     try {
       await projectsApi.recordWorkUpdate(projectId, taskId, payload, isMultipart)
-      clearTaskRejection(taskId)
 
       const rawProgress = isMultipart && typeof payload?.get === 'function'
         ? payload.get('progress')
@@ -777,7 +780,6 @@ function ProjectDetails() {
         decision: 'APPROVE',
         reason: reason || undefined,
       })
-      clearTaskRejection(taskId)
       dispatchProjectNotification({
         title: '✅ Deliverable Approved',
         message: `Deliverable for task "${activeApprovalTask?.name || activeApprovalTask?.title || 'Task'}" was approved by ${currentUser?.name || 'Reviewer'}.`,
@@ -816,10 +818,6 @@ function ProjectDetails() {
       await projectsApi.decideCompletion(projectId, taskId, targetSubId, {
         decision: 'REJECT',
         reason,
-      })
-      recordTaskRejection(taskId, {
-        reason,
-        rejectedBy: currentUser?.name || 'Reviewer',
       })
       dispatchProjectNotification({
         title: '❌ Deliverable Rejected (Rework Required)',
