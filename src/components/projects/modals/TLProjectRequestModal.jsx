@@ -131,10 +131,10 @@ function TLProjectRequestModal({
         )}
 
         {/* Return feedback note if editing */}
-        {initialData?.rejection_reason || initialData?.return_reason || initialData?.clarification_note ? (
+        {initialData?.decision_reason ? (
           <div className="mt-4 rounded-[14px] border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
             <span className="font-bold">CEO Clarification Note:</span>{' '}
-            {initialData.rejection_reason || initialData.return_reason || initialData.clarification_note}
+            {initialData.decision_reason}
           </div>
         ) : (
           <div className="mt-4 rounded-[14px] border border-[#fef3c7] bg-[#fffbeb] px-4 py-3 text-xs text-[#92400e]">

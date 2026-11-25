@@ -4,7 +4,6 @@ function TaskChangeReviewModal({
   isOpen,
   onClose,
   task,
-  currentUser,
   onApprove,
   onReject,
   isSubmitting = false,
@@ -15,13 +14,9 @@ function TaskChangeReviewModal({
 
   if (!isOpen || !task) return null
 
-  const request = task.changeRequest || task.open_tcr || task
+  const request = task.open_change_request || task
   const requestId = request.id || request.item_id
-  const isRequester = currentUser && (
-    String(currentUser.id) === String(request.requested_by_id || request.requesterId) ||
-    currentUser.name?.toLowerCase() === request.requester?.toLowerCase()
-  )
-
+  const canDecide = request.can_decide === true || task.can_decide === true
   const handleConfirmReject = (e) => {
     e.preventDefault()
     onReject({
@@ -77,16 +72,6 @@ function TaskChangeReviewModal({
           </div>
         )}
 
-        {/* Zero Self-Approval Guard Banner */}
-        {isRequester && (
-          <div className="mt-4 rounded-xl border border-[#fecaca] bg-[#fef2f2] p-3 text-xs text-[#b91c1c]">
-            <p className="font-bold">Zero Self-Approval Rule (Section 8.1):</p>
-            <p className="mt-0.5">
-              You submitted this change request. Under no circumstances can a user decide their own task-change request.
-            </p>
-          </div>
-        )}
-
         <div className="mt-4 space-y-4">
           {/* Metadata Card */}
           <div className="rounded-xl border border-[#e5e7eb] bg-[#f8fafc] p-3.5 text-xs space-y-1.5">
@@ -110,6 +95,10 @@ function TaskChangeReviewModal({
                 <span className="font-bold text-gray-800">User #{request.new_assignee_id}</span>
               </div>
             )}
+            <div className="flex justify-between">
+              <span className="text-[#6b7280]">Requested By:</span>
+              <span className="font-bold text-gray-800">{request.requested_by_name || 'Unknown requester'}</span>
+            </div>
             <div className="flex justify-between">
               <span className="text-[#6b7280]">Stage:</span>
               <span className="font-bold text-gray-800">{request.stage || 'Deciding Stage'}</span>
@@ -155,7 +144,7 @@ function TaskChangeReviewModal({
               <button
                 type="button"
                 onClick={() => setShowRejectInput(true)}
-                disabled={isSubmitting || isRequester}
+                disabled={isSubmitting || !canDecide}
                 className="rounded-full border border-[#fca5a5] bg-[#fef2f2] px-5 py-2 text-[14px] font-semibold text-[#dc2626] hover:bg-[#fee2e2] disabled:opacity-50"
               >
                 Reject TCR
@@ -163,7 +152,7 @@ function TaskChangeReviewModal({
               <button
                 type="button"
                 onClick={handleConfirmApprove}
-                disabled={isSubmitting || isRequester}
+                disabled={isSubmitting || !canDecide}
                 className="rounded-full bg-[#10b981] px-6 py-2 text-[14px] font-semibold text-white shadow-sm hover:bg-[#059669] disabled:opacity-50"
               >
                 {isSubmitting ? 'Approving...' : 'Approve TCR'}
@@ -182,7 +171,7 @@ function TaskChangeReviewModal({
               <button
                 type="button"
                 onClick={handleConfirmReject}
-                disabled={isSubmitting || isRequester}
+                disabled={isSubmitting || !canDecide}
                 className="rounded-full bg-[#dc2626] px-5 py-2 text-[14px] font-semibold text-white hover:bg-[#b91c1c] disabled:opacity-50"
               >
                 {isSubmitting ? 'Rejecting...' : 'Confirm Rejection'}

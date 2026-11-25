@@ -204,7 +204,7 @@ function CEOProjectsView({
                           </span>
                         </div>
                         <p className="text-xs text-[#6b7280] mt-1">
-                          Requested by: <span className="font-semibold text-[#111827]">{req.requested_by_name || req.requestedBy || (req.user_id ? `User #${req.user_id}` : 'Team Leader')}</span>
+                          Requested by: <span className="font-semibold text-[#111827]">{req.requested_by_name || 'Unknown requester'}</span>
                           <span className="mx-1.5">•</span>
                           Proposed Timeline: <span className="font-semibold text-[#111827]">{req.proposed_start_date || 'TBD'} to {req.proposed_end_date || req.proposed_target_end_date || 'TBD'}</span>
                         </p>
@@ -303,32 +303,32 @@ function CEOProjectsView({
                       <tr key={t.id}>
                         <td className="py-3 font-semibold text-[#111827]">{t.name}</td>
                         <td className="py-3 text-[#4b5563]">{t.projectTitle}</td>
-                        <td className="py-3 font-bold text-[#111827]">{t.changeRequest?.requester || t.assignee}</td>
+                        <td className="py-3 font-bold text-[#111827]">{t.open_change_request?.requested_by_name || t.requested_by_name || 'Unknown requester'}</td>
                         <td className="py-3">
                           <span className="rounded-full bg-[#ffedd5] border border-[#fed7aa] px-2.5 py-0.5 text-xs font-bold text-[#9a3412]">
-                            {t.changeRequest?.type === 'DEADLINE_EXTENSION'
+                            {t.open_change_request?.type === 'DEADLINE_EXTENSION'
                               ? 'Deadline Extension'
-                              : t.changeRequest?.type === 'TASK_DELETION'
+                              : t.open_change_request?.type === 'TASK_DELETION'
                                 ? 'Task Deletion'
                                 : 'Reassignment'}
                           </span>
                         </td>
                         <td className="py-3">
-                          {['PENDING_PM_APPROVAL', 'PENDING_CEO_APPROVAL'].includes(t.changeRequest?.status) ? (
+                          {['PENDING_PM_APPROVAL', 'PENDING_CEO_APPROVAL'].includes(t.open_change_request?.status) ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-[#ede9fe] border border-[#ddd6fe] px-2.5 py-0.5 text-xs font-bold text-[#6d28d9]">
                               <span>✓</span>
                               <span>Recommended to You</span>
-                              {t.changeRequest?.tlRecommendedBy && (
+                              {t.open_change_request?.tlRecommendedBy && (
                                 <span className="text-[11px] font-medium text-[#7c3aed]">
-                                  ({t.changeRequest.tlRecommendedBy})
+                                  ({t.open_change_request.tlRecommendedBy})
                                 </span>
                               )}
                             </span>
-                          ) : t.changeRequest?.status === 'DIRECT_APPROVAL_REQUIRED' ? (
+                          ) : t.open_change_request?.status === 'DIRECT_APPROVAL_REQUIRED' ? (
                             <span className="inline-flex items-center rounded-full bg-[#fef3c7] border border-[#fde68a] px-2.5 py-0.5 text-xs font-bold text-[#b45309]">
                               Direct Executive Decision
                             </span>
-                          ) : t.changeRequest?.status === 'PENDING_TL_REVIEW' ? (
+                          ) : t.open_change_request?.status === 'PENDING_TL_REVIEW' ? (
                             <span className="inline-flex items-center rounded-full bg-[#e0e7ff] border border-[#c7d2fe] px-2.5 py-0.5 text-xs font-bold text-[#4338ca]">
                               Under TL Review
                             </span>
@@ -339,7 +339,7 @@ function CEOProjectsView({
                           )}
                         </td>
                         <td className="py-3 text-xs text-[#6b7280] max-w-xs truncate">
-                          {t.changeRequest?.reason || 'No reason provided'}
+                          {t.open_change_request?.reason || 'No reason provided'}
                         </td>
                         <td className="py-3 text-right">
                           <button

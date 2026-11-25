@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  getNotifications,
+  getAllNotifications,
   getUnreadNotificationCount,
   markNotificationAsRead,
   markAllNotificationsAsRead,
@@ -28,7 +28,7 @@ function useNotifications() {
 
       const [notificationResponse, unreadResponse] =
         await Promise.all([
-          getNotifications().catch(() => ({ results: [] })),
+          getAllNotifications(),
           getUnreadNotificationCount().catch(() => 0),
         ])
 

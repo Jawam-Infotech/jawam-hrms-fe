@@ -30,7 +30,6 @@ function WorkUpdate() {
   const [newInitiativeForm, setNewInitiativeForm] = useState({
     name: '',
     department: 'HR Operations',
-    priority: 'Medium',
     instructions: '',
   })
 
@@ -118,7 +117,6 @@ function WorkUpdate() {
     addHRTask({
       name: initiativeName,
       department: newInitiativeForm.department,
-      priority: newInitiativeForm.priority,
       instructions: newInitiativeForm.instructions.trim(),
       assignedBy: 'Self (HR Initiative)',
     })
@@ -128,7 +126,6 @@ function WorkUpdate() {
     setNewInitiativeForm({
       name: '',
       department: 'HR Operations',
-      priority: 'Medium',
       instructions: '',
     })
 
@@ -283,17 +280,6 @@ function WorkUpdate() {
                   <tr key={task.id} className="border-b border-[#f1f5f9] hover:bg-[#f8fafc]">
                     <td className="px-6 py-4">
                       <p className="font-bold text-[#111827]">{task.name}</p>
-                      {task.priority && (
-                        <span
-                          className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                            task.priority === 'High'
-                              ? 'bg-rose-50 text-rose-700'
-                              : 'bg-amber-50 text-amber-700'
-                          }`}
-                        >
-                          {task.priority} Priority
-                        </span>
-                      )}
                     </td>
                     <td className="px-6 py-4 text-[#475569] font-medium">
                       {task.department || 'HR Operations'}
@@ -621,25 +607,6 @@ function WorkUpdate() {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-[#111827]">
-                      Priority
-                    </label>
-                    <select
-                      value={newInitiativeForm.priority}
-                      onChange={(e) =>
-                        setNewInitiativeForm((prev) => ({
-                          ...prev,
-                          priority: e.target.value,
-                        }))
-                      }
-                      className="mt-1 w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2.5 text-xs text-[#111827] outline-none focus:border-[#3b82f6]"
-                    >
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
-                    </select>
-                  </div>
                 </div>
 
                 <div>

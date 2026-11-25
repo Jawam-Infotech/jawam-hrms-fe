@@ -135,7 +135,8 @@ function Projects() {
           name: item.task_name || item.name || item.title || `Task #${item.task_id || item.id}`,
           title: item.task_name || item.name || item.title || `Task #${item.task_id || item.id}`,
           projectTitle: item.project_name || item.projectName || (item.project_id ? `Project #${item.project_id}` : ''),
-          assignee: item.assignee_name || item.assignee || (item.assignee_id ? `User #${item.assignee_id}` : 'Assignee'),
+          assignee: item.assignee_name || item.assignee || 'Unknown assignee',
+          requested_by_name: item.requested_by_name || 'Unknown requester',
           assignee_id: item.assignee_id,
         }))
         setApprovalQueue(normalizedQueue)
@@ -200,7 +201,7 @@ function Projects() {
       (p.tasks || []).forEach((t) => {
         const assigneeName = typeof t.assignee === 'string'
           ? t.assignee
-          : (t.assignee?.name || t.assignee_name || (t.assignee_id ? `User #${t.assignee_id}` : 'Unassigned'))
+          : (t.assignee?.name || t.assignee_name || 'Unassigned')
         const assigneeId = t.assignee_id || t.assigneeId || (typeof t.assignee === 'object' ? t.assignee?.id : (typeof t.assignee === 'number' ? t.assignee : undefined))
 
         const reworkCount = Number(t.rejection_count ?? t.rework_count ?? t.reworkCount ?? 0)
@@ -244,28 +245,24 @@ function Projects() {
 
   // All active task-change requests across projects
   const allTCRs = useMemo(() => {
-    return allTasks.filter(
-      (t) =>
-        Boolean(
-          t.has_pending_change_request ||
-          (t.open_change_request && !['APPROVED', 'REJECTED'].includes(t.open_change_request.status)) ||
-          (t.pending_change_request && !['APPROVED', 'REJECTED'].includes(t.pending_change_request.status)) ||
-          (t.changeRequest && t.changeRequest.status && !['APPROVED', 'REJECTED'].includes(t.changeRequest.status)) ||
-          (t.open_tcr && t.open_tcr.status && !['APPROVED', 'REJECTED'].includes(t.open_tcr.status))
-        )
-    )
+    return allTasks.filter((t) => Boolean(t.open_change_request))
   }, [allTasks])
 
   // Team Leader TCR reviews queue (Stage 1)
   const tlTcrReviews = useMemo(() => {
-    const queueTCRs = approvalQueue.filter((item) => item.type === 'CHANGE' && item.stage === 'TL')
+    const queueTCRs = approvalQueue.filter((item) =>
+      item.type === 'CHANGE' &&
+      item.stage === 'TL' &&
+      item.can_decide === true
+    )
     if (queueTCRs.length > 0) return queueTCRs
 
     const curId = currentUser?.id ? String(currentUser.id) : ''
     return allTCRs.filter((t) => {
-      const cr = t.open_change_request || t.pending_change_request || t.changeRequest || t.open_tcr || {}
-      const status = cr.status || (t.has_pending_change_request ? 'PENDING_TL_REVIEW' : null)
+      const cr = t.open_change_request || {}
+      const status = cr.status
       if (status !== 'PENDING_TL_REVIEW') return false
+      if (cr.can_decide !== true && t.can_decide !== true) return false
 
       // Prevent self-review (assignee or requester cannot review)
       const requesterId = String(cr.requester_id || cr.requested_by || t.assignee_id || '')
@@ -282,14 +279,19 @@ function Projects() {
 
   // Executive / PM TCR reviews queue
   const executiveTcrReviews = useMemo(() => {
-    const queueTCRs = approvalQueue.filter((item) => item.type === 'CHANGE' && (item.stage === 'PM' || item.stage === 'DIRECT'))
+    const queueTCRs = approvalQueue.filter((item) =>
+      item.type === 'CHANGE' &&
+      (item.stage === 'PM' || item.stage === 'DIRECT') &&
+      item.can_decide === true
+    )
     if (queueTCRs.length > 0) return queueTCRs
 
     const curId = currentUser?.id ? String(currentUser.id) : ''
     return allTCRs.filter((t) => {
-      const cr = t.open_change_request || t.pending_change_request || t.changeRequest || t.open_tcr || {}
-      const status = cr.status || (t.has_pending_change_request ? 'PENDING_PM_APPROVAL' : null)
+      const cr = t.open_change_request || {}
+      const status = cr.status
       if (!status) return false
+      if (cr.can_decide !== true && t.can_decide !== true) return false
       if (currentUser.role === 'CEO') return true
 
       const isProjectPM = (t.primaryPmId && String(t.primaryPmId) === curId) ||
@@ -736,7 +738,7 @@ function Projects() {
 
   const handleApproveTaskChange = async ({ requestId, reason } = {}) => {
     const projId = activeChangeReviewTask?.projectId || activeChangeReviewTask?.project_id || activeChangeReviewTask?.project
-    const reqId = requestId || activeChangeReviewTask?.changeRequest?.id || activeChangeReviewTask?.open_tcr?.id
+    const reqId = requestId || activeChangeReviewTask?.open_change_request?.id
     if (!projId || !reqId) return
     setIsModalSubmitting(true)
     setModalActionError(null)
@@ -750,7 +752,7 @@ function Projects() {
         message: `Change request for task "${activeChangeReviewTask?.name || activeChangeReviewTask?.title || 'Task'}" has been approved.`,
         type: 'success',
         targetRole: 'EMPLOYEE',
-        targetUserName: activeChangeReviewTask?.changeRequest?.requester,
+        targetUserName: activeChangeReviewTask?.open_change_request?.requested_by_name || 'Unknown requester',
         link: `/projects/${projId}`,
       })
       setActiveChangeReviewTask(null)
@@ -765,7 +767,7 @@ function Projects() {
 
   const handleRejectTaskChange = async ({ requestId, reason } = {}) => {
     const projId = activeChangeReviewTask?.projectId || activeChangeReviewTask?.project_id || activeChangeReviewTask?.project
-    const reqId = requestId || activeChangeReviewTask?.changeRequest?.id || activeChangeReviewTask?.open_tcr?.id
+    const reqId = requestId || activeChangeReviewTask?.open_change_request?.id
     if (!projId || !reqId) return
     setIsModalSubmitting(true)
     setModalActionError(null)
@@ -779,7 +781,7 @@ function Projects() {
         message: `Change request for task "${activeChangeReviewTask?.name || activeChangeReviewTask?.title || 'Task'}" was rejected: "${reason || 'No reason provided'}".`,
         type: 'warning',
         targetRole: 'EMPLOYEE',
-        targetUserName: activeChangeReviewTask?.changeRequest?.requester,
+        targetUserName: activeChangeReviewTask?.open_change_request?.requested_by_name || 'Unknown requester',
         link: `/projects/${projId}`,
       })
       setActiveChangeReviewTask(null)

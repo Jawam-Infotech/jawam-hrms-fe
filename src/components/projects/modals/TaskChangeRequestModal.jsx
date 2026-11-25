@@ -17,7 +17,7 @@ function TaskChangeRequestModal({
 
   if (!isOpen || !task) return null
 
-  const hasPendingRequest = Boolean(task.changeRequest || task.open_tcr)
+  const hasPendingRequest = Boolean(task.open_change_request)
   const eligibleMembers = (projectMembers || []).filter(
     (m) =>
       String(m.user_id || m.id) !== String(task.assignee_id || task.assigneeId) &&

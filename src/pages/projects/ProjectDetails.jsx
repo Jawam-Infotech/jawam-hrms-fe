@@ -233,7 +233,7 @@ function ProjectDetails() {
       return {
         ...t,
         name: t.title || t.name,
-        assignee: t.assignee || m?.name || (t.assignee_id ? `User #${t.assignee_id}` : 'Unassigned'),
+        assignee: t.assignee || m?.name || 'Unassigned',
         assigneeId: t.assignee_id || t.assigneeId,
         dueDate: t.due_date || t.dueDate,
         isIndependent: isSolo,
@@ -883,7 +883,7 @@ function ProjectDetails() {
         message: `Change request for task "${activeChangeReviewTask?.name || activeChangeReviewTask?.title || 'Task'}" was approved.`,
         type: 'success',
         targetRole: 'EMPLOYEE',
-        targetUserName: activeChangeReviewTask?.changeRequest?.requester,
+        targetUserName: activeChangeReviewTask?.open_change_request?.requested_by_name || 'Unknown requester',
         link: `/projects/${projectId}`,
       })
       setActiveChangeReviewTask(null)
@@ -909,7 +909,7 @@ function ProjectDetails() {
         message: `Change request for task "${activeChangeReviewTask?.name || activeChangeReviewTask?.title || 'Task'}" was rejected: "${reason || 'No reason provided'}".`,
         type: 'warning',
         targetRole: 'EMPLOYEE',
-        targetUserName: activeChangeReviewTask?.changeRequest?.requester,
+        targetUserName: activeChangeReviewTask?.open_change_request?.requested_by_name || 'Unknown requester',
         link: `/projects/${projectId}`,
       })
       setActiveChangeReviewTask(null)
@@ -1060,7 +1060,7 @@ function ProjectDetails() {
                   </p>
                 </div>
                 <p className="text-xs text-amber-800 mt-1">
-                  Requested by: <strong>{pendingCancelReq.requested_by_name || `User #${pendingCancelReq.requested_by}`}</strong> • Reason: &quot;{pendingCancelReq.reason}&quot;
+                  Requested by: <strong>{pendingCancelReq.requested_by_name || 'Unknown requester'}</strong> • Reason: &quot;{pendingCancelReq.reason}&quot;
                 </p>
               </div>
               <div className="flex items-center gap-2">

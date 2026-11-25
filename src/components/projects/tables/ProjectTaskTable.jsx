@@ -32,44 +32,25 @@ function ProjectTaskTable({
           {tasks.map((task) => {
             const taskTitle = task.title || task.name || `Task #${task.id}`
             const taskAssigneeId = task.assignee_id || task.assigneeId
-            const taskAssigneeName = task.assignee_name || task.assignee || (taskAssigneeId ? `User #${taskAssigneeId}` : 'Unassigned')
+            const taskAssigneeName = task.assignee_name || task.assignee || 'Unassigned'
             const taskDueDate = task.due_date || task.dueDate || ''
-            const isTL = currentUser?.role === 'TL'
 
-            const hasPendingTcr = Boolean(
-              task.has_pending_change_request ||
-              task.pending_change_request ||
-              task.open_change_request ||
-              task.changeRequest ||
-              task.open_tcr
-            )
-            const pendingTcr = (typeof task.open_change_request === 'object' && task.open_change_request) ||
-              (typeof task.pending_change_request === 'object' && task.pending_change_request) ||
-              (typeof task.changeRequest === 'object' && task.changeRequest) ||
-              (typeof task.open_tcr === 'object' && task.open_tcr) ||
-              (hasPendingTcr ? { status: 'PENDING' } : null)
+            const pendingTcr = task.open_change_request && typeof task.open_change_request === 'object'
+              ? task.open_change_request
+              : null
+            const hasPendingTcr = Boolean(pendingTcr)
 
             const isAssignee = Boolean(
               currentUser?.id && taskAssigneeId && String(currentUser.id) === String(taskAssigneeId)
             )
 
-            // Review gating strictly following backend permission rules:
-            // 1. Stage 1 PENDING_TL_REVIEW: TL or PM (and CEO), never the task assignee
-            // 2. Stage 2 PENDING_PM_APPROVAL: PM or CEO, never the task assignee
-            // 3. Direct/Solo DIRECT_APPROVAL_REQUIRED / PENDING_CEO_APPROVAL: CEO only, never the task assignee
-            const canReview = !isAssignee && (
-              (task.status === 'PENDING_TL_REVIEW' && (isTL || isPM || isCEO)) ||
-              (task.status === 'PENDING_PM_APPROVAL' && (isPM || isCEO)) ||
-              ((task.status === 'DIRECT_APPROVAL_REQUIRED' || task.status === 'PENDING_CEO_APPROVAL') && isCEO)
-            )
-
-            const tcrRequesterId = pendingTcr?.requester_id || pendingTcr?.requested_by || pendingTcr?.requesterId
-            const isTcrRequester = Boolean(
-              currentUser?.id && tcrRequesterId
-                ? String(currentUser.id) === String(tcrRequesterId)
-                : currentUser?.id && isAssignee
-            )
-            const canReviewTCR = hasPendingTcr && (isCEO || isPM || isTL) && !isTcrRequester && !isAssignee
+            const openCompletion = task.open_completion_submission && typeof task.open_completion_submission === 'object'
+              ? task.open_completion_submission
+              : null
+            const canDecideCompletion = openCompletion?.can_decide === true || task.can_decide === true
+            const canReview = Boolean(openCompletion && canDecideCompletion)
+            const canDecideTCR = pendingTcr?.can_decide === true || task.can_decide === true
+            const canReviewTCR = hasPendingTcr && canDecideTCR
 
             const isOverdue = (() => {
               if (!taskDueDate || task.status === 'COMPLETED' || task.status === 'CANCELLED') return false

@@ -52,12 +52,7 @@ function TaskApprovalModal({
           const res = await projectsApi.getTaskWorkflow(projId, task.id)
           if (!isMounted) return
           const wData = res.data
-          const foundSub =
-            wData?.open_completion_submission ||
-            wData?.completion_submission ||
-            wData?.active_submission ||
-            wData?.submission ||
-            (wData?.id && wData?.task_id ? wData : null)
+          const foundSub = wData?.open_completion_submission || null
 
           if (foundSub) {
             setSubmissionData(foundSub)
@@ -99,17 +94,12 @@ function TaskApprovalModal({
   if (!isOpen || !task) return null
 
   // Zero Self-Approval Enforcement
-  const isSelf = currentUser && (
-    currentUser.id === (task.assignee_id || task.assigneeId) ||
-    currentUser.name?.toLowerCase() === task.assignee?.toLowerCase() ||
-    currentUser.email === task.assigneeEmail
-  )
-
   const isSoloTask = Boolean(isSolo) || Boolean(task.isIndependent)
   const isDirectApproval = isSoloTask && (task.status === 'DIRECT_APPROVAL_REQUIRED' || task.status === 'PENDING_CEO_APPROVAL')
   const isDirectNonCeo = isDirectApproval && currentUser?.role !== 'CEO'
-  const submission = submissionData || task.open_completion_submission || task.submission || null
+  const submission = task.open_completion_submission || submissionData || null
   const submissionId = submission?.id || submission?.submission_id || task.submissionId || null
+  const canDecide = submission?.can_decide === true || task.can_decide === true
 
   const deliverableUrls =
     submission?.deliverable_urls ||
@@ -170,16 +160,6 @@ function TaskApprovalModal({
         {apiError && (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
             {apiError}
-          </div>
-        )}
-
-        {/* Self-Approval Block Warning */}
-        {isSelf && (
-          <div className="mt-4 rounded-xl border border-[#fecaca] bg-[#fef2f2] p-4 text-xs text-[#b91c1c]">
-            <p className="font-bold">Zero Self-Approval Enforced:</p>
-            <p className="mt-1">
-              You are the assignee of this task. System rules strictly prohibit approving your own deliverables. This task requires sign-off from the CEO or an alternate lead.
-            </p>
           </div>
         )}
 
@@ -319,17 +299,17 @@ function TaskApprovalModal({
               <button
                 type="button"
                 onClick={() => setShowRejectBox(true)}
-                disabled={isDirectNonCeo || isSubmitting || isLoadingSubmission}
+                disabled={!canDecide || isSubmitting || isLoadingSubmission}
                 className="rounded-full border border-[#fca5a5] bg-[#fef2f2] px-5 py-2 text-[14px] font-semibold text-[#dc2626] hover:bg-[#fee2e2] disabled:opacity-50"
               >
                 Request Rework / Reject
               </button>
               <button
                 type="button"
-                disabled={isSelf || isDirectNonCeo || isSubmitting || isLoadingSubmission || !submissionId}
+                disabled={!canDecide || isSubmitting || isLoadingSubmission || !submissionId}
                 onClick={handleConfirmApprove}
                 className={`rounded-full px-6 py-2 text-[14px] font-semibold text-white shadow-sm transition ${
-                  isSelf || isDirectNonCeo || !submissionId
+                  !canDecide || !submissionId
                     ? 'cursor-not-allowed bg-[#9ca3af]'
                     : 'bg-[#10b981] hover:bg-[#059669]'
                 } disabled:opacity-50`}
@@ -350,7 +330,7 @@ function TaskApprovalModal({
               <button
                 type="button"
                 onClick={handleConfirmReject}
-                disabled={isSubmitting || isLoadingSubmission || !submissionId}
+                disabled={!canDecide || isSubmitting || isLoadingSubmission || !submissionId}
                 className="rounded-full bg-[#dc2626] px-5 py-2 text-[14px] font-semibold text-white hover:bg-[#b91c1c] disabled:opacity-50"
               >
                 {isSubmitting ? 'Rejecting...' : 'Confirm Rejection'}

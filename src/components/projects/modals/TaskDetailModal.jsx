@@ -46,21 +46,11 @@ function TaskDetailModal({
         </div>
 
         <div className="mt-5 space-y-4">
-          {/* Status and Priority Row */}
+          {/* Status Row */}
           <div className="flex items-center justify-between rounded-2xl bg-[#f8fafc] border border-[#e5e7eb] p-3.5 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-gray-500">Status:</span>
               <StatusBadge status={isRejected ? 'REJECTED' : task.status} />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-gray-500">Priority:</span>
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                task.priority === 'High' ? 'bg-red-100 text-red-700 border border-red-200' :
-                task.priority === 'Low' ? 'bg-gray-100 text-gray-700 border border-gray-200' :
-                'bg-blue-100 text-blue-700 border border-blue-200'
-              }`}>
-                {task.priority || 'Medium'}
-              </span>
             </div>
           </div>
 

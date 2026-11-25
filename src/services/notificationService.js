@@ -1,5 +1,6 @@
 import {
   getNotifications as getNotificationsRequest,
+  getAllNotifications as getAllNotificationsRequest,
   getUnreadNotificationCount as getUnreadNotificationCountRequest,
   markNotificationAsRead as markNotificationAsReadRequest,
   markAllNotificationsAsRead as markAllNotificationsAsReadRequest,
@@ -9,6 +10,10 @@ import {
 
 async function getNotifications(params = {}) {
   return getNotificationsRequest(params)
+}
+
+async function getAllNotifications(params = {}) {
+  return getAllNotificationsRequest(params)
 }
 
 async function getUnreadNotificationCount() {
@@ -33,6 +38,7 @@ async function clearAllNotifications() {
 
 export {
   getNotifications,
+  getAllNotifications,
   getUnreadNotificationCount,
   markNotificationAsRead,
   markAllNotificationsAsRead,

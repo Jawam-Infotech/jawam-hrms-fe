@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('./api/notification.api.js', () => ({
   getNotifications: vi.fn(),
+  getAllNotifications: vi.fn(),
   getUnreadNotificationCount: vi.fn(),
   markNotificationAsRead: vi.fn(),
   markAllNotificationsAsRead: vi.fn(),
@@ -9,6 +10,7 @@ vi.mock('./api/notification.api.js', () => ({
 
 import {
   getNotifications,
+  getAllNotifications,
   getUnreadNotificationCount,
   markNotificationAsRead,
   markAllNotificationsAsRead,
@@ -16,6 +18,7 @@ import {
 
 import {
   getNotifications as getNotificationsRequest,
+  getAllNotifications as getAllNotificationsRequest,
   getUnreadNotificationCount as getUnreadNotificationCountRequest,
   markNotificationAsRead as markNotificationAsReadRequest,
   markAllNotificationsAsRead as markAllNotificationsAsReadRequest,
@@ -45,6 +48,22 @@ describe('notification services', () => {
     ).resolves.toEqual(response)
 
     expect(getNotificationsRequest).toHaveBeenCalledWith({
+      unread_only: true,
+    })
+  })
+
+  it('delegates paginated notification loading', async () => {
+    const response = {
+      count: 2,
+      results: [{ id: 1 }, { id: 2 }],
+    }
+    getAllNotificationsRequest.mockResolvedValue(response)
+
+    await expect(
+      getAllNotifications({ unread_only: true }),
+    ).resolves.toEqual(response)
+
+    expect(getAllNotificationsRequest).toHaveBeenCalledWith({
       unread_only: true,
     })
   })

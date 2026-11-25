@@ -65,7 +65,7 @@ function TLProjectsView({
                 Project Request Returned for Clarification: &ldquo;{req.name || req.projectName}&rdquo;
               </p>
               <p className="text-xs text-amber-800 mt-0.5">
-                CEO Note: {req.note || req.clarification_note || req.return_reason || req.rejection_reason || 'Please review proposed dates and scope details before resubmitting.'}
+                CEO Note: {req.decision_reason || 'Please review proposed dates and scope details before resubmitting.'}
               </p>
             </div>
           </div>
@@ -203,18 +203,18 @@ function TLProjectsView({
                   <tr key={t.id}>
                     <td className="py-3 font-semibold text-[#111827]">{t.name}</td>
                     <td className="py-3 text-[#4b5563]">{t.projectTitle}</td>
-                    <td className="py-3 font-bold text-[#111827]">{t.changeRequest?.requester || t.assignee}</td>
+                    <td className="py-3 font-bold text-[#111827]">{t.open_change_request?.requested_by_name || t.requested_by_name || 'Unknown requester'}</td>
                     <td className="py-3">
                       <span className="rounded-full bg-[#ffedd5] border border-[#fed7aa] px-2.5 py-0.5 text-xs font-bold text-[#9a3412]">
-                        {t.changeRequest?.type === 'DEADLINE_EXTENSION'
+                        {t.open_change_request?.type === 'DEADLINE_EXTENSION'
                           ? 'Deadline Extension'
-                          : t.changeRequest?.type === 'TASK_DELETION'
+                          : t.open_change_request?.type === 'TASK_DELETION'
                             ? 'Task Deletion'
                             : 'Reassignment'}
                       </span>
                     </td>
                     <td className="py-3 text-xs text-[#6b7280] max-w-xs truncate">
-                      {t.changeRequest?.reason || 'No reason provided'}
+                      {t.open_change_request?.reason || 'No reason provided'}
                     </td>
                     <td className="py-3 text-right">
                       <button
