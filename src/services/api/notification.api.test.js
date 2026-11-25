@@ -56,4 +56,22 @@ describe('notification pagination', () => {
       'notifications/?page=2'
     )
   })
+
+  it('stops paginating when reaching MAX_NOTIFICATION_PAGES safety cap', async () => {
+    // Mock always returning a next page with unique URL
+    api.get.mockImplementation((url) => {
+      const page = typeof url === 'string' && url.includes('page=') ? parseInt(url.split('page=')[1], 10) : 1
+      return Promise.resolve({
+        data: {
+          count: 1000,
+          next: `notifications/?page=${page + 1}`,
+          results: [{ id: page, message: `Notification ${page}` }],
+        },
+      })
+    })
+
+    const result = await getAllNotifications()
+    expect(api.get).toHaveBeenCalledTimes(50)
+    expect(result.results.length).toBe(50)
+  })
 })

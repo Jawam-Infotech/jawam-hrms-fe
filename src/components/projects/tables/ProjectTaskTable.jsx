@@ -47,10 +47,10 @@ function ProjectTaskTable({
             const openCompletion = task.open_completion_submission && typeof task.open_completion_submission === 'object'
               ? task.open_completion_submission
               : null
-            const canDecideCompletion = openCompletion?.can_decide === true || task.can_decide === true
+            const canDecideCompletion = openCompletion?.can_decide === true
             const canReview = Boolean(openCompletion && canDecideCompletion)
-            const canDecideTCR = pendingTcr?.can_decide === true || task.can_decide === true
-            const canReviewTCR = hasPendingTcr && canDecideTCR
+            const canDecideTCR = pendingTcr?.can_decide === true
+            const canReviewTCR = Boolean(hasPendingTcr && canDecideTCR)
 
             const isOverdue = (() => {
               if (!taskDueDate || task.status === 'COMPLETED' || task.status === 'CANCELLED') return false
@@ -94,11 +94,11 @@ function ProjectTaskTable({
                           ? 'Deadline Extension'
                           : pendingTcr?.operation === 'REASSIGN' || pendingTcr?.type === 'REASSIGNMENT'
                             ? 'Reassignment'
-                            : pendingTcr?.type === 'TASK_DELETION'
+                            : pendingTcr?.operation === 'DELETE_TASK' || pendingTcr?.type === 'DELETE_TASK'
                               ? 'Task Deletion'
                               : 'Change Request'}
                       </span>
-                      <StatusBadge status={pendingTcr?.status || 'PENDING'} className="!text-[10px] !py-0 !px-1.5" />
+                      <StatusBadge status={pendingTcr?.state || 'PENDING'} className="!text-[10px] !py-0 !px-1.5" />
                     </div>
                   )}
                   {task.isRejected && !(task.isQualityRisk || task.quality_risk || task.reworkCount >= 3) && (

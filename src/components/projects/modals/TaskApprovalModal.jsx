@@ -99,7 +99,7 @@ function TaskApprovalModal({
   const isDirectNonCeo = isDirectApproval && currentUser?.role !== 'CEO'
   const submission = task.open_completion_submission || submissionData || null
   const submissionId = submission?.id || submission?.submission_id || task.submissionId || null
-  const canDecide = submission?.can_decide === true || task.can_decide === true
+  const canDecide = submission?.can_decide === true
 
   const deliverableUrls =
     submission?.deliverable_urls ||

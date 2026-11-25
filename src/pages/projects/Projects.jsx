@@ -143,6 +143,8 @@ function Projects() {
       } else {
         console.warn('Could not load approvals queue:', queueRes.reason)
         setApprovalQueue([])
+        const queueErrMsg = formatApiError(queueRes.reason, 'Failed to fetch approval queue')
+        setError(queueErrMsg)
       }
 
       if (requestsRes.status === 'fulfilled') {
@@ -243,65 +245,21 @@ function Projects() {
     return list
   }, [enrichedProjects])
 
-  // All active task-change requests across projects
-  const allTCRs = useMemo(() => {
-    return allTasks.filter((t) => Boolean(t.open_change_request))
-  }, [allTasks])
-
-  // Team Leader TCR reviews queue (Stage 1)
+  // Team Leader TCR reviews queue (Stage 1) - Exclusive source: approvalQueue
   const tlTcrReviews = useMemo(() => {
-    const queueTCRs = approvalQueue.filter((item) =>
+    return approvalQueue.filter((item) =>
       item.type === 'CHANGE' &&
-      item.stage === 'TL' &&
-      item.can_decide === true
+      item.stage === 'TL'
     )
-    if (queueTCRs.length > 0) return queueTCRs
+  }, [approvalQueue])
 
-    const curId = currentUser?.id ? String(currentUser.id) : ''
-    return allTCRs.filter((t) => {
-      const cr = t.open_change_request || {}
-      const status = cr.status
-      if (status !== 'PENDING_TL_REVIEW') return false
-      if (cr.can_decide !== true && t.can_decide !== true) return false
-
-      // Prevent self-review (assignee or requester cannot review)
-      const requesterId = String(cr.requester_id || cr.requested_by || t.assignee_id || '')
-      if (curId && requesterId && curId === requesterId) return false
-
-      if (currentUser.role === 'TL') {
-        const isProjectTL = !t.teamLeadId || String(t.teamLeadId) === curId
-        const isProjectMember = (t.members || []).some((m) => String(m.user_id || m.id) === curId)
-        return isProjectTL || isProjectMember
-      }
-      return true
-    })
-  }, [approvalQueue, allTCRs, currentUser])
-
-  // Executive / PM TCR reviews queue
+  // Executive / PM TCR reviews queue - Exclusive source: approvalQueue
   const executiveTcrReviews = useMemo(() => {
-    const queueTCRs = approvalQueue.filter((item) =>
+    return approvalQueue.filter((item) =>
       item.type === 'CHANGE' &&
-      (item.stage === 'PM' || item.stage === 'DIRECT') &&
-      item.can_decide === true
+      (item.stage === 'PM' || item.stage === 'DIRECT')
     )
-    if (queueTCRs.length > 0) return queueTCRs
-
-    const curId = currentUser?.id ? String(currentUser.id) : ''
-    return allTCRs.filter((t) => {
-      const cr = t.open_change_request || {}
-      const status = cr.status
-      if (!status) return false
-      if (cr.can_decide !== true && t.can_decide !== true) return false
-      if (currentUser.role === 'CEO') return true
-
-      const isProjectPM = (t.primaryPmId && String(t.primaryPmId) === curId) ||
-        (t.members || []).some((m) => m.is_current_pm && String(m.user_id || m.id) === curId)
-      if (isProjectPM) {
-        return ['PENDING_PM_APPROVAL', 'DIRECT_APPROVAL_REQUIRED', 'PENDING_CEO_APPROVAL'].includes(status)
-      }
-      return false
-    })
-  }, [approvalQueue, allTCRs, currentUser])
+  }, [approvalQueue])
 
   // Role-scoped data filters
   const employeeProjects = useMemo(() => {
@@ -438,7 +396,6 @@ function Projects() {
         description: requestData.description,
         proposed_start_date: requestData.proposed_start_date,
         proposed_end_date: requestData.proposed_end_date || requestData.proposed_target_end_date,
-        priority: requestData.priority || 'Medium',
         business_justification: requestData.business_justification || requestData.justification,
       }
 
@@ -805,7 +762,7 @@ function Projects() {
       )}
 
       {/* Global Error State */}
-      {error && projects.length === 0 && (
+      {error && (
         <div className="my-8 rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
           <p className="text-base font-bold text-red-800">Workspace Error</p>
           <p className="mt-1 text-sm text-red-600">{error}</p>

@@ -10,11 +10,14 @@ async function getNotifications(params = {}) {
   return data
 }
 
+const MAX_NOTIFICATION_PAGES = 50
+
 async function getAllNotifications(params = {}) {
   const notifications = []
   const seenIds = new Set()
   const visitedPages = new Set()
   let next = null
+  let pageCount = 0
 
   const appendPage = (data) => {
     const pageResults = Array.isArray(data?.results)
@@ -38,12 +41,14 @@ async function getAllNotifications(params = {}) {
     NOTIFICATION_ENDPOINTS.list,
     { params }
   )
+  pageCount += 1
   appendPage(firstResponse.data)
 
-  while (next) {
+  while (next && pageCount < MAX_NOTIFICATION_PAGES) {
     if (visitedPages.has(next)) break
     visitedPages.add(next)
     const pageResponse = await api.get(next)
+    pageCount += 1
     appendPage(pageResponse.data)
   }
 

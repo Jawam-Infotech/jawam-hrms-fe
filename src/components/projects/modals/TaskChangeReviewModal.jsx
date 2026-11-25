@@ -14,11 +14,15 @@ function TaskChangeReviewModal({
 
   if (!isOpen || !task) return null
 
-  const request = task.open_change_request || task
-  const requestId = request.id || request.item_id
-  const canDecide = request.can_decide === true || task.can_decide === true
+  // The review object comes exclusively from task.open_change_request.
+  // Never fall back to the task itself, and never use task-level permission flags.
+  const request = task.open_change_request ?? null
+  const requestId = request?.id || request?.item_id
+  const canDecide = request?.can_decide === true
+
   const handleConfirmReject = (e) => {
     e.preventDefault()
+    if (!canDecide) return
     onReject({
       requestId,
       reason: rejectReason.trim(),
@@ -26,6 +30,7 @@ function TaskChangeReviewModal({
   }
 
   const handleConfirmApprove = () => {
+    if (!canDecide) return
     onApprove({
       requestId,
       reason: '',
@@ -38,7 +43,6 @@ function TaskChangeReviewModal({
       case 'DEADLINE_EXTENSION':
         return 'Deadline Extension'
       case 'DELETE_TASK':
-      case 'TASK_DELETION':
         return 'Task Cancellation / Deletion'
       case 'REASSIGN':
       case 'REASSIGNMENT':
@@ -81,15 +85,15 @@ function TaskChangeReviewModal({
             </div>
             <div className="flex justify-between">
               <span className="text-[#6b7280]">Operation:</span>
-              <span className="font-bold text-[#2563eb]">{getChangeTypeName(request.operation || request.type)}</span>
+              <span className="font-bold text-[#2563eb]">{getChangeTypeName(request?.operation || request?.type)}</span>
             </div>
-            {request.new_due_date && (
+            {request?.new_due_date && (
               <div className="flex justify-between">
                 <span className="text-[#6b7280]">Requested Due Date:</span>
                 <span className="font-bold text-gray-800">{request.new_due_date}</span>
               </div>
             )}
-            {request.new_assignee_id && (
+            {request?.new_assignee_id && (
               <div className="flex justify-between">
                 <span className="text-[#6b7280]">Requested Assignee ID:</span>
                 <span className="font-bold text-gray-800">User #{request.new_assignee_id}</span>
@@ -97,18 +101,18 @@ function TaskChangeReviewModal({
             )}
             <div className="flex justify-between">
               <span className="text-[#6b7280]">Requested By:</span>
-              <span className="font-bold text-gray-800">{request.requested_by_name || 'Unknown requester'}</span>
+              <span className="font-bold text-gray-800">{request?.requested_by_name || 'Unknown requester'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#6b7280]">Stage:</span>
-              <span className="font-bold text-gray-800">{request.stage || 'Deciding Stage'}</span>
+              <span className="font-bold text-gray-800">{request?.stage || 'Deciding Stage'}</span>
             </div>
           </div>
 
           {/* Requester's Justification */}
           <div className="rounded-xl border border-[#e5e7eb] p-3.5">
             <p className="text-[11px] font-bold uppercase tracking-wider text-[#6b7280]">Requester Justification</p>
-            <p className="mt-1 text-xs text-[#111827] italic">&quot;{request.reason || 'No detailed reason provided'}&quot;</p>
+            <p className="mt-1 text-xs text-[#111827] italic">&quot;{request?.reason || 'No detailed reason provided'}&quot;</p>
           </div>
 
           {showRejectInput && (

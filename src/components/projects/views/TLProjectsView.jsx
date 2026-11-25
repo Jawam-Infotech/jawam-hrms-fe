@@ -206,9 +206,9 @@ function TLProjectsView({
                     <td className="py-3 font-bold text-[#111827]">{t.open_change_request?.requested_by_name || t.requested_by_name || 'Unknown requester'}</td>
                     <td className="py-3">
                       <span className="rounded-full bg-[#ffedd5] border border-[#fed7aa] px-2.5 py-0.5 text-xs font-bold text-[#9a3412]">
-                        {t.open_change_request?.type === 'DEADLINE_EXTENSION'
+                        {t.open_change_request?.type === 'DEADLINE_EXTENSION' || t.open_change_request?.operation === 'EXTEND_DEADLINE'
                           ? 'Deadline Extension'
-                          : t.open_change_request?.type === 'TASK_DELETION'
+                          : t.open_change_request?.type === 'DELETE_TASK' || t.open_change_request?.operation === 'DELETE_TASK'
                             ? 'Task Deletion'
                             : 'Reassignment'}
                       </span>

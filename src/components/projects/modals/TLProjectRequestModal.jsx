@@ -13,7 +13,6 @@ function TLProjectRequestModal({
     description: '',
     proposedStartDate: '',
     proposedTargetEndDate: '',
-    priority: 'Medium',
     justification: '',
   })
   const [errors, setErrors] = useState({})
@@ -27,7 +26,6 @@ function TLProjectRequestModal({
           description: initialData.description || '',
           proposedStartDate: initialData.proposed_start_date || initialData.proposedStartDate || '',
           proposedTargetEndDate: initialData.proposed_end_date || initialData.proposed_target_end_date || initialData.proposedTargetEndDate || '',
-          priority: initialData.priority || 'Medium',
           justification: initialData.business_justification || initialData.justification || '',
         })
       } else {
@@ -36,7 +34,6 @@ function TLProjectRequestModal({
           description: '',
           proposedStartDate: '',
           proposedTargetEndDate: '',
-          priority: 'Medium',
           justification: '',
         })
       }
@@ -93,7 +90,6 @@ function TLProjectRequestModal({
       description: formData.description.trim(),
       proposed_start_date: formData.proposedStartDate,
       proposed_end_date: formData.proposedTargetEndDate,
-      priority: formData.priority,
       business_justification: formData.justification.trim(),
       requestId: initialData?.id || null,
       isResubmit: isEditing,
@@ -207,20 +203,6 @@ function TLProjectRequestModal({
             </div>
           </div>
 
-          <div>
-            <label className="block text-[13px] font-bold text-[#111827] mb-1">Priority</label>
-            <select
-              name="priority"
-              value={formData.priority}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none disabled:bg-gray-50"
-            >
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-          </div>
 
           <div>
             <label className="block text-[13px] font-bold text-[#111827] mb-1">

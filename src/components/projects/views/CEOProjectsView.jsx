@@ -199,9 +199,6 @@ function CEOProjectsView({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-[15px] font-bold text-[#111827]">{req.name || req.projectName || req.project_name}</p>
-                          <span className="rounded-full bg-gray-100 text-gray-700 px-2 py-0.5 text-[11px] font-bold">
-                            Priority: {req.priority || 'Medium'}
-                          </span>
                         </div>
                         <p className="text-xs text-[#6b7280] mt-1">
                           Requested by: <span className="font-semibold text-[#111827]">{req.requested_by_name || 'Unknown requester'}</span>
@@ -306,37 +303,49 @@ function CEOProjectsView({
                         <td className="py-3 font-bold text-[#111827]">{t.open_change_request?.requested_by_name || t.requested_by_name || 'Unknown requester'}</td>
                         <td className="py-3">
                           <span className="rounded-full bg-[#ffedd5] border border-[#fed7aa] px-2.5 py-0.5 text-xs font-bold text-[#9a3412]">
-                            {t.open_change_request?.type === 'DEADLINE_EXTENSION'
+                            {t.open_change_request?.type === 'DEADLINE_EXTENSION' || t.open_change_request?.operation === 'EXTEND_DEADLINE'
                               ? 'Deadline Extension'
-                              : t.open_change_request?.type === 'TASK_DELETION'
+                              : t.open_change_request?.type === 'DELETE_TASK' || t.open_change_request?.operation === 'DELETE_TASK'
                                 ? 'Task Deletion'
                                 : 'Reassignment'}
                           </span>
                         </td>
                         <td className="py-3">
-                          {['PENDING_PM_APPROVAL', 'PENDING_CEO_APPROVAL'].includes(t.open_change_request?.status) ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#ede9fe] border border-[#ddd6fe] px-2.5 py-0.5 text-xs font-bold text-[#6d28d9]">
-                              <span>✓</span>
-                              <span>Recommended to You</span>
-                              {t.open_change_request?.tlRecommendedBy && (
-                                <span className="text-[11px] font-medium text-[#7c3aed]">
-                                  ({t.open_change_request.tlRecommendedBy})
+                          {(() => {
+                            const tcrState = t.open_change_request?.state
+                            if (['PENDING_PM_APPROVAL', 'PENDING_CEO_APPROVAL'].includes(tcrState)) {
+                              return (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#ede9fe] border border-[#ddd6fe] px-2.5 py-0.5 text-xs font-bold text-[#6d28d9]">
+                                  <span>✓</span>
+                                  <span>Recommended to You</span>
+                                  {t.open_change_request?.tlRecommendedBy && (
+                                    <span className="text-[11px] font-medium text-[#7c3aed]">
+                                      ({t.open_change_request.tlRecommendedBy})
+                                    </span>
+                                  )}
                                 </span>
-                              )}
-                            </span>
-                          ) : t.open_change_request?.status === 'DIRECT_APPROVAL_REQUIRED' ? (
-                            <span className="inline-flex items-center rounded-full bg-[#fef3c7] border border-[#fde68a] px-2.5 py-0.5 text-xs font-bold text-[#b45309]">
-                              Direct Executive Decision
-                            </span>
-                          ) : t.open_change_request?.status === 'PENDING_TL_REVIEW' ? (
-                            <span className="inline-flex items-center rounded-full bg-[#e0e7ff] border border-[#c7d2fe] px-2.5 py-0.5 text-xs font-bold text-[#4338ca]">
-                              Under TL Review
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full bg-[#ffedd5] border border-[#fed7aa] px-2.5 py-0.5 text-xs font-bold text-[#c2410c]">
-                              Recommended to You
-                            </span>
-                          )}
+                              )
+                            }
+                            if (tcrState === 'DIRECT_APPROVAL_REQUIRED') {
+                              return (
+                                <span className="inline-flex items-center rounded-full bg-[#fef3c7] border border-[#fde68a] px-2.5 py-0.5 text-xs font-bold text-[#b45309]">
+                                  Direct Executive Decision
+                                </span>
+                              )
+                            }
+                            if (tcrState === 'PENDING_TL_REVIEW') {
+                              return (
+                                <span className="inline-flex items-center rounded-full bg-[#e0e7ff] border border-[#c7d2fe] px-2.5 py-0.5 text-xs font-bold text-[#4338ca]">
+                                  Under TL Review
+                                </span>
+                              )
+                            }
+                            return (
+                              <span className="inline-flex items-center rounded-full bg-[#ffedd5] border border-[#fed7aa] px-2.5 py-0.5 text-xs font-bold text-[#c2410c]">
+                                Recommended to You
+                              </span>
+                            )
+                          })()}
                         </td>
                         <td className="py-3 text-xs text-[#6b7280] max-w-xs truncate">
                           {t.open_change_request?.reason || 'No reason provided'}

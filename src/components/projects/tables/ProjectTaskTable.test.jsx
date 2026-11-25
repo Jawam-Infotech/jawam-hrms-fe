@@ -130,7 +130,7 @@ describe('ProjectTaskTable Component Tests (Audit Fixes)', () => {
       open_change_request: {
         id: 7,
         type: 'DEADLINE_EXTENSION',
-        status: 'PENDING_TL_REVIEW',
+        state: 'PENDING_TL_REVIEW',
         can_decide: true,
       },
     }
@@ -221,5 +221,97 @@ describe('ProjectTaskTable Component Tests (Audit Fixes)', () => {
 
     expect(screen.getByText(/Rejected \(2 times\)/i)).toBeDefined()
     expect(screen.getByText(/Scope was incomplete, please add unit tests/i)).toBeDefined()
+  })
+
+  it('TCR status and action mapping: maps DELETE_TASK operation to Task Deletion and displays state', () => {
+    const taskWithDeleteTcr = {
+      ...baseTask,
+      status: 'IN_PROGRESS',
+      assignee_id: 10,
+      open_change_request: {
+        id: 8,
+        operation: 'DELETE_TASK',
+        state: 'PENDING_TL_REVIEW',
+        can_decide: true,
+      },
+    }
+    const assigneeUser = { id: 10, role: 'EMPLOYEE', name: 'Alice Employee' }
+
+    render(
+      <ProjectTaskTable
+        tasks={[taskWithDeleteTcr]}
+        currentUser={assigneeUser}
+        onOpenChangeRequestModal={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText(/Task Deletion/i)).toBeDefined()
+    expect(screen.getByText(/Under TL Review/i)).toBeDefined()
+  })
+
+  it('TCR mapping ignores legacy status when state is present or missing', () => {
+    const taskWithConflictingStatus = {
+      ...baseTask,
+      status: 'IN_PROGRESS',
+      assignee_id: 10,
+      open_change_request: {
+        id: 9,
+        operation: 'DELETE_TASK',
+        state: 'PENDING_PM_APPROVAL',
+        status: 'PENDING_TL_REVIEW',
+        can_decide: true,
+      },
+    }
+
+    const { rerender } = render(
+      <ProjectTaskTable
+        tasks={[taskWithConflictingStatus]}
+        currentUser={{ id: 10, role: 'EMPLOYEE', name: 'Alice Employee' }}
+        onOpenChangeRequestModal={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByText(/Under TL Review/i)).toBeNull()
+    expect(screen.getByText('Awaiting PM Approval')).toBeDefined()
+
+    rerender(
+      <ProjectTaskTable
+        tasks={[{
+          ...taskWithConflictingStatus,
+          open_change_request: {
+            id: 9,
+            operation: 'DELETE_TASK',
+            status: 'PENDING_TL_REVIEW',
+            can_decide: true,
+          },
+        }]}
+        currentUser={{ id: 10, role: 'EMPLOYEE', name: 'Alice Employee' }}
+        onOpenChangeRequestModal={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByText(/Under TL Review/i)).toBeNull()
+  })
+
+  it('Strict permission: does not grant review when task.can_decide is true but open_completion_submission.can_decide is false', () => {
+    const strictTask = {
+      ...baseTask,
+      can_decide: true,
+      open_completion_submission: {
+        id: 501,
+        can_decide: false,
+      },
+    }
+    const tlUser = { id: 2, role: 'TL', name: 'Bob Lead' }
+
+    render(
+      <ProjectTaskTable
+        tasks={[strictTask]}
+        currentUser={tlUser}
+        onOpenApprovalModal={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: /^review$/i })).toBeNull()
   })
 })

@@ -15,7 +15,6 @@ function ProjectCreateModal({
     description: '',
     startDate: '',
     targetEndDate: '',
-    priority: 'Medium',
     staffingMode: 'TEAM', // 'TEAM' or 'SOLO'
     assignedPmId: '',
     assignedPmName: '',
@@ -114,7 +113,6 @@ function ProjectCreateModal({
       targetEndDate: formData.targetEndDate,
       staffing_mode: userRole === 'CEO' ? formData.staffingMode : 'TEAM',
       staffingMode: userRole === 'CEO' ? formData.staffingMode : 'TEAM',
-      priority: formData.priority,
       assignedPmId: formData.assignedPmId,
       assignedPmName: formData.assignedPmName,
     })
@@ -210,22 +208,7 @@ function ProjectCreateModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-[13px] font-bold text-[#111827] mb-1">Priority</label>
-              <select
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                className="w-full rounded-[12px] border border-[#e5e7eb] px-4 py-2 text-[14px] text-[#111827] focus:border-[#2563eb] focus:outline-none disabled:bg-gray-50"
-              >
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-            </div>
-
+          <div>
             <div>
               <label className="block text-[13px] font-bold text-[#111827] mb-1">Staffing Mode</label>
               {userRole === 'CEO' ? (

@@ -5,12 +5,6 @@ import ProjectProgressBar from '../ui/ProjectProgressBar.jsx'
 function ProjectCard({ project }) {
   const navigate = useNavigate()
 
-  const priorityColor = {
-    high: 'bg-[#fee2e2] text-[#b91c1c]',
-    medium: 'bg-[#fef3c7] text-[#b45309]',
-    low: 'bg-[#d1fae5] text-[#059669]',
-  }[String(project.priority || '').toLowerCase()] || 'bg-[#f3f4f6] text-[#374151]'
-
   const isSolo = (project.staffing_mode || project.staffingMode) === 'SOLO' || project.isSoloProject
   const title = project.name || project.title || 'Untitled Project'
   const dueDate = project.target_end_date || project.dueDate || 'TBD'
@@ -19,7 +13,7 @@ function ProjectCard({ project }) {
   return (
     <div className="flex flex-col justify-between rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-sm transition hover:shadow-md">
       <div>
-        {/* Top Header: Title & Priority */}
+        {/* Top Header: Title & Status */}
         <div className="flex items-start justify-between gap-3 pb-3">
           <div>
             <h3 className="text-[18px] font-black text-[#111827]">{title}</h3>
@@ -36,9 +30,6 @@ function ProjectCard({ project }) {
               </span>
             </div>
           </div>
-          <span className={`rounded-full px-3 py-1 text-[12px] font-semibold ${priorityColor}`}>
-            {project.priority || 'Medium'}
-          </span>
         </div>
 
         <div className="border-t border-[#f1f5f9] my-3" />

@@ -17,6 +17,7 @@ function CEOHRWorkUpdatesCard() {
   const [newTaskForm, setNewTaskForm] = useState({
     name: '',
     department: 'HR Operations',
+    priority: 'High',
     dueDate: '',
     instructions: '',
   })
@@ -45,6 +46,7 @@ function CEOHRWorkUpdatesCard() {
     setNewTaskForm({
       name: '',
       department: 'HR Operations',
+      priority: 'High',
       dueDate: '',
       instructions: '',
     })
@@ -62,6 +64,7 @@ function CEOHRWorkUpdatesCard() {
     addHRTask({
       name: newTaskForm.name.trim(),
       department: newTaskForm.department,
+      priority: newTaskForm.priority,
       dueDate: newTaskForm.dueDate,
       instructions: newTaskForm.instructions.trim(),
       assignedBy: 'CEO Gaurav Pandey',
@@ -261,6 +264,15 @@ function CEOHRWorkUpdatesCard() {
                   <span className="rounded-full bg-[#f1f5f9] px-2.5 py-0.5 text-[10px] font-bold text-[#475569]">
                     {task.department}
                   </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                      task.priority === 'High'
+                        ? 'bg-rose-100 text-rose-700'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}
+                  >
+                    {task.priority || 'Medium'} Priority
+                  </span>
                 </div>
                 <h4 className="mt-1 text-sm font-bold text-[#111827]">
                   {task.name}
@@ -350,6 +362,25 @@ function CEOHRWorkUpdatesCard() {
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-bold text-[#111827]">
+                    Priority
+                  </label>
+                  <select
+                    value={newTaskForm.priority}
+                    onChange={(e) =>
+                      setNewTaskForm((prev) => ({
+                        ...prev,
+                        priority: e.target.value,
+                      }))
+                    }
+                    className="mt-1 w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2.5 text-xs text-[#111827] outline-none focus:border-[#3b82f6]"
+                  >
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </div>
               </div>
 
               <div>

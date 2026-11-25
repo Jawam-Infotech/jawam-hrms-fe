@@ -4,6 +4,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import TLProjectRequestModal from './TLProjectRequestModal.jsx'
 import TaskDetailModal from './TaskDetailModal.jsx'
+import TaskChangeReviewModal from './TaskChangeReviewModal.jsx'
 
 afterEach(cleanup)
 
@@ -39,5 +40,43 @@ describe('project clarification and task field mappings', () => {
     )
 
     expect(screen.queryByText(/Priority:/i)).toBeNull()
+  })
+
+  it('does not render unsupported priority selector in project creation request modal', () => {
+    render(
+      <TLProjectRequestModal
+        isOpen
+        onClose={vi.fn()}
+        onSubmitRequest={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('combobox', { name: /priority/i })).toBeNull()
+    expect(screen.queryByText(/^Priority$/i)).toBeNull()
+  })
+
+  it('TaskChangeReviewModal: disables decision buttons when task has can_decide: true but open_change_request is absent', () => {
+    const taskWithoutTcr = {
+      id: 10,
+      name: 'Task without TCR',
+      can_decide: true,
+      open_change_request: null,
+    }
+
+    render(
+      <TaskChangeReviewModal
+        isOpen
+        task={taskWithoutTcr}
+        onClose={vi.fn()}
+        onApprove={vi.fn()}
+        onReject={vi.fn()}
+      />
+    )
+
+    const approveBtn = screen.getByRole('button', { name: /approve tcr/i })
+    const rejectBtn = screen.getByRole('button', { name: /reject tcr/i })
+
+    expect(approveBtn.hasAttribute('disabled')).toBe(true)
+    expect(rejectBtn.hasAttribute('disabled')).toBe(true)
   })
 })
