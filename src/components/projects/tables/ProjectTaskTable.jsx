@@ -104,7 +104,7 @@ function ProjectTaskTable({
                   {task.isRejected && !(task.isQualityRisk || task.quality_risk || task.reworkCount >= 3) && (
                     <div className="mt-1.5 rounded-lg border border-[#fca5a5] bg-[#fff1f2] p-2 text-xs text-[#991b1b]">
                       <span className="font-bold">❌ Rejected ({task.reworkCount || 1} {task.reworkCount === 1 ? 'time' : 'times'}):</span>{' '}
-                      <span>{task.rejectionFeedback || 'Rework requested by reviewer.'}</span>
+                      <span>Rework requested by reviewer.</span>
                     </div>
                   )}
                   {task.isRejected && (task.isQualityRisk || task.quality_risk || task.reworkCount >= 3) && (
@@ -117,11 +117,6 @@ function ProjectTaskTable({
                       <p className="mt-1 font-semibold text-[#be123c]">
                         Task has undergone {task.reworkCount || 3} rejections. Schedule a sync meeting with the assignee before resubmission.
                       </p>
-                      {task.rejectionFeedback && (
-                        <p className="mt-0.5 text-[11px] text-[#7f1d1d]">
-                          Latest feedback: &quot;{task.rejectionFeedback}&quot;
-                        </p>
-                      )}
                     </div>
                   )}
                   {task.status === 'PENDING_PM_APPROVAL' && (

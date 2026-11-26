@@ -262,7 +262,12 @@ function TLProjectsView({
                   <tr key={t.id}>
                     <td className="py-3 font-semibold text-[#111827]">{t.name}</td>
                     <td className="py-3 text-[#4b5563]">{t.projectTitle}</td>
-                    <td className="py-3 font-bold text-[#111827]">{t.assignee}</td>
+                    <td className="py-3 font-bold text-[#111827]">
+                      {t.assignee}
+                      <div className="text-xs font-normal text-[#6b7280]">
+                        Submitted by {t.requested_by_name || 'Unknown requester'}
+                      </div>
+                    </td>
                     <td className="py-3">
                       {(t.deliverable || t.open_completion_submission?.deliverable_urls?.length || t.open_completion_submission?.deliverable_files?.length || t.deliverable_urls?.length || t.deliverable_files?.length) ? (
                         <span className="rounded-full bg-[#ecfdf5] px-2.5 py-0.5 text-xs font-semibold text-[#059669]">
@@ -357,7 +362,7 @@ function TLProjectsView({
                       </p>
                       {task.isRejected && (
                         <p className="mt-1 text-xs text-[#dc2626] font-semibold">
-                          ❌ Rejected: {task.rejectionFeedback || 'Rework requested'}
+                          ❌ Rejected ({task.reworkCount || 1}×)
                         </p>
                       )}
                     </td>

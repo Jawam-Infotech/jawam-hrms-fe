@@ -105,6 +105,11 @@ export const projectsApi = {
   getChangeRequests: (projectId, taskId) =>
     api.get(PROJECT_ENDPOINTS.changeRequests(projectId, taskId)),
 
+  // Project audit timeline: GET projects/<id>/audit/ (paginated; optional action filter). The backend decides which
+  // events each viewer may see. A 403 means this viewer may not read the timeline.
+  getAuditTimeline: (projectId, params = {}) =>
+    api.get(PROJECT_ENDPOINTS.auditTimeline(projectId), { params }),
+
   createChangeRequest: (projectId, taskId, payload) =>
     api.post(PROJECT_ENDPOINTS.changeRequests(projectId, taskId), payload),
 

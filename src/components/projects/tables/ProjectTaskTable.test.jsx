@@ -202,13 +202,14 @@ describe('ProjectTaskTable Component Tests (Audit Fixes)', () => {
     expect(screen.getByText(/Alice Employee/i)).toBeDefined()
   })
 
-  it('Task rejection display: renders rejection feedback directly from backend task data', () => {
+  it('Task rejection display: shows a generic rework message and never a reviewer reason from the task row', () => {
     const rejectedTask = {
       ...baseTask,
       status: 'IN_PROGRESS',
       isRejected: true,
       reworkCount: 2,
       rejectionFeedback: 'Scope was incomplete, please add unit tests',
+      rejection_reason: 'Typed reviewer reason on the row',
     }
     const assigneeUser = { id: 10, role: 'EMPLOYEE', name: 'Alice Employee' }
 
@@ -220,7 +221,26 @@ describe('ProjectTaskTable Component Tests (Audit Fixes)', () => {
     )
 
     expect(screen.getByText(/Rejected \(2 times\)/i)).toBeDefined()
-    expect(screen.getByText(/Scope was incomplete, please add unit tests/i)).toBeDefined()
+    expect(screen.getByText('Rework requested by reviewer.')).toBeDefined()
+    expect(screen.queryByText(/Scope was incomplete/i)).toBeNull()
+    expect(screen.queryByText(/Typed reviewer reason on the row/i)).toBeNull()
+  })
+
+  it('Quality-risk display: never shows a reviewer reason from the task row', () => {
+    const riskyTask = {
+      ...baseTask,
+      status: 'IN_PROGRESS',
+      isRejected: true,
+      reworkCount: 3,
+      rejectionFeedback: 'Repeated failures in the same module',
+    }
+    const assigneeUser = { id: 10, role: 'EMPLOYEE', name: 'Alice Employee' }
+
+    render(<ProjectTaskTable tasks={[riskyTask]} currentUser={assigneeUser} />)
+
+    expect(screen.getByText(/QUALITY RISK: 3 Rejections/i)).toBeDefined()
+    expect(screen.queryByText(/Repeated failures in the same module/i)).toBeNull()
+    expect(screen.queryByText(/Latest feedback/i)).toBeNull()
   })
 
   it('TCR status and action mapping: maps DELETE_TASK operation to Task Deletion and displays state', () => {

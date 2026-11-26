@@ -5,6 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BrowserRouter } from 'react-router-dom'
 import { UserContext } from '../../context/UserContext.jsx'
 import Projects from './Projects.jsx'
+import { dispatchProjectNotification } from '../../utils/projectNotificationService.js'
+
+// Spy on the notification dispatcher while keeping its real behaviour, so tests can inspect the toast text.
+vi.mock('../../utils/projectNotificationService.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return { ...actual, dispatchProjectNotification: vi.fn(actual.dispatchProjectNotification) }
+})
 
 vi.mock('../../layouts/DashboardLayout', () => ({
   default: ({ children }) => <div data-testid="dashboard-layout">{children}</div>,
@@ -209,6 +216,14 @@ describe('Dashboard TCR queue approve and reject (regression)', () => {
     await waitFor(() => {
       expect(projectsApi.decideChangeRequest).toHaveBeenCalledWith(1, 88, { decision: 'REJECT', reason: 'Scope too large' })
     })
+    // The reviewer's typed reason goes to the authorized decision endpoint only. The toast is a generic confirmation.
+    await waitFor(() => {
+      expect(dispatchProjectNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Change request for task "Queue Task" was rejected.' })
+      )
+    })
+    const toastTexts = dispatchProjectNotification.mock.calls.map(([payload]) => payload.message).join(' | ')
+    expect(toastTexts).not.toContain('Scope too large')
   })
 
   it('a CEO approves a PM-stage queued change through the Review & Decide card', async () => {

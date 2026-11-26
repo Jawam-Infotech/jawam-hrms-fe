@@ -31,6 +31,8 @@ import { projectsApi } from '../../services/api/projects.api.js'
 import { formatApiError } from '../../utils/formatApiError.js'
 import { downloadDeliverable } from '../../utils/downloadDeliverable.js'
 import { dispatchProjectNotification } from '../../utils/projectNotificationService.js'
+import { changeRejectedMessage, completionRejectedMessage } from '../../utils/projectMessages.js'
+import ProjectAuditTimeline from '../../components/projects/ui/ProjectAuditTimeline.jsx'
 import { memberKey, withoutMember } from '../../utils/projectMemberIdentity.js'
 
 function ProjectDetails() {
@@ -226,10 +228,9 @@ function ProjectDetails() {
     return taskList.map((t) => {
       const m = memberMap.get(String(t.assignee_id || t.assigneeId))
       const reworkCount = Number(t.rejection_count ?? t.rework_count ?? t.reworkCount ?? 0)
-      const rawFeedback = t.rejection_feedback || t.latest_rejection_reason || t.rejection_reason || t.rework_reason || ''
+      // Reviewer reasons are never read from task rows. A rejection is derived from the rework count only.
       const isQualityRisk = Boolean(t.quality_risk || reworkCount >= 3)
-      const isRejected = (t.status === 'IN_PROGRESS' || t.status === 'REJECTED') && (reworkCount > 0 || Boolean(rawFeedback))
-      const rejectionFeedback = rawFeedback || (isRejected ? 'Deliverable was rejected by reviewer. Please make the requested updates and resubmit.' : '')
+      const isRejected = (t.status === 'IN_PROGRESS' || t.status === 'REJECTED') && reworkCount > 0
 
       return {
         ...t,
@@ -243,8 +244,6 @@ function ProjectDetails() {
         rejection_count: reworkCount,
         isQualityRisk,
         quality_risk: isQualityRisk,
-        rejectionFeedback,
-        rejection_feedback: rejectionFeedback,
         isRejected,
         displayStatus: isRejected ? 'REJECTED' : t.status,
         rejectedBy: t.latest_rejected_by || t.rejected_by || 'Reviewer',
@@ -817,7 +816,7 @@ function ProjectDetails() {
       })
       dispatchProjectNotification({
         title: '❌ Deliverable Rejected (Rework Required)',
-        message: `Deliverable for task "${activeApprovalTask?.name || activeApprovalTask?.title || 'Task'}" was rejected: "${reason || 'Needs revisions'}".`,
+        message: completionRejectedMessage(activeApprovalTask?.name || activeApprovalTask?.title),
         type: 'error',
         targetRole: 'EMPLOYEE',
         targetUserId: activeApprovalTask?.assigneeId || activeApprovalTask?.assignee_id,
@@ -902,7 +901,7 @@ function ProjectDetails() {
       })
       dispatchProjectNotification({
         title: '❌ Task Change Rejected',
-        message: `Change request for task "${activeChangeReviewTask?.name || activeChangeReviewTask?.title || 'Task'}" was rejected: "${reason || 'No reason provided'}".`,
+        message: changeRejectedMessage(activeChangeReviewTask?.name || activeChangeReviewTask?.title),
         type: 'warning',
         targetRole: 'EMPLOYEE',
         targetUserName: activeChangeReviewTask?.open_change_request?.requested_by_name || 'Unknown requester',
@@ -1647,14 +1646,10 @@ function ProjectDetails() {
               </div>
             )}
 
-            {/* AUDIT TAB */}
+            {/* AUDIT TAB: the backend decides which events this viewer may see (forbidden, empty, error and ready states) */}
             {activeTab === 'AUDIT' && (
-              <div className="rounded-2xl border border-[#e2e8f0] bg-white p-8 text-center shadow-xs">
-                <span className="text-4xl">📋</span>
-                <h3 className="mt-3 text-base font-bold text-[#0f172a]">Audit Timeline Not Available</h3>
-                <p className="mt-1 text-xs text-[#64748b] max-w-md mx-auto">
-                  Backend audit read API is not exposed for this project. Administrative and governance decisions are permanently maintained in system-level audit logs.
-                </p>
+              <div className="rounded-2xl border border-[#e2e8f0] bg-white p-6 shadow-xs">
+                <ProjectAuditTimeline projectId={projectId} />
               </div>
             )}
           </div>

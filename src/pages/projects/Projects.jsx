@@ -19,6 +19,7 @@ import { projectsApi } from '../../services/api/index.js'
 import formatApiError from '../../utils/formatApiError.js'
 import downloadDeliverable from '../../utils/downloadDeliverable.js'
 import { dispatchProjectNotification } from '../../utils/projectNotificationService.js'
+import { changeRejectedMessage, completionRejectedMessage } from '../../utils/projectMessages.js'
 
 // Maps one backend approval-queue CHANGE item to the review object TaskChangeReviewModal reads.
 // Authorization: the approval queue returns only items the backend's may_decide_stage allows this viewer to decide, so
@@ -157,8 +158,8 @@ function Projects() {
           item_id: item.item_id,
           projectId: item.project_id || item.projectId,
           project_id: item.project_id || item.projectId,
-          name: item.task_name || item.name || item.title || `Task #${item.task_id || item.id}`,
-          title: item.task_name || item.name || item.title || `Task #${item.task_id || item.id}`,
+          name: item.task_title || item.task_name || item.name || item.title || `Task #${item.task_id || item.id}`,
+          title: item.task_title || item.task_name || item.name || item.title || `Task #${item.task_id || item.id}`,
           projectTitle: item.project_name || item.projectName || (item.project_id ? `Project #${item.project_id}` : ''),
           assignee: item.assignee_name || item.assignee || 'Unknown assignee',
           requested_by_name: item.requested_by_name || 'Unknown requester',
@@ -232,10 +233,9 @@ function Projects() {
         const assigneeId = t.assignee_id || t.assigneeId || (typeof t.assignee === 'object' ? t.assignee?.id : (typeof t.assignee === 'number' ? t.assignee : undefined))
 
         const reworkCount = Number(t.rejection_count ?? t.rework_count ?? t.reworkCount ?? 0)
-        const rawFeedback = t.rejection_feedback || t.latest_rejection_reason || t.rejection_reason || t.rework_reason || ''
+        // Reviewer reasons are never read from task rows. A rejection is shown generically, from the rework count only.
         const isQualityRisk = Boolean(t.quality_risk || reworkCount >= 3)
-        const isRejected = (t.status === 'IN_PROGRESS' || t.status === 'REJECTED') && (reworkCount > 0 || Boolean(rawFeedback))
-        const rejectionFeedback = rawFeedback || (isRejected ? 'Deliverable was rejected by reviewer. Please make the requested updates and resubmit.' : '')
+        const isRejected = (t.status === 'IN_PROGRESS' || t.status === 'REJECTED') && reworkCount > 0
 
         list.push({
           ...t,
@@ -259,8 +259,6 @@ function Projects() {
           rejection_count: reworkCount,
           isQualityRisk,
           quality_risk: isQualityRisk,
-          rejectionFeedback,
-          rejection_feedback: rejectionFeedback,
           isRejected,
           displayStatus: isRejected ? 'REJECTED' : t.status,
           rejectedBy: t.latest_rejected_by || t.rejected_by || 'Reviewer',
@@ -639,7 +637,7 @@ function Projects() {
       })
       dispatchProjectNotification({
         title: '❌ Deliverable Rejected (Rework Required)',
-        message: `Deliverable for task "${activeApprovalTask?.name || activeApprovalTask?.title || 'Task'}" was rejected: "${reason || 'Needs revisions'}".`,
+        message: completionRejectedMessage(activeApprovalTask?.name || activeApprovalTask?.title),
         type: 'error',
         targetRole: 'EMPLOYEE',
         targetUserId: activeApprovalTask?.assigneeId || activeApprovalTask?.assignee_id,
@@ -761,7 +759,7 @@ function Projects() {
       })
       dispatchProjectNotification({
         title: '❌ Task Change Rejected',
-        message: `Change request for task "${activeChangeReviewTask?.name || activeChangeReviewTask?.title || 'Task'}" was rejected: "${reason || 'No reason provided'}".`,
+        message: changeRejectedMessage(activeChangeReviewTask?.name || activeChangeReviewTask?.title),
         type: 'warning',
         targetRole: 'EMPLOYEE',
         targetUserName: activeChangeReviewTask?.open_change_request?.requested_by_name || 'Unknown requester',

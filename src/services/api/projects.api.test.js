@@ -308,4 +308,13 @@ describe('projectsApi (E01 to E35)', () => {
     await projectsApi.getApprovalQueue({ page: 1, page_size: 50 })
     expect(api.get).toHaveBeenCalledWith('approvals/', { params: { page: 1, page_size: 50 } })
   })
+
+  // Audit timeline: GET projects/<id>/audit/ with paging and the optional action filter
+  it('GET: getAuditTimeline calls projects/<id>/audit/ with paging and action params', async () => {
+    api.get.mockResolvedValueOnce({ data: { results: [] } })
+    await projectsApi.getAuditTimeline(7, { page: 2, page_size: 20, action: 'MEMBER_ADDED' })
+    expect(api.get).toHaveBeenCalledWith('projects/7/audit/', {
+      params: { page: 2, page_size: 20, action: 'MEMBER_ADDED' },
+    })
+  })
 })

@@ -57,11 +57,6 @@ function EmployeeProjectsView({
               <p className="font-bold text-[13px] text-[#b45309]">
                 Task has undergone {activeQualityRiskTask.reworkCount} rejections. Schedule a sync meeting with the assignee before resubmission.
               </p>
-              {activeQualityRiskTask.rejectionFeedback && (
-                <p className="mt-2 text-xs text-[#78350f]">
-                  <strong>Latest Reviewer Feedback:</strong> "{activeQualityRiskTask.rejectionFeedback}"
-                </p>
-              )}
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
@@ -203,9 +198,7 @@ function EmployeeProjectsView({
                           )}
                         </div>
                         <p className="mt-1 font-semibold text-[#7f1d1d]">
-                          {task.rejectionFeedback
-                            ? `Reason: "${task.rejectionFeedback}"`
-                            : 'Deliverable was rejected by reviewer. Please make the requested updates and submit an updated progress.'}
+                          Deliverable was rejected by reviewer. Please make the requested updates and submit an updated progress.
                         </p>
                       </div>
                     )}

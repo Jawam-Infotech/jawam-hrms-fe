@@ -258,6 +258,7 @@ export const PROJECT_ENDPOINTS = {
   completionDecision: (projectId, taskId, submissionId) =>
     `projects/${projectId}/tasks/${taskId}/completion-submissions/${submissionId}/decision/`,
   changeRequests: (projectId, taskId) => `projects/${projectId}/tasks/${taskId}/change-requests/`,
+  auditTimeline: (projectId) => `projects/${projectId}/audit/`,
   changeRequestDecision: (projectId, requestId) =>
     `projects/${projectId}/change-requests/${requestId}/decision/`,
   deliverableFile: (projectId, taskId, submissionId, fileId) =>

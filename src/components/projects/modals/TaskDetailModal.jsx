@@ -1,4 +1,5 @@
 import StatusBadge from '../../ui/StatusBadge.jsx'
+import TcrRejectionReasons from '../ui/TcrRejectionReasons.jsx'
 
 function TaskDetailModal({
   isOpen,
@@ -12,8 +13,10 @@ function TaskDetailModal({
   const taskId = task.id
   const reworkCount = Number(task.rework_count ?? task.rejection_count ?? task.reworkCount ?? 0)
   const isQualityRisk = Boolean(task.quality_risk || reworkCount >= 3)
-  const feedback = task.rejection_feedback || task.rejectionFeedback || task.rejection_reason || task.latest_rejection_reason || ''
-  const isRejected = (task.status === 'IN_PROGRESS' || task.status === 'REJECTED') && (reworkCount > 0 || Boolean(feedback))
+  // A completion-review rejection is shown generically. The reviewer's reason is never read from the task row. A TCR
+  // rejection reason comes only from TcrRejectionReasons, which uses the authorized change-request endpoint.
+  const isRejected = (task.status === 'IN_PROGRESS' || task.status === 'REJECTED') && reworkCount > 0
+  const projectId = task.project ?? task.project_id ?? task.projectId ?? null
   const isBlocked = Boolean(task.is_blocked || task.isBlocked || task.status === 'BLOCKED')
   const progress = Number(task.progress || 0)
 
@@ -54,8 +57,11 @@ function TaskDetailModal({
             </div>
           </div>
 
-          {/* Reviewer Rejection Feedback Callout */}
-          {feedback && (
+          {/* Change-request rejection reason, from the authorized endpoint only */}
+          <TcrRejectionReasons projectId={projectId} taskId={taskId} />
+
+          {/* Completion-review rejection callout: generic, the reason is not shown */}
+          {isRejected && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-1">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-wider text-amber-800">
@@ -65,8 +71,8 @@ function TaskDetailModal({
                   Review Notice
                 </span>
               </div>
-              <p className="text-sm font-semibold text-amber-950 mt-1 italic">
-                &ldquo;{feedback}&rdquo;
+              <p className="text-sm font-semibold text-amber-950 mt-1">
+                The deliverable was rejected by the reviewer. Please make the requested updates and resubmit.
               </p>
             </div>
           )}

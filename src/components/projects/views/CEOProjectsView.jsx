@@ -158,7 +158,12 @@ function CEOProjectsView({
                       <tr key={t.id}>
                         <td className="py-3 font-semibold text-[#111827]">{t.name}</td>
                         <td className="py-3 text-[#4b5563]">{t.projectTitle}</td>
-                        <td className="py-3 font-bold text-[#111827]">{t.assignee}</td>
+                        <td className="py-3 font-bold text-[#111827]">
+                          {t.assignee}
+                          <div className="text-xs font-normal text-[#6b7280]">
+                            Submitted by {t.requested_by_name || 'Unknown requester'}
+                          </div>
+                        </td>
                         <td className="py-3">
                           <StatusBadge status={t.isRejected ? 'REJECTED' : t.status} />
                         </td>

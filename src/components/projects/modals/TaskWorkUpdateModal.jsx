@@ -150,17 +150,6 @@ function TaskWorkUpdateModal({
           </div>
         )}
 
-        {/* Reviewer Rejection Feedback Banner */}
-        {task.rejectionFeedback && (
-          <div className="mt-4 rounded-xl border border-[#fed7aa] bg-[#fffbeb] p-3.5 text-[#9a3412]">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#b45309]">
-              TL / Reviewer Feedback ({task.reworkCount || 1} {task.reworkCount === 1 ? 'rejection' : 'rejections'}):
-            </p>
-            <p className="mt-1 text-xs font-medium text-[#78350f]">
-              &quot;{task.rejectionFeedback}&quot;
-            </p>
-          </div>
-        )}
 
         {/* 3-Rejection Quality Risk Warning Banner */}
         {isQualityRisk && (
