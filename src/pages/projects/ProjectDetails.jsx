@@ -31,6 +31,7 @@ import { projectsApi } from '../../services/api/projects.api.js'
 import { formatApiError } from '../../utils/formatApiError.js'
 import { downloadDeliverable } from '../../utils/downloadDeliverable.js'
 import { dispatchProjectNotification } from '../../utils/projectNotificationService.js'
+import { memberKey, withoutMember } from '../../utils/projectMemberIdentity.js'
 
 function ProjectDetails() {
   const navigate = useNavigate()
@@ -152,9 +153,9 @@ function ProjectDetails() {
       // Deduplicate members per user: prioritize active status and Primary PM designation
       // Backend membership state is the single authoritative source of truth
       const uniqueMemberMap = new Map()
-      rawMembersList.forEach((m) => {
+      rawMembersList.forEach((m, index) => {
         if (m.is_removed || m.status === 'REMOVED') return
-        const uid = String(m.user_id || m.id || m.name || '').toLowerCase().trim()
+        const uid = memberKey(m, index)
 
         if (!uniqueMemberMap.has(uid)) {
           uniqueMemberMap.set(uid, m)
@@ -609,13 +610,8 @@ function ProjectDetails() {
         await projectsApi.removeMember(projectId, userId, removePayload)
 
         // Update local state immediately so row disappears right away
-        setMembers((prev) =>
-          prev.filter(
-            (m) =>
-              String(m.user_id || m.id) !== String(userId) &&
-              String(m.name || '').toLowerCase() !== String(activeMemberAction?.member?.name || '').toLowerCase()
-          )
-        )
+        // Removes the member by id only. Another member who shares this member's name is not affected.
+        setMembers((prev) => withoutMember(prev, userId))
 
         dispatchProjectNotification({
           title: '🗑️ Member Deleted',
@@ -1697,7 +1693,6 @@ function ProjectDetails() {
         onAddMember={handleAddMember}
         existingMemberIds={[
           ...members.filter((m) => m.is_active !== false).map((m) => m.user_id || m.id),
-          ...members.filter((m) => m.is_active !== false).map((m) => m.name),
         ]}
         isSolo={isSolo}
         projectStatus={project.status}

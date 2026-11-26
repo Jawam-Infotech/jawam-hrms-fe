@@ -86,7 +86,6 @@ function TLProjectRequestModal({
     if (!validate() || isSubmitting) return
     onSubmitRequest({
       name: formData.projectName.trim(),
-      project_name: formData.projectName.trim(),
       description: formData.description.trim(),
       proposed_start_date: formData.proposedStartDate,
       proposed_end_date: formData.proposedTargetEndDate,

@@ -18,6 +18,7 @@ vi.mock('../../services/api/index.js', () => ({
     getTasks: vi.fn(),
     getMembers: vi.fn(),
     decideChangeRequest: vi.fn(),
+    createProjectRequest: vi.fn(),
   },
 }))
 
@@ -245,5 +246,46 @@ describe('Dashboard TCR queue approve and reject (regression)', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Review TCR/i }))
     expect(screen.getByRole('button', { name: /Approve TCR/i }).disabled).toBe(true)
     expect(projectsApi.decideChangeRequest).not.toHaveBeenCalled()
+  })
+})
+
+describe('TL project request payload (regression)', () => {
+  const tlUser = { id: 10, name: 'TL Lead', role: 'TL' }
+
+  it('sends the request without the ignored project_name field, and with the fields the backend reads', async () => {
+    projectsApi.getProjects.mockResolvedValue({ data: { results: [], count: 0 } })
+    projectsApi.getProjectRequests.mockResolvedValue({ data: { results: [] } })
+    projectsApi.getApprovalQueue.mockResolvedValue({ data: { results: [] } })
+    projectsApi.getTasks.mockResolvedValue({ data: { results: [] } })
+    projectsApi.getMembers.mockResolvedValue({ data: { results: [] } })
+    projectsApi.createProjectRequest.mockResolvedValue({ data: { id: 501 } })
+
+    const { container } = render(
+      <BrowserRouter>
+        <UserContext.Provider value={{ user: tlUser, refreshUser: vi.fn() }}>
+          <Projects />
+        </UserContext.Provider>
+      </BrowserRouter>
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: /Request Project Creation/i }))
+    fireEvent.change(container.querySelector('[name="projectName"]'), { target: { value: 'Customer Portal' } })
+    fireEvent.change(container.querySelector('[name="description"]'), { target: { value: 'A portal for customers.' } })
+    fireEvent.change(container.querySelector('[name="proposedStartDate"]'), { target: { value: '2027-01-04' } })
+    fireEvent.change(container.querySelector('[name="proposedTargetEndDate"]'), { target: { value: '2027-06-30' } })
+    fireEvent.change(container.querySelector('[name="justification"]'), { target: { value: 'Improves reporting.' } })
+    fireEvent.submit(container.querySelector('form'))
+
+    await waitFor(() => {
+      expect(projectsApi.createProjectRequest).toHaveBeenCalledTimes(1)
+    })
+    const payload = projectsApi.createProjectRequest.mock.calls[0][0]
+    expect(payload).not.toHaveProperty('project_name')
+    expect(payload).toMatchObject({
+      name: 'Customer Portal',
+      proposed_start_date: '2027-01-04',
+      proposed_end_date: '2027-06-30',
+      business_justification: 'Improves reporting.',
+    })
   })
 })

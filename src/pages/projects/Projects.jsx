@@ -415,7 +415,6 @@ function Projects() {
     try {
       const payload = {
         name: requestData.name,
-        project_name: requestData.name,
         description: requestData.description,
         proposed_start_date: requestData.proposed_start_date,
         proposed_end_date: requestData.proposed_end_date || requestData.proposed_target_end_date,

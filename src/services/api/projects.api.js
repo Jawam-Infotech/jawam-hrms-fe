@@ -190,9 +190,6 @@ export const projectsApi = {
   getProjectRequestDetail: (id) =>
     api.get(PROJECT_REQUEST_ENDPOINTS.requestById(id)),
 
-  updateProjectRequest: (id, payload) =>
-    api.patch(PROJECT_REQUEST_ENDPOINTS.requestById(id), payload),
-
   resubmitProjectRequest: (id, payload) => {
     const data = {
       ...payload,
