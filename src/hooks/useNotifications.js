@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  getNotifications,
+  getAllNotifications,
   getUnreadNotificationCount,
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
   clearAllNotifications,
 } from '../services/notificationService.js'
+import {
+  NOTIF_POPUP_EVENT,
+  NOTIF_BC_CHANNEL,
+} from '../utils/projectNotificationService.js'
 
 function useNotifications() {
   const [notifications, setNotifications] = useState([])
@@ -24,7 +28,7 @@ function useNotifications() {
 
       const [notificationResponse, unreadResponse] =
         await Promise.all([
-          getNotifications().catch(() => ({ results: [] })),
+          getAllNotifications(),
           getUnreadNotificationCount().catch(() => 0),
         ])
 
@@ -36,17 +40,7 @@ function useNotifications() {
           ? notificationResponse
           : []
 
-      // Integrate local custom notifications (e.g. CEO approvals)
-      let customNotifs = []
-      try {
-        const stored = localStorage.getItem('jawam_custom_notifications_v1')
-        if (stored) customNotifs = JSON.parse(stored)
-      } catch (e) {
-        console.error('Error loading custom notifications', e)
-      }
-
-      const merged = [...customNotifs, ...notificationResults]
-      setNotifications(merged)
+      setNotifications(notificationResults)
 
       const apiCount =
         typeof unreadResponse === 'number'
@@ -57,8 +51,7 @@ function useNotifications() {
               0
             )
 
-      const customUnread = customNotifs.filter((n) => !n.is_read).length
-      setUnreadCount((Number.isFinite(apiCount) ? apiCount : 0) + customUnread)
+      setUnreadCount(Number.isFinite(apiCount) ? apiCount : 0)
     } catch (err) {
       console.error(
         'Failed to load notifications:',
@@ -188,16 +181,30 @@ function useNotifications() {
     void loadInitialNotifications()
   }, [loadNotifications])
 
-  // Sync across tabs/windows
+  // Sync across tabs/windows and internal custom events
   useEffect(() => {
     const handleSync = () => {
       loadNotifications()
     }
+
+    let bc = null
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel(NOTIF_BC_CHANNEL)
+        bc.onmessage = handleSync
+      }
+    } catch (e) {
+      console.error(e)
+    }
+
     window.addEventListener('storage', handleSync)
     window.addEventListener('focus', handleSync)
+    window.addEventListener(NOTIF_POPUP_EVENT, handleSync)
     return () => {
+      if (bc) bc.close()
       window.removeEventListener('storage', handleSync)
       window.removeEventListener('focus', handleSync)
+      window.removeEventListener(NOTIF_POPUP_EVENT, handleSync)
     }
   }, [loadNotifications])
 

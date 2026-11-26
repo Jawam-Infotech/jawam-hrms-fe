@@ -10,6 +10,54 @@ async function getNotifications(params = {}) {
   return data
 }
 
+const MAX_NOTIFICATION_PAGES = 50
+
+async function getAllNotifications(params = {}) {
+  const notifications = []
+  const seenIds = new Set()
+  const visitedPages = new Set()
+  let next = null
+  let pageCount = 0
+
+  const appendPage = (data) => {
+    const pageResults = Array.isArray(data?.results)
+      ? data.results
+      : Array.isArray(data)
+        ? data
+        : []
+
+    pageResults.forEach((notification) => {
+      const key = notification?.id ?? JSON.stringify(notification)
+      if (!seenIds.has(key)) {
+        seenIds.add(key)
+        notifications.push(notification)
+      }
+    })
+
+    next = data?.next || null
+  }
+
+  const firstResponse = await api.get(
+    NOTIFICATION_ENDPOINTS.list,
+    { params }
+  )
+  pageCount += 1
+  appendPage(firstResponse.data)
+
+  while (next && pageCount < MAX_NOTIFICATION_PAGES) {
+    if (visitedPages.has(next)) break
+    visitedPages.add(next)
+    const pageResponse = await api.get(next)
+    pageCount += 1
+    appendPage(pageResponse.data)
+  }
+
+  return {
+    count: notifications.length,
+    results: notifications,
+  }
+}
+
 async function getUnreadNotificationCount() {
   const { data } = await api.get(
     NOTIFICATION_ENDPOINTS.unreadCount
@@ -45,6 +93,7 @@ async function clearAllNotifications() {
 
 export {
   getNotifications,
+  getAllNotifications,
   getUnreadNotificationCount,
   markNotificationAsRead,
   markAllNotificationsAsRead,

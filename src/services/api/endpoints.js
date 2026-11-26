@@ -242,6 +242,61 @@ export const HOLIDAY_ENDPOINTS = {
   holidays: 'holidays/',
 }
 
+export const PROJECT_ENDPOINTS = {
+  projects: 'projects/',
+  projectById: (projectId) => `projects/${projectId}/`,
+  primaryPm: (projectId) => `projects/${projectId}/primary-pm/`,
+  members: (projectId) => `projects/${projectId}/members/`,
+  memberRemove: (projectId, userId) => `projects/${projectId}/members/${userId}/remove/`,
+  memberDeactivate: (projectId, userId) => `projects/${projectId}/members/${userId}/deactivate/`,
+  staffingMode: (projectId) => `projects/${projectId}/staffing-mode/`,
+  activate: (projectId) => `projects/${projectId}/activate/`,
+  hold: (projectId) => `projects/${projectId}/hold/`,
+  resume: (projectId) => `projects/${projectId}/resume/`,
+  cancelSolo: (projectId) => `projects/${projectId}/cancel/`,
+  archive: (projectId) => `projects/${projectId}/archive/`,
+  reactivate: (projectId) => `projects/${projectId}/reactivate/`,
+  closureRequest: (projectId) => `projects/${projectId}/closure/request/`,
+  closureBlockers: (projectId) => `projects/${projectId}/closure/blockers/`,
+  closureApprove: (projectId) => `projects/${projectId}/closure/approve/`,
+  closureReject: (projectId) => `projects/${projectId}/closure/reject/`,
+  workUpdates: (projectId, taskId) => `projects/${projectId}/tasks/${taskId}/work-updates/`,
+  taskWorkflow: (projectId, taskId) => `projects/${projectId}/tasks/${taskId}/workflow/`,
+  completionDecision: (projectId, taskId, submissionId) =>
+    `projects/${projectId}/tasks/${taskId}/completion-submissions/${submissionId}/decision/`,
+  changeRequests: (projectId, taskId) => `projects/${projectId}/tasks/${taskId}/change-requests/`,
+  auditTimeline: (projectId) => `projects/${projectId}/audit/`,
+  changeRequestDecision: (projectId, requestId) =>
+    `projects/${projectId}/change-requests/${requestId}/decision/`,
+  deliverableFile: (projectId, taskId, submissionId, fileId) =>
+    `projects/${projectId}/tasks/${taskId}/completion-submissions/${submissionId}/files/${fileId}/`,
+  reassignCompletionApprover: (projectId, taskId, submissionId) =>
+    `projects/${projectId}/tasks/${taskId}/completion-submissions/${submissionId}/reassign-approver/`,
+  reassignChangeApprover: (projectId, requestId) =>
+    `projects/${projectId}/change-requests/${requestId}/reassign-approver/`,
+  cancellationRequests: (projectId) => `projects/${projectId}/cancellation-requests/`,
+  cancellationApprove: (projectId, requestId) =>
+    `projects/${projectId}/cancellation-requests/${requestId}/approve/`,
+  cancellationReject: (projectId, requestId) =>
+    `projects/${projectId}/cancellation-requests/${requestId}/reject/`,
+  tasks: (projectId) => `projects/${projectId}/tasks/`,
+  taskById: (projectId, taskId) => `projects/${projectId}/tasks/${taskId}/`,
+  taskAssign: (projectId, taskId) => `projects/${projectId}/tasks/${taskId}/assign/`,
+  taskStatus: (projectId, taskId) => `projects/${projectId}/tasks/${taskId}/status/`,
+  taskCancel: (projectId, taskId) => `projects/${projectId}/tasks/${taskId}/cancel/`,
+  approvalQueue: 'approvals/',
+}
+
+export const PROJECT_REQUEST_ENDPOINTS = {
+  requests: 'project-requests/',
+  requestById: (id) => `project-requests/${id}/`,
+  approve: (id) => `project-requests/${id}/approve/`,
+  reject: (id) => `project-requests/${id}/reject/`,
+  withdraw: (id) => `project-requests/${id}/withdraw/`,
+  returnForClarification: (id) => `project-requests/${id}/return/`,
+  resubmit: (id) => `project-requests/${id}/resubmit/`,
+}
+
 export {
   AUTH_ENDPOINTS,
   EMPLOYEE_ENDPOINTS,
@@ -254,3 +309,4 @@ export {
   SALARY_REVISION_ENDPOINTS,
   SETTLEMENT_ENDPOINTS,
 }
+

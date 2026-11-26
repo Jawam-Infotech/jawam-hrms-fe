@@ -19,10 +19,15 @@ const STATUS_STYLES = {
   pending_pm_approval: 'bg-[#ede9fe] text-[#6d28d9]',
   'recommended to you': 'bg-[#ede9fe] text-[#6d28d9]',
   'under pm approval': 'bg-[#ede9fe] text-[#6d28d9]',
+  'awaiting pm sign-off': 'bg-[#ede9fe] text-[#6d28d9]',
   direct_approval_required: 'bg-[#fed7aa] text-[#c2410c]',
+  'direct approval required': 'bg-[#fed7aa] text-[#c2410c]',
   'direct approval pending': 'bg-[#fed7aa] text-[#c2410c]',
+  'direct pm/tl approval': 'bg-[#fed7aa] text-[#c2410c]',
+  'awaiting pm approval': 'bg-[#fed7aa] text-[#c2410c]',
   pending_ceo_approval: 'bg-[#fce7f3] text-[#be185d]',
   'direct ceo approval': 'bg-[#fce7f3] text-[#be185d]',
+  'awaiting ceo approval': 'bg-[#fce7f3] text-[#be185d]',
   quality_risk: 'bg-[#ffe4e6] text-[#e11d48]',
   'quality risk': 'bg-[#ffe4e6] text-[#e11d48]',
   archived: 'bg-[#f1f5f9] text-[#64748b]',
@@ -30,21 +35,41 @@ const STATUS_STYLES = {
 
 const DISPLAY_LABELS = {
   pending_tl_review: 'Under TL Review',
-  pending_pm_approval: 'Recommended to You',
+  pending_pm_approval: 'Awaiting PM Approval',
   direct_approval_required: 'Direct PM Approval',
-  pending_ceo_approval: 'Direct CEO Approval',
+  'direct approval required': 'Direct PM Approval',
+  'direct approval pending': 'Direct PM Approval',
+  'awaiting pm approval': 'Awaiting PM Approval',
+  'awaiting pm sign-off': 'Awaiting PM Approval',
+  'direct pm approval': 'Direct PM Approval',
+  'direct pm/tl approval': 'Direct PM Approval',
+  pending_ceo_approval: 'Awaiting CEO Approval',
   pending_ceo_closure: 'Pending CEO Closure',
   on_hold: 'On Hold',
   quality_risk: 'Quality Risk',
   archived: 'Archived',
+  rejected: 'Rejected',
 }
 
-function StatusBadge({ status, className = '' }) {
+function StatusBadge({ status, isSolo = false, className = '' }) {
   if (!status) return null
 
   const normalized = String(status).trim().toLowerCase()
   const colorClass = STATUS_STYLES[normalized] || 'bg-[#f3f4f6] text-[#374151]'
-  const label = DISPLAY_LABELS[normalized] || status
+  let label = DISPLAY_LABELS[normalized] || status
+
+  if (
+    normalized === 'direct_approval_required' ||
+    normalized === 'direct approval required' ||
+    normalized === 'direct approval pending' ||
+    normalized === 'direct pm/tl approval' ||
+    normalized === 'direct pm approval' ||
+    normalized === 'awaiting pm approval' ||
+    normalized === 'pending_pm_approval' ||
+    normalized === 'awaiting pm sign-off'
+  ) {
+    label = isSolo ? 'Direct PM Approval' : 'Awaiting PM Approval'
+  }
 
   return (
     <span

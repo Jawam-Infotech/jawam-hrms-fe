@@ -9,3 +9,5 @@ export {
   resetPasswordOtp,
 } from './auth.api.js'
 export { createEmployee } from './employee.api.js'
+export { PROJECT_ENDPOINTS } from './endpoints.js'
+export { projectsApi, default as projectApi } from './projects.api.js'

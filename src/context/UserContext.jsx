@@ -63,10 +63,22 @@ useEffect(() => {
     setUser(emptyUser)
   }, [])
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const freshUser = await fetchCurrentUser()
+      setUser({ ...freshUser, isLoggedIn: true })
+      setSession({ user: freshUser })
+      return freshUser
+    } catch {
+      return null
+    }
+  }, [])
+
   const value = {
     user,
     login,
     logout,
+    refreshUser,
     isBootstrapping,
     authError,
     setAuthError,

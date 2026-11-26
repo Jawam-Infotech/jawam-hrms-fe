@@ -1,47 +1,106 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import CapacityBadge from '../ui/CapacityBadge.jsx'
+import { getEmployees } from '../../../services/employeeService.js'
 
-// Candidate pool for project assignment with simulated live capacity
-const CANDIDATE_MEMBERS = [
-  { id: 'emp-sk', name: 'Shivani k', role: 'Team Leader', activeTasks: 2, projectCount: 2 },
-  { id: 'emp-kp', name: 'Kanishk Prashad', role: 'Frontend Developer', activeTasks: 2, projectCount: 1 },
-  { id: 'emp-1', name: 'Aarav Sharma', role: 'UI/UX Designer', activeTasks: 1, projectCount: 1 },
-  { id: 'emp-2', name: 'Priya Verma', role: 'Frontend Developer', activeTasks: 4, projectCount: 2 },
-  { id: 'emp-3', name: 'Rahul Patel', role: 'Backend Engineer', activeTasks: 8, projectCount: 3 },
-  { id: 'emp-4', name: 'Brijesh Bisht', role: 'Backend Engineer', activeTasks: 2, projectCount: 1 },
-]
-
-function ProjectMemberModal({ isOpen, onClose, onAddMember, existingMemberIds = [], isSolo = false, projectStatus = 'ACTIVE' }) {
+function ProjectMemberModal({
+  isOpen,
+  onClose,
+  onAddMember,
+  existingMemberIds = [],
+  isSolo = false,
+  projectStatus = 'ACTIVE',
+  isSubmitting = false,
+  apiError = null,
+}) {
+  const [candidates, setCandidates] = useState([])
   const [selectedCandidateId, setSelectedCandidateId] = useState('')
   const [memberRole, setMemberRole] = useState(isSolo ? 'INDEPENDENT' : 'TEAM_MEMBER')
+  const [isLoading, setIsLoading] = useState(false)
+  const [fetchError, setFetchError] = useState(null)
+  const [error, setError] = useState('')
+
+  const loadEmployeeCandidates = useCallback(async () => {
+    setIsLoading(true)
+    setFetchError(null)
+
+    const existingSet = new Set(
+      existingMemberIds.map((id) => String(id).toLowerCase().trim())
+    )
+
+    try {
+      const res = await getEmployees()
+      const apiList = Array.isArray(res) ? res : (res?.employees || res?.data || res?.results || [])
+
+      // Silently exclude CEO and HR users, and already added members
+      const eligible = apiList.filter((e) => {
+        const rawId = String(e.user_id || e.id || '').trim().toLowerCase()
+        const name = String(e.name || '').trim().toLowerCase()
+        const roleUpper = String(e.role || e.designation || '').trim().toUpperCase()
+
+        // CEO and HR cannot be added to projects
+        if (roleUpper === 'CEO' || roleUpper === 'HR') return false
+
+        // Do not show members who are already in the project
+        if (existingSet.has(rawId) || existingSet.has(name)) return false
+
+        return true
+      })
+
+      setCandidates(eligible)
+    } catch (err) {
+      console.error('Failed to load employee directory:', err)
+      setFetchError('Failed to load employee directory. Please check your network connection and retry.')
+      setCandidates([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [existingMemberIds])
+
+  useEffect(() => {
+    if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setError('')
+      setSelectedCandidateId('')
+      void loadEmployeeCandidates()
+    }
+  }, [isOpen, loadEmployeeCandidates])
 
   if (!isOpen) return null
 
-  const availableCandidates = CANDIDATE_MEMBERS.filter(
-    (c) => !existingMemberIds.includes(c.id) && !existingMemberIds.includes(c.name),
-  )
-
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (projectStatus !== 'ACTIVE') {
-      alert('First Activation is needed! Please activate the project before adding members.')
+    if (!selectedCandidateId) {
+      setError('Please select an employee to add.')
       return
     }
-    if (!selectedCandidateId) return
 
-    const candidate = CANDIDATE_MEMBERS.find((c) => c.id === selectedCandidateId)
-    if (!candidate) return
+    const candidate = candidates.find(
+      (c) => String(c.user_id || c.id) === String(selectedCandidateId)
+    )
+    if (!candidate) {
+      setError('Selected employee is no longer available.')
+      return
+    }
+
+    const candidateRole = String(candidate?.role || '').toUpperCase()
+    if (candidateRole === 'CEO' || candidateRole === 'HR') {
+      setError('Executive leadership (CEO) and HR personnel cannot be added as project members.')
+      return
+    }
 
     onAddMember({
       ...candidate,
-      projectRole: isSolo ? 'Independent Contributor' : (memberRole === 'PM' ? 'Project Manager' : candidate.role),
+      userId: candidate.user_id || candidate.id,
+      user_id: candidate.user_id || candidate.id,
+      projectRole: isSolo
+        ? 'Independent Contributor'
+        : memberRole === 'PM'
+        ? 'Project Manager'
+        : candidate.role || 'Member',
       isIndependent: isSolo || memberRole === 'INDEPENDENT',
       isPm: !isSolo && memberRole === 'PM',
       joinedAt: new Date().toISOString(),
     })
-
-    setSelectedCandidateId('')
-    onClose()
   }
 
   return (
@@ -65,57 +124,102 @@ function ProjectMemberModal({ isOpen, onClose, onAddMember, existingMemberIds = 
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-[#9ca3af] hover:bg-[#f1f5f9] hover:text-[#111827]"
+            disabled={isSubmitting}
+            className="rounded-full p-2 text-[#9ca3af] hover:bg-[#f1f5f9] hover:text-[#111827] disabled:opacity-50"
           >
             ✕
           </button>
         </div>
 
+        {apiError && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+            {apiError}
+          </div>
+        )}
+
+        {projectStatus === 'PLANNED' && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+            Project is in PLANNED status. Adding members here prepares the roster for activation.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-          {projectStatus !== 'ACTIVE' && (
-            <div className="rounded-xl border border-[#fed7aa] bg-[#fffbeb] p-3 text-xs font-semibold text-[#9a3412]">
-              ⚠️ First Activation is needed! You cannot add members while project is in {projectStatus} status. Please activate the project first.
-            </div>
-          )}
           <div>
             <label className="block text-[13px] font-bold text-[#111827] mb-2">
-              Select Employee (with live capacity) <span className="text-[#ef4444]">*</span>
+              Select Employee <span className="text-[#ef4444]">*</span>
             </label>
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-              {availableCandidates.map((candidate) => (
-                <label
-                  key={candidate.id}
-                  className={`flex items-center justify-between rounded-xl border p-3 cursor-pointer transition ${
-                    selectedCandidateId === candidate.id
-                      ? 'border-[#2563eb] bg-[#eff6ff]'
-                      : 'border-[#e5e7eb] hover:bg-[#f8fafc]'
-                  }`}
+
+            {fetchError ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-center">
+                <p className="text-xs font-semibold text-red-700">{fetchError}</p>
+                <button
+                  type="button"
+                  onClick={loadEmployeeCandidates}
+                  className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-red-600 px-4 py-1.5 text-xs font-bold text-white shadow hover:bg-red-700 transition"
                 >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="selectedCandidate"
-                      value={candidate.id}
-                      checked={selectedCandidateId === candidate.id}
-                      onChange={() => setSelectedCandidateId(candidate.id)}
-                      className="text-[#2563eb] focus:ring-[#2563eb]"
-                    />
-                    <div>
-                      <p className="text-[14px] font-bold text-[#111827]">{candidate.name}</p>
-                      <p className="text-xs text-[#6b7280]">{candidate.role}</p>
-                    </div>
-                  </div>
-                  <CapacityBadge
-                    activeTasks={candidate.activeTasks}
-                    projectCount={candidate.projectCount}
-                    showDetail={true}
-                  />
-                </label>
-              ))}
-              {availableCandidates.length === 0 && (
-                <p className="py-4 text-center text-xs text-[#9ca3af]">All candidate employees are already added.</p>
-              )}
-            </div>
+                  ↻ Retry Loading Employees
+                </button>
+              </div>
+            ) : isLoading ? (
+              <div className="py-6 text-center text-xs text-gray-500">
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mr-2" />
+                Loading employee directory...
+              </div>
+            ) : candidates.length > 0 ? (
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {candidates.map((candidate) => {
+                  const candidateId = String(candidate.user_id || candidate.id)
+                  const isSelected = String(selectedCandidateId) === candidateId
+                  const displayName =
+                    candidate.name ||
+                    `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() ||
+                    `User #${candidateId}`
+
+                  return (
+                    <label
+                      key={candidateId}
+                      className={`flex items-center justify-between rounded-xl border p-3 cursor-pointer transition ${
+                        isSelected
+                          ? 'border-[#2563eb] bg-[#eff6ff]'
+                          : 'border-[#e5e7eb] hover:bg-[#f8fafc]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="selectedCandidate"
+                          value={candidateId}
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedCandidateId(candidateId)
+                            setError('')
+                          }}
+                          className="h-4 w-4 text-[#2563eb] focus:ring-[#2563eb]"
+                        />
+                        <div>
+                          <p className="text-[14px] font-bold text-[#111827]">{displayName}</p>
+                          <p className="text-xs text-[#6b7280]">
+                            {candidate.designation || candidate.role || 'Staff'}
+                            {candidate.email ? ` • ${candidate.email}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <CapacityBadge
+                        activeTasks={candidate.activeTasks ?? 1}
+                        projectCount={candidate.projectCount ?? 1}
+                        showDetail={false}
+                      />
+                    </label>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="py-4 text-center text-xs text-[#9ca3af]">
+                All candidate employees are already added.
+              </p>
+            )}
+
+            {error && <p className="mt-1 text-xs text-[#ef4444]">{error}</p>}
           </div>
 
           {isSolo && (
@@ -146,24 +250,21 @@ function ProjectMemberModal({ isOpen, onClose, onAddMember, existingMemberIds = 
             </div>
           )}
 
-          <div className="mt-8 flex justify-end gap-3 border-t border-[#f1f5f9] pt-4">
+          <div className="mt-6 flex justify-end gap-3 border-t border-[#f1f5f9] pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-[#e5e7eb] px-5 py-2.5 text-[14px] font-semibold text-[#4b5563] hover:bg-[#f9fafb]"
+              disabled={isSubmitting}
+              className="rounded-full border border-[#e5e7eb] px-5 py-2.5 text-[14px] font-semibold text-[#4b5563] hover:bg-[#f9fafb] disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={!selectedCandidateId}
-              className={`rounded-full px-6 py-2.5 text-[14px] font-semibold text-white shadow-sm transition ${
-                selectedCandidateId
-                  ? 'bg-[#2563eb] hover:bg-[#1d4ed8]'
-                  : 'cursor-not-allowed bg-[#9ca3af]'
-              }`}
+              disabled={isSubmitting || isLoading || !selectedCandidateId}
+              className="rounded-full bg-[#2563eb] px-6 py-2.5 text-[14px] font-semibold text-white shadow-sm hover:bg-[#1d4ed8] disabled:opacity-50"
             >
-              {isSolo ? (existingMemberIds.length === 0 ? 'Assign to Project' : 'Add Contributor') : 'Add to Project'}
+              {isSubmitting ? 'Adding...' : 'Add Member to Project'}
             </button>
           </div>
         </form>

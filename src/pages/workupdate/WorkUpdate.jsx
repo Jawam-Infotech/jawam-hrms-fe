@@ -7,6 +7,7 @@ import {
   recordHRUpdate,
   addHRTask,
 } from '../../utils/hrWorkUpdateStore.js'
+import { dispatchProjectNotification } from '../../utils/projectNotificationService.js'
 
 function WorkUpdate() {
   const [tasks, setTasks] = useState(() => getHRTasks())
@@ -97,6 +98,13 @@ function WorkUpdate() {
     setSuccessBanner(
       `Daily work update for "${selectedTask.name}" has been submitted directly to CEO Gaurav Pandey.`
     )
+    dispatchProjectNotification({
+      title: '📝 HR Work Update Submitted',
+      message: `Work update for "${selectedTask.name}" submitted directly to CEO.`,
+      type: 'info',
+      targetRole: 'CEO',
+      link: '/workupdate',
+    })
     setTimeout(() => {
       setSuccessBanner('')
     }, 6000)
@@ -106,8 +114,9 @@ function WorkUpdate() {
     e.preventDefault()
     if (!newInitiativeForm.name.trim()) return
 
+    const initiativeName = newInitiativeForm.name.trim()
     addHRTask({
-      name: newInitiativeForm.name.trim(),
+      name: initiativeName,
       department: newInitiativeForm.department,
       priority: newInitiativeForm.priority,
       instructions: newInitiativeForm.instructions.trim(),
@@ -124,6 +133,13 @@ function WorkUpdate() {
     })
 
     setSuccessBanner('New HR initiative added to your board.')
+    dispatchProjectNotification({
+      title: '✨ New Initiative Created',
+      message: `HR initiative "${initiativeName}" was registered on the board.`,
+      type: 'info',
+      targetRole: 'ALL',
+      link: '/workupdate',
+    })
     setTimeout(() => {
       setSuccessBanner('')
     }, 5000)
@@ -305,7 +321,7 @@ function WorkUpdate() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <StatusBadge status={task.status} />
+                      <StatusBadge status={(task.isRejected || task.rework_count > 0 || task.reworkCount > 0) ? 'REJECTED' : task.status} />
                     </td>
                     <td className="px-6 py-4">
                       <button

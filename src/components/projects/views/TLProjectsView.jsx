@@ -7,36 +7,24 @@ function TLProjectsView({
   teamReviews = [],
   tcrReviews = [],
   myTasks = [],
-  canCreateProject = false,
   tlProjectRequests = [],
-  onOpenCreateModal,
   onOpenUpdateModal,
+  onOpenDetailModal,
   onOpenApprovalModal,
   onOpenChangeReviewModal,
   onOpenRequestModal,
+  onWithdrawRequest,
 }) {
   const [filter, setFilter] = useState('ALL')
-  const [approvedBanner, setApprovedBanner] = useState(() => {
-    try {
-      const saved = localStorage.getItem('jawam_tl_latest_approved_project_v1')
-      return saved ? JSON.parse(saved) : null
-    } catch {
-      return null
-    }
-  })
-
-  const pendingRequest = (tlProjectRequests || []).find(
-    (r) => r.status === 'PENDING_CEO_APPROVAL'
+  const pendingRequests = (tlProjectRequests || []).filter(
+    (r) => ['PENDING', 'PENDING_CEO_APPROVAL', 'SUBMITTED'].includes(String(r.status || '').toUpperCase())
   )
-
-  const handleDismissApprovedBanner = () => {
-    setApprovedBanner(null)
-    try {
-      localStorage.removeItem('jawam_tl_latest_approved_project_v1')
-    } catch (e) {
-      console.error(e)
-    }
-  }
+  const returnedRequests = (tlProjectRequests || []).filter(
+    (r) => ['RETURNED', 'CHANGES_REQUESTED', 'NEEDS_CLARIFICATION'].includes(String(r.status || '').toUpperCase())
+  )
+  const approvedRequests = (tlProjectRequests || []).filter(
+    (r) => String(r.status || '').toUpperCase() === 'APPROVED'
+  )
 
   const filteredProjects = projects.filter((p) => {
     if (filter === 'ALL') return true
@@ -55,38 +43,89 @@ function TLProjectsView({
         </div>
 
         <div className="flex items-center gap-3">
-          {canCreateProject ? (
-            <button
-              type="button"
-              onClick={onOpenCreateModal}
-              className="rounded-full bg-[#2563eb] px-6 py-2.5 text-[14px] font-bold text-white shadow hover:bg-[#1d4ed8]"
-            >
-              + Create Project (Permitted)
-            </button>
-          ) : pendingRequest ? (
-            <button
-              type="button"
-              disabled
-              className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-[14px] font-bold text-amber-800 cursor-not-allowed shadow-xs"
-              title={`Project request for "${pendingRequest.projectName}" is pending CEO approval`}
-            >
-              <span>⏳</span> Project Request Sent
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onOpenRequestModal}
-              className="inline-flex items-center gap-2 rounded-full border border-[#7c3aed] bg-[#f5f3ff] px-5 py-2.5 text-[14px] font-bold text-[#7c3aed] hover:bg-[#ede9fe]"
-            >
-              📋 Request Project Creation
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => onOpenRequestModal()}
+            className="inline-flex items-center gap-2 rounded-full border border-[#7c3aed] bg-[#f5f3ff] px-5 py-2.5 text-[14px] font-bold text-[#7c3aed] hover:bg-[#ede9fe] transition shadow-xs"
+          >
+            📋 Request Project Creation
+          </button>
         </div>
       </div>
 
-      {/* 1. Approved Project Alert Banner */}
-      {approvedBanner && (
-        <div className="flex items-center justify-between rounded-2xl border border-emerald-300 bg-emerald-50/95 p-4 shadow-sm">
+      {/* 1. Returned for Clarification Alert Banners */}
+      {returnedRequests.map((req) => (
+        <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-xl flex-shrink-0">
+              ⚠️
+            </div>
+            <div>
+              <p className="text-[15px] font-bold text-amber-950">
+                Project Request Returned for Clarification: &ldquo;{req.name || req.projectName}&rdquo;
+              </p>
+              <p className="text-xs text-amber-800 mt-0.5">
+                CEO Note: {req.decision_reason || 'Please review proposed dates and scope details before resubmitting.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-center">
+            {onWithdrawRequest && (
+              <button
+                type="button"
+                onClick={() => onWithdrawRequest(req.id)}
+                className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition"
+              >
+                Withdraw
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onOpenRequestModal(req)}
+              className="rounded-full bg-amber-600 px-4 py-1.5 text-xs font-bold text-white shadow hover:bg-amber-700 transition"
+            >
+              Edit &amp; Resubmit
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {/* 2. Pending Requests Alert Banners */}
+      {pendingRequests.map((req) => (
+        <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50/80 p-4 shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-xl flex-shrink-0">
+              ⏳
+            </div>
+            <div>
+              <p className="text-[14px] font-bold text-blue-950">
+                Project Request Submitted: &ldquo;{req.name || req.projectName}&rdquo;
+              </p>
+              <p className="text-xs text-blue-800 mt-0.5">
+                Proposed Timeline: {req.proposed_start_date || 'TBD'} to {req.proposed_end_date || req.proposed_target_end_date || 'TBD'} • Awaiting CEO decision.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-center">
+            <span className="rounded-full bg-blue-200 px-3 py-1 text-xs font-bold text-blue-900 border border-blue-300">
+              Pending CEO Decision
+            </span>
+            {onWithdrawRequest && (
+              <button
+                type="button"
+                onClick={() => onWithdrawRequest(req.id)}
+                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition"
+              >
+                Withdraw
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* 3. Approved Project Requests Banners */}
+      {approvedRequests.slice(0, 1).map((req) => (
+        <div key={req.id} className="flex items-center justify-between rounded-2xl border border-emerald-300 bg-emerald-50/95 p-4 shadow-sm">
           <div className="flex items-center gap-3.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-xl flex-shrink-0">
               🎉
@@ -96,42 +135,15 @@ function TLProjectsView({
                 Project Request Approved by CEO!
               </p>
               <p className="text-xs text-emerald-800 mt-0.5">
-                CEO Gaurav Pandey accepted your request for <strong className="font-bold">"{approvedBanner.projectName}"</strong>. It has been created and is active in your team workspace below!
+                CEO approved your request for <strong className="font-bold">&ldquo;{req.name || req.projectName}&rdquo;</strong>.
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleDismissApprovedBanner}
-            className="rounded-full p-1.5 text-emerald-700 hover:bg-emerald-100 transition"
-            title="Dismiss notification"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {/* 2. Pending Request Alert Banner */}
-      {pendingRequest && (
-        <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-xl flex-shrink-0">
-              ⏳
-            </div>
-            <div>
-              <p className="text-[14px] font-bold text-amber-950">
-                Project Request Sent: "{pendingRequest.projectName}"
-              </p>
-              <p className="text-xs text-amber-800 mt-0.5">
-                Your request has been submitted to CEO Gaurav Pandey for review and approval.
-              </p>
-            </div>
-          </div>
-          <span className="rounded-full bg-amber-200/80 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-300">
-            Pending CEO Decision
+          <span className="rounded-full bg-emerald-200 px-3 py-1 text-xs font-bold text-emerald-900 border border-emerald-300">
+            Approved
           </span>
         </div>
-      )}
+      ))}
 
 
       {/* KPI Metrics */}
@@ -191,18 +203,18 @@ function TLProjectsView({
                   <tr key={t.id}>
                     <td className="py-3 font-semibold text-[#111827]">{t.name}</td>
                     <td className="py-3 text-[#4b5563]">{t.projectTitle}</td>
-                    <td className="py-3 font-bold text-[#111827]">{t.changeRequest?.requester || t.assignee}</td>
+                    <td className="py-3 font-bold text-[#111827]">{t.open_change_request?.requested_by_name || t.requested_by_name || 'Unknown requester'}</td>
                     <td className="py-3">
                       <span className="rounded-full bg-[#ffedd5] border border-[#fed7aa] px-2.5 py-0.5 text-xs font-bold text-[#9a3412]">
-                        {t.changeRequest?.type === 'DEADLINE_EXTENSION'
+                        {t.open_change_request?.type === 'DEADLINE_EXTENSION' || t.open_change_request?.operation === 'EXTEND_DEADLINE'
                           ? 'Deadline Extension'
-                          : t.changeRequest?.type === 'TASK_DELETION'
+                          : t.open_change_request?.type === 'DELETE_TASK' || t.open_change_request?.operation === 'DELETE_TASK'
                             ? 'Task Deletion'
                             : 'Reassignment'}
                       </span>
                     </td>
                     <td className="py-3 text-xs text-[#6b7280] max-w-xs truncate">
-                      {t.changeRequest?.reason || 'No reason provided'}
+                      {t.open_change_request?.reason || 'No reason provided'}
                     </td>
                     <td className="py-3 text-right">
                       <button
@@ -226,8 +238,8 @@ function TLProjectsView({
         <div className="rounded-[24px] border border-[#fef3c7] bg-[#fffbeb] p-6 shadow-sm">
           <div className="flex items-center justify-between pb-4 border-b border-[#fde68a]">
             <div>
-              <h2 className="text-[18px] font-black text-[#92400e]">Team Deliverables Awaiting TL Review</h2>
-              <p className="text-xs text-[#b45309]">Review proof-of-work before recommending to Project Manager for final sign-off</p>
+              <h2 className="text-[18px] font-black text-[#92400e]">Deliverables Awaiting Your Review</h2>
+              <p className="text-xs text-[#b45309]">Review team member proof-of-work and deliverable submissions requiring your sign-off</p>
             </div>
             <span className="rounded-full bg-[#fef3c7] px-3 py-1 text-xs font-bold text-[#b45309] border border-[#fde68a]">
               {teamReviews.length} To Review
@@ -250,14 +262,21 @@ function TLProjectsView({
                   <tr key={t.id}>
                     <td className="py-3 font-semibold text-[#111827]">{t.name}</td>
                     <td className="py-3 text-[#4b5563]">{t.projectTitle}</td>
-                    <td className="py-3 font-bold text-[#111827]">{t.assignee}</td>
+                    <td className="py-3 font-bold text-[#111827]">
+                      {t.assignee}
+                      <div className="text-xs font-normal text-[#6b7280]">
+                        Submitted by {t.requested_by_name || 'Unknown requester'}
+                      </div>
+                    </td>
                     <td className="py-3">
-                      {t.deliverable ? (
+                      {(t.deliverable || t.open_completion_submission?.deliverable_urls?.length || t.open_completion_submission?.deliverable_files?.length || t.deliverable_urls?.length || t.deliverable_files?.length) ? (
                         <span className="rounded-full bg-[#ecfdf5] px-2.5 py-0.5 text-xs font-semibold text-[#059669]">
-                          ✓ {t.deliverable.type === 'LINK' ? 'URL Attached' : 'File Attached'}
+                          ✓ Deliverable Attached
                         </span>
                       ) : (
-                        <span className="text-xs text-[#9ca3af]">No proof</span>
+                        <span className="rounded-full bg-[#fffbeb] border border-[#fde68a] px-2.5 py-0.5 text-xs font-semibold text-[#92400e]">
+                          Pending Review
+                        </span>
                       )}
                     </td>
                     <td className="py-3 text-right">
@@ -333,22 +352,47 @@ function TLProjectsView({
               <tbody className="divide-y divide-[#f1f5f9]">
                 {myTasks.map((task) => (
                   <tr key={task.id} className="hover:bg-[#f8fafc]">
-                    <td className="px-4 py-3 font-bold text-[#111827]">{task.name}</td>
+                    <td className="px-4 py-3">
+                      <p
+                        onClick={() => onOpenDetailModal?.(task)}
+                        className={`font-bold text-[#111827] ${onOpenDetailModal ? 'cursor-pointer hover:text-[#2563eb] transition' : ''}`}
+                        title="Click to view full details"
+                      >
+                        {task.name}
+                      </p>
+                      {task.isRejected && (
+                        <p className="mt-1 text-xs text-[#dc2626] font-semibold">
+                          ❌ Rejected ({task.reworkCount || 1}×)
+                        </p>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-[#4b5563]">{task.projectTitle}</td>
                     <td className="px-4 py-3 font-semibold text-[#111827]">{task.progress || 0}%</td>
-                    <td className="px-4 py-3"><StatusBadge status={task.status} /></td>
+                    <td className="px-4 py-3"><StatusBadge status={task.isRejected ? 'REJECTED' : task.status} /></td>
                     <td className="px-4 py-3 text-right">
-                      {task.status !== 'COMPLETED' ? (
-                        <button
-                          type="button"
-                          onClick={() => onOpenUpdateModal(task)}
-                          className="rounded-full bg-[#eff6ff] px-3.5 py-1 text-xs font-bold text-[#2563eb] hover:bg-[#dbeafe]"
-                        >
-                          Update Progress
-                        </button>
-                      ) : (
-                        <span className="text-xs font-bold text-[#059669]">✓ Completed</span>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {onOpenDetailModal && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenDetailModal(task)}
+                            className="rounded-full border border-gray-200 bg-white p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition shadow-xs"
+                            title="View Task Details"
+                          >
+                            👁️
+                          </button>
+                        )}
+                        {task.status !== 'COMPLETED' ? (
+                          <button
+                            type="button"
+                            onClick={() => onOpenUpdateModal(task)}
+                            className="rounded-full bg-[#eff6ff] px-3.5 py-1 text-xs font-bold text-[#2563eb] hover:bg-[#dbeafe]"
+                          >
+                            Update Progress
+                          </button>
+                        ) : (
+                          <span className="text-xs font-bold text-[#059669]">✓ Completed</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

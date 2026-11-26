@@ -1,16 +1,27 @@
-
-function ProjectActivationModal({ isOpen, onClose, project, onConfirmActivation }) {
+function ProjectActivationModal({
+  isOpen,
+  onClose,
+  project,
+  members = [],
+  onConfirmActivation,
+  isSubmitting = false,
+  apiError = null,
+}) {
   if (!isOpen || !project) return null
 
-  const isSolo = project.staffingMode === 'SOLO' || project.isSoloProject
-  const members = project.members || []
-  const hasPm = isSolo ? true : Boolean(project.primaryPm)
-  const distinctMembers = members.filter((m) => m.name !== project.primaryPm && !m.isPm)
+  const isSolo = project.staffingMode === 'SOLO' || project.staffing_mode === 'SOLO' || project.isSoloProject
+  const memberList = members && members.length > 0 ? members : (project.members || [])
+  const activeMembers = memberList.filter((m) => m.is_active !== false)
+  const pmMember = activeMembers.find((m) => m.is_current_pm || m.isPm)
+  const hasPm = isSolo ? true : Boolean(pmMember || project.primaryPm || project.primary_pm_name)
+  const pmName = pmMember?.name || project.primaryPm || project.primary_pm_name || 'Assigned'
+  const distinctMembers = activeMembers.filter((m) => !m.is_current_pm && !m.isPm && m !== pmMember)
   const distinctMemberCount = distinctMembers.length
 
-  // Projects start in PLANNED status; clicking Activate unlocks member addition and task assignment
-  const isSoloStaffed = isSolo && members.length >= 1
-  const canActivate = true
+  // Staffing gate verification per Section 3.2
+  const isSoloStaffed = isSolo && activeMembers.length >= 1
+  const isTeamStaffed = !isSolo && hasPm && distinctMemberCount >= 1
+  const canActivate = isSolo ? isSoloStaffed : isTeamStaffed
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
@@ -23,17 +34,27 @@ function ProjectActivationModal({ isOpen, onClose, project, onConfirmActivation 
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-[#9ca3af] hover:bg-[#f1f5f9] hover:text-[#111827]"
+            disabled={isSubmitting}
+            className="rounded-full p-2 text-[#9ca3af] hover:bg-[#f1f5f9] hover:text-[#111827] disabled:opacity-50"
           >
             ✕
           </button>
         </div>
 
+        {apiError && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
+            {apiError}
+          </div>
+        )}
+
         <div className="mt-6 space-y-4">
           <div className="rounded-[16px] bg-[#f8fafc] p-4 text-[14px]">
             <p className="font-bold text-[#111827]">{project.title || project.name}</p>
             <p className="mt-1 text-xs text-[#6b7280]">
-              Staffing Mode: <span className="font-semibold text-[#111827]">{isSolo ? 'Solo / Independent Contributor' : 'Standard Team Project (Default)'}</span>
+              Staffing Mode:{' '}
+              <span className="font-semibold text-[#111827]">
+                {isSolo ? 'Solo / Independent Contributor' : 'Standard Team Project (Default)'}
+              </span>
             </p>
           </div>
 
@@ -48,7 +69,7 @@ function ProjectActivationModal({ isOpen, onClose, project, onConfirmActivation 
                     <p className="text-[11px] text-[#6b7280]">Exactly one active Primary PM required</p>
                   </div>
                   {hasPm ? (
-                    <span className="font-bold text-[#059669]">✓ {project.primaryPm}</span>
+                    <span className="font-bold text-[#059669]">✓ {pmName}</span>
                   ) : (
                     <span className="font-bold text-[#dc2626]">✗ Missing PM</span>
                   )}
@@ -74,7 +95,7 @@ function ProjectActivationModal({ isOpen, onClose, project, onConfirmActivation 
                     <p className="text-[11px] text-[#6b7280]">Requires 1 active employee executing alone</p>
                   </div>
                   {isSoloStaffed ? (
-                    <span className="font-bold text-[#059669]">✓ {members[0]?.name || 'Assigned'}</span>
+                    <span className="font-bold text-[#059669]">✓ {activeMembers[0]?.name || 'Assigned'}</span>
                   ) : (
                     <span className="font-bold text-[#dc2626]">✗ No employee assigned</span>
                   )}
@@ -90,36 +111,47 @@ function ProjectActivationModal({ isOpen, onClose, project, onConfirmActivation 
             )}
           </div>
 
-          <div className="rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-4 text-xs text-[#166534]">
-            <p className="font-bold">✓ Ready for Official Activation:</p>
-            <p className="mt-1">
-              Confirming activation transitions this initiative from <strong>PLANNED</strong> to <strong>ACTIVE</strong>. Once active, project leadership is fully authorized to add team members and assign tasks.
-            </p>
-          </div>
+          {canActivate ? (
+            <div className="rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-4 text-xs text-[#166534]">
+              <p className="font-bold">✓ Ready for Official Activation:</p>
+              <p className="mt-1">
+                Confirming activation transitions this initiative from <strong>PLANNED</strong> to <strong>ACTIVE</strong>. Once active, project leadership is fully authorized to add team members and assign tasks.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+              <p className="font-bold">Staffing Gate Incomplete:</p>
+              <p className="mt-1">
+                {isSolo
+                  ? 'A solo project requires exactly 1 assigned member before activation.'
+                  : 'A team project requires exactly 1 active Primary PM and at least 1 distinct team member before activation.'}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="mt-8 flex justify-end gap-3 border-t border-[#f1f5f9] pt-4">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-[#e5e7eb] px-5 py-2.5 text-[14px] font-semibold text-[#4b5563] hover:bg-[#f9fafb]"
+            disabled={isSubmitting}
+            className="rounded-full border border-[#e5e7eb] px-5 py-2.5 text-[14px] font-semibold text-[#4b5563] hover:bg-[#f9fafb] disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             type="button"
-            disabled={!canActivate}
+            disabled={!canActivate || isSubmitting}
             onClick={() => {
               onConfirmActivation(project.id)
-              onClose()
             }}
             className={`rounded-full px-6 py-2.5 text-[14px] font-semibold text-white shadow-sm transition ${
-              canActivate
+              canActivate && !isSubmitting
                 ? 'bg-[#10b981] hover:bg-[#059669]'
                 : 'cursor-not-allowed bg-[#9ca3af]'
             }`}
           >
-            Confirm & Activate Project
+            {isSubmitting ? 'Activating...' : 'Confirm & Activate Project'}
           </button>
         </div>
       </div>
