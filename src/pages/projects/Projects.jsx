@@ -20,6 +20,31 @@ import formatApiError from '../../utils/formatApiError.js'
 import downloadDeliverable from '../../utils/downloadDeliverable.js'
 import { dispatchProjectNotification } from '../../utils/projectNotificationService.js'
 
+// Maps one backend approval-queue CHANGE item to the review object TaskChangeReviewModal reads.
+// Authorization: the approval queue returns only items the backend's may_decide_stage allows this viewer to decide, so
+// can_decide is set here and only here. An item without an item_id or a project_id cannot be acted on, so it is shown as
+// not decidable. Task rows keep the per-row can_decide the backend sends.
+function toChangeReview(item) {
+  const projectId = item.project_id ?? item.projectId ?? null
+  const changeId = item.item_id ?? null
+  return {
+    ...item,
+    project_id: projectId,
+    projectId,
+    open_change_request: {
+      id: changeId,
+      item_id: changeId,
+      operation: item.operation ?? null,
+      stage: item.stage ?? null,
+      state: 'PENDING',
+      requested_by_id: item.requested_by_id ?? null,
+      requested_by_name: item.requested_by_name ?? null,
+      requested_at: item.requested_at ?? null,
+      can_decide: changeId !== null && projectId !== null,
+    },
+  }
+}
+
 function Projects() {
   const { user, refreshUser } = useContext(UserContext)
 
@@ -247,18 +272,16 @@ function Projects() {
 
   // Team Leader TCR reviews queue (Stage 1) - Exclusive source: approvalQueue
   const tlTcrReviews = useMemo(() => {
-    return approvalQueue.filter((item) =>
-      item.type === 'CHANGE' &&
-      item.stage === 'TL'
-    )
+    return approvalQueue
+      .filter((item) => item.type === 'CHANGE' && item.stage === 'TL')
+      .map(toChangeReview)
   }, [approvalQueue])
 
   // Executive / PM TCR reviews queue - Exclusive source: approvalQueue
   const executiveTcrReviews = useMemo(() => {
-    return approvalQueue.filter((item) =>
-      item.type === 'CHANGE' &&
-      (item.stage === 'PM' || item.stage === 'DIRECT')
-    )
+    return approvalQueue
+      .filter((item) => item.type === 'CHANGE' && (item.stage === 'PM' || item.stage === 'DIRECT'))
+      .map(toChangeReview)
   }, [approvalQueue])
 
   // Role-scoped data filters
@@ -696,6 +719,8 @@ function Projects() {
   const handleApproveTaskChange = async ({ requestId, reason } = {}) => {
     const projId = activeChangeReviewTask?.projectId || activeChangeReviewTask?.project_id || activeChangeReviewTask?.project
     const reqId = requestId || activeChangeReviewTask?.open_change_request?.id
+    // Strict review-object authorization: act only when this review object says the viewer may decide it.
+    if (activeChangeReviewTask?.open_change_request?.can_decide !== true) return
     if (!projId || !reqId) return
     setIsModalSubmitting(true)
     setModalActionError(null)
@@ -725,6 +750,8 @@ function Projects() {
   const handleRejectTaskChange = async ({ requestId, reason } = {}) => {
     const projId = activeChangeReviewTask?.projectId || activeChangeReviewTask?.project_id || activeChangeReviewTask?.project
     const reqId = requestId || activeChangeReviewTask?.open_change_request?.id
+    // Strict review-object authorization: act only when this review object says the viewer may decide it.
+    if (activeChangeReviewTask?.open_change_request?.can_decide !== true) return
     if (!projId || !reqId) return
     setIsModalSubmitting(true)
     setModalActionError(null)
