@@ -54,6 +54,7 @@ const Report = lazy(() => import('../pages/jlearn/report/Report.jsx'))
 
 const Reports = lazy(() => import('../pages/reports/Reports.jsx'))
 const Invoice = lazy(() => import('../pages/invoice/Invoice.jsx'))
+const Announcements = lazy(() => import('../pages/announcements/Announcements.jsx'))
 
 const MyProfile = lazy(() => import('../pages/profile/MyProfile.jsx'))
 const EditProfile = lazy(() => import('../pages/profile/EditProfile.jsx'))
@@ -81,6 +82,15 @@ function AppRoutes() {
 
 
         {/* ==================== DASHBOARDS ==================== */}
+
+        <Route
+          path="/announcements"
+          element={
+            <ProtectedRoute allowedRoles={['CEO', 'HR']}>
+              <Announcements />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/dashboard"

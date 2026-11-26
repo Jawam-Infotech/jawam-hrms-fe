@@ -7,7 +7,7 @@ import AssignedTaskCard from '../../shared/AssignedTaskCard.jsx'
 import LeaveBalanceCard from '../../shared/LeaveBalanceCard.jsx'
 import PerformanceScoreCard from '../../shared/PerformanceScoreCard.jsx'
 import LatestPayslipCard from '../../shared/LatestPayslipCard.jsx'
-import AnnouncementCard from '../../shared/AnnouncementCard.jsx'
+import DashboardAnnouncements from '../common/DashboardAnnouncements.jsx'
 import TodaysTasksCard from '../../shared/TodaysTasksCard.jsx'
 import RecentActivitiesCard from '../../shared/RecentActivitiesCard.jsx'
 import useAttendance from '../../../hooks/useAttendance.js'
@@ -225,7 +225,7 @@ const visibleMissedCheckouts = missedCheckouts.filter((attendance) => {
       <div className="grid grid-cols-3 gap-6 max-[1220px]:grid-cols-2 max-[760px]:grid-cols-1">
         <PerformanceScoreCard />
         <LatestPayslipCard employeeId={user.id} />
-        <AnnouncementCard />
+        <DashboardAnnouncements />
       </div>
 
       <div className="grid grid-cols-2 gap-6 max-[760px]:grid-cols-1">

@@ -11,6 +11,7 @@ import ActivePositionsCard from './cards/ActivePositionsCard.jsx'
 import PendingAssetRequestCard from './cards/PendingAssetRequestCard.jsx'
 import UpcomingActivitiesCard from './cards/UpcomingActivitiesCard.jsx'
 import LeaveRequestCard from './cards/LeaveRequestCard.jsx'
+import DashboardAnnouncements from '../common/DashboardAnnouncements.jsx'
 
 function HRDashboardContent() {
   const navigate = useNavigate()
@@ -90,6 +91,7 @@ function HRDashboardContent() {
           loading={loading}
         />
       </div>
+      <DashboardAnnouncements />
     </div>
   )
 }

@@ -3,12 +3,14 @@ import { useState } from 'react'
 import DashboardModeToggle from '../../components/dashboard/common/DashboardModeToggle.jsx'
 import EmployeeDashboardContent from '../../components/dashboard/employee/EmployeeDashboardContent.jsx'
 import HRDashboardContent from '../../components/dashboard/hr/HRDashboardContent.jsx'
+import DashboardCelebrationCoordinator from '../../components/dashboard/common/DashboardCelebrationCoordinator.jsx'
 
 function HRDashboard() {
   const [dashboardMode, setDashboardMode] = useState('hr')
 
   return (
     <DashboardLayout>
+      <DashboardCelebrationCoordinator />
       <div className="space-y-8">
         <DashboardModeToggle
           mode={dashboardMode}

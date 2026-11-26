@@ -4,6 +4,7 @@ import { UserContext } from '../context/UserContext'
 import { NAV_CONFIG } from '../config/navigation'
 import useNotifications from '../hooks/useNotifications.js'
 import NotificationDropdown from '../components/notifications/NotificationDropdown.jsx'
+import { Megaphone } from 'lucide-react'
 //import { UserContext } from '../context/UserContext.jsx'
 
 function DashboardLayout({ children }) {
@@ -163,6 +164,18 @@ const {
     />
   )}
 </div>
+
+            {['CEO', 'HR'].includes(user?.role) && (
+              <button
+                type="button"
+                onClick={() => navigate('/announcements')}
+                className="relative rounded-lg p-2 text-[20px] transition-all hover:bg-[#f5fbf8]"
+                aria-label="Announcements"
+                title="Announcements"
+              >
+                <Megaphone size={20} aria-hidden="true" />
+              </button>
+            )}
 
             {/* User Profile (click to open menu) */}
             <div className="relative">

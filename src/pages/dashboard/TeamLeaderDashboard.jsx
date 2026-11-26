@@ -3,12 +3,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.jsx'
 import DashboardModeToggle from '../../components/dashboard/common/DashboardModeToggle.jsx'
 import EmployeeDashboardContent from '../../components/dashboard/employee/EmployeeDashboardContent.jsx'
 import TeamLeaderDashboardContent from '../../components/dashboard/teamleader/TeamLeaderDashboardContent.jsx'
+import DashboardCelebrationCoordinator from '../../components/dashboard/common/DashboardCelebrationCoordinator.jsx'
 
 function TeamLeaderDashboard() {
   const [dashboardMode, setDashboardMode] = useState('teamleader')
 
   return (
     <DashboardLayout>
+      <DashboardCelebrationCoordinator />
       <div className="space-y-8">
         <DashboardModeToggle
           mode={dashboardMode}
