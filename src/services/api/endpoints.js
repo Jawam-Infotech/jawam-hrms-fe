@@ -149,6 +149,13 @@ const NOTIFICATION_ENDPOINTS = {
   clearAll: 'notifications/clear-all/',
 }
 
+const ANNOUNCEMENT_ENDPOINTS = {
+  list: 'announcements/',
+  unreadCount: 'announcements/unread-count/',
+  markAsRead: (announcementId) => `announcements/${announcementId}/read/`,
+  byId: (announcementId) => `announcements/${announcementId}/`,
+}
+
 const ASSETS_ENDPOINTS = {
   // My Assets
   me: 'assets/me/',
@@ -296,6 +303,7 @@ export {
   ATTENDANCE_ENDPOINTS,
   LEAVE_ENDPOINTS,
   NOTIFICATION_ENDPOINTS,
+  ANNOUNCEMENT_ENDPOINTS,
   ASSETS_ENDPOINTS,
   PAYROLL_ENDPOINTS,
   SALARY_REVISION_ENDPOINTS,

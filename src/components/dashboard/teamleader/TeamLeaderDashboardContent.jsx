@@ -11,6 +11,7 @@ import UpcomingTeamEventsCard from './cards/UpcomingTeamEventsCard.jsx'
 import UpcomingDeadlinesCard from './cards/UpcomingDeadlinesCard.jsx'
 import TeamLeaderTodaysTasksCard from './cards/TeamLeaderTodaysTasksCard.jsx'
 import LeaveRequestCard from './cards/LeaveRequestCard.jsx'
+import DashboardAnnouncements from '../common/DashboardAnnouncements.jsx'
 
 const PROJECTS_STORAGE_KEY = 'jawam_projects_state_v1'
 const TL_REQUESTS_KEY = 'jawam_tl_project_requests_v1'
@@ -303,6 +304,7 @@ function TeamLeaderDashboardContent() {
           loading={loading}
         />
       </div>
+      <DashboardAnnouncements />
     </div>
   )
 }

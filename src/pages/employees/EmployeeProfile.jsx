@@ -70,7 +70,7 @@ if (!employee) {
         <button onClick={() => navigate(-1)} className="text-[#6b7280] hover:underline">← Back</button>
 
         <div className="flex items-center gap-6">
-          <EmployeeProfileHeader employee={employee} hideMissingSensitiveFields />
+          <EmployeeProfileHeader employee={employee} hideMissingSensitiveFields hideJoiningDate={String(user.role || '').toUpperCase() === 'TL'} showTenure />
           <EmployeeProfileActions
   employee={employee}
   permissions={permissions}

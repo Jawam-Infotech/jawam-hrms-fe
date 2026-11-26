@@ -1,10 +1,12 @@
 import { getMediaUrl } from '../../utils/mediaUrl.js'
-function EmployeeProfileHeader({ employee, hideMissingSensitiveFields = false }) {
+import { getCompanyTenure } from '../../utils/tenureUtils.js'
+function EmployeeProfileHeader({ employee, hideMissingSensitiveFields = false, hideJoiningDate = false, showTenure = true }) {
   const avatarInitial = employee.name?.charAt(0)?.toUpperCase() || 'U'
   const contactNumber = employee.phone
   const joiningDate = employee.joiningDate || employee.date_of_joining
   const shouldShowContactNumber = !hideMissingSensitiveFields || Boolean(contactNumber)
-  const shouldShowJoiningDate = !hideMissingSensitiveFields || Boolean(joiningDate)
+  const shouldShowJoiningDate = !hideJoiningDate && (!hideMissingSensitiveFields || Boolean(joiningDate))
+  const tenure = showTenure ? getCompanyTenure(employee) : null
 
 
   return (
@@ -31,6 +33,9 @@ function EmployeeProfileHeader({ employee, hideMissingSensitiveFields = false })
           <p><span className="font-semibold text-[#111827]">Email:</span> {employee.email || 'N/A'}</p>
           {shouldShowJoiningDate && (
             <p><span className="font-semibold text-[#111827]">Date of Joining:</span> {joiningDate || 'N/A'}</p>
+          )}
+          {showTenure && (
+            <p><span className="font-semibold text-[#111827]">Tenure:</span> {tenure?.label || 'N/A'}</p>
           )}
         </div>
       </div>

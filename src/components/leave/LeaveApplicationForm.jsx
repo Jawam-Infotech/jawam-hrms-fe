@@ -64,11 +64,11 @@ function LeaveApplicationForm({
 
       <div>
         <h2 className="text-[22px] font-black text-[#111827]">
-          Apply Leave
+          Apply Request
         </h2>
 
         <p className="mt-1 text-[14px] text-[#6b7280]">
-          Submit a leave request for approval.
+          Submit a request for approval.
         </p>
       </div>
 
@@ -89,7 +89,7 @@ function LeaveApplicationForm({
             htmlFor="leave-type"
             className="block text-[14px] font-semibold text-[#111827]"
           >
-            Leave Type
+            Request Type
           </label>
 
           <div className="relative">
@@ -125,7 +125,7 @@ function LeaveApplicationForm({
                   ? 'Loading leave types...'
                   : leaveTypes.length === 0
                     ? 'No leave types available'
-                    : 'Select leave type'}
+                    : 'Select Request type'}
               </option>
 
               {!leaveTypesLoading &&
@@ -446,7 +446,7 @@ function LeaveApplicationForm({
         >
           {loading
             ? 'Applying...'
-            : 'Apply leave'}
+            : 'Apply Request'}
         </button>
 
       </div>

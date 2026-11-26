@@ -139,11 +139,11 @@ function Leave() {
 
           <div>
             <h1 className="text-[32px] font-black text-[#111827]">
-              Leave Management
+              Workday Management
             </h1>
 
             <p className="mt-2 text-[16px] text-[#5f6679]">
-              Apply and track your leave requests
+              Apply and track your requests
             </p>
           </div>
 

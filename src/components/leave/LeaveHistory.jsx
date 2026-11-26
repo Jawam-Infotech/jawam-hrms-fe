@@ -26,7 +26,7 @@ function LeaveHistory({
         id="leave-history-title"
         className="text-[20px] font-black text-[#111827]"
       >
-        Leave History
+        Request History
       </h2>
 
       {/* =========================
@@ -40,7 +40,7 @@ function LeaveHistory({
             aria-live="polite"
             className="px-6 py-8 text-center text-[#6b7280]"
           >
-            Loading leave history...
+            Loading request history...
           </div>
         ) : error ? (
           <div
@@ -54,7 +54,7 @@ function LeaveHistory({
             role="status"
             className="px-6 py-8 text-center text-[#6b7280]"
           >
-            No leave history found.
+            No request history found.
           </div>
         ) : (
           <LeaveHistoryTable

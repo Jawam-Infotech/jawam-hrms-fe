@@ -16,6 +16,8 @@ import UpcomingInterviewsCard from '../../components/dashboard/ceo/cards/Upcomin
 import UpcomingMeetingsCard from '../../components/dashboard/ceo/cards/UpcomingMeetingsCard.jsx'
 import CEOLeaveRequestCard from '../../components/dashboard/ceo/cards/CEOLeaveRequestCard.jsx'
 import CEOHRWorkUpdatesCard from '../../components/dashboard/ceo/cards/CEOHRWorkUpdatesCard.jsx'
+import DashboardCelebrationCoordinator from '../../components/dashboard/common/DashboardCelebrationCoordinator.jsx'
+import DashboardAnnouncements from '../../components/dashboard/common/DashboardAnnouncements.jsx'
 
 function CEODashboard() {
   const { user } = useContext(UserContext)
@@ -88,6 +90,7 @@ function CEODashboard() {
 
   return (
     <DashboardLayout>
+      <DashboardCelebrationCoordinator />
       <div className="space-y-8">
         {/* Error Banner */}
         {actionError && (
@@ -264,13 +267,15 @@ function CEODashboard() {
         {/* HR Operations & Work Updates */}
         <CEOHRWorkUpdatesCard />
 
-        {/* Leave Request */}
-        <CEOLeaveRequestCard
-          requests={pendingLeaveRequests}
-          totalCount={pendingLeaveCount}
-          loading={pendingLeaveLoading}
-          onFooterClick={() => navigate('/leave/review')}
-        />
+        <div className="grid grid-cols-2 gap-6 max-[1220px]:grid-cols-1">
+          <DashboardAnnouncements />
+          <CEOLeaveRequestCard
+            requests={pendingLeaveRequests}
+            totalCount={pendingLeaveCount}
+            loading={pendingLeaveLoading}
+            onFooterClick={() => navigate('/leave/review')}
+          />
+        </div>
       </div>
 
       <ConfirmationModal
